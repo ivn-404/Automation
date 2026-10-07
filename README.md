@@ -61,6 +61,31 @@ Teammates open `http://<server-ip>:3850/` and sign in. Testers start runs and
 stop their own; admins stop any run; viewers only watch. Manage accounts any time
 with `npx pnpm qa:users list | passwd | role | disable | remove` (no restart needed).
 
+### Run on: My PC (tests run on the tester's own computer)
+
+A web page cannot start programs on the visitor's PC, so each tester installs the
+small SGAP Agent once. After that they keep using the server's link: with
+**Run on: My PC** the run goes to their agent, and the browsers, the worker monitor
+windows, the terminal and the Allure report all open on their PC. The dashboard
+still lists the run with its live log and worker status. **Server PC** runs it on
+the server as before.
+
+1. Sign in to the dashboard and click **Set up my PC** in the Test runner. This
+   downloads `SGAP-setup.cmd` with the server address filled in.
+2. Open it (if Windows warns: More info, then Run anyway). It installs Git,
+   Node.js and Java with winget when missing, downloads the project to
+   `%USERPROFILE%\SGAP-Automation`, installs packages and the test browser, then
+   asks for the tester's SGAP name and password (about 10 minutes, once).
+3. The **SGAP Agent** window opens and starts by itself at every Windows sign-in
+   (it runs `git pull` first, so test cases stay current). Keep it open while testing.
+
+The agent only accepts a test selection (suite or families, games, case, evidence
+options) and plans it from its own copy of the repository; the server cannot send
+it commands or files. Its token is stored hashed in `.sgap/qa-agents.json` on the
+server and stops working when the account is removed, disabled, set to viewer or
+given a new password. Manual use: `npx pnpm qa:agent setup --server http://<server-ip>:3850`,
+`npx pnpm qa:agent` (run), `npx pnpm qa:agent remove`.
+
 Capacity: `config/qa-server.json` (`maxBrowsers`, `maxConcurrentRuns`,
 `memoryPerBrowserMB`, `reserveMemoryMB`, `cpuCoresPerBrowser`, `whenFull`).
 Override per server in `.sgap/qa-server.json`; a bigger PC raises the limits

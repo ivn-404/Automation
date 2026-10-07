@@ -151,14 +151,21 @@ function alive(pid) {
   }
 }
 
-/** Live runs of the shared control panel (runs/active.json, written by scripts/lib/execution-manager.mjs). */
+/**
+ * Live runs of the shared control panel (runs/active.json, written by
+ * scripts/lib/execution-manager.mjs) and of the SGAP agent (runs/agent/active.json).
+ */
 export function liveManagedRuns(cwd = process.cwd()) {
-  try {
-    const data = JSON.parse(readFileSync(path.join(cwd, 'runs', 'active.json'), 'utf8'));
-    return (data.pids ?? []).map(asPid).filter((pid) => pid !== undefined && alive(pid));
-  } catch {
-    return [];
+  const pids = [];
+  for (const file of [path.join(cwd, 'runs', 'active.json'), path.join(cwd, 'runs', 'agent', 'active.json')]) {
+    try {
+      const data = JSON.parse(readFileSync(file, 'utf8'));
+      pids.push(...(data.pids ?? []).map(asPid).filter((pid) => pid !== undefined && alive(pid)));
+    } catch {
+      // Missing or half-written: nothing live from that source.
+    }
   }
+  return pids;
 }
 
 export function stopSgapLeftovers(options = {}) {

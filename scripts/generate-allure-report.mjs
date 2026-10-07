@@ -376,7 +376,7 @@ export function generateAllureReport(options = {}) {
   const runs = writeHistoryIndex(cwd);
   console.log(`Allure: report written to ${historyAbs}`);
   console.log(`Allure: history index ${path.join(cwd, HISTORY_DIR, 'index.html')} (${runs.length} run(s))`);
-  console.log(`Allure: latest shortcut → ${path.join(cwd, REPORT_DIR)}`);
+  if (options.latestShortcut !== false) console.log(`Allure: latest shortcut → ${path.join(cwd, REPORT_DIR)}`);
 
   return {
     ok: true,

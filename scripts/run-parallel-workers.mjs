@@ -500,8 +500,10 @@ const resultsPromise = shuttingDown
   : Promise.all(parallelConfig.lanes.map((lane) => runLane(lane, env)));
 
 // Managed runs are watched through the control panel; overlay windows from several
-// concurrent runs would pile up on the host's screen.
-const overlayWindows = !isManagedRun() && process.env.SGAP_MONITOR_OVERLAY !== '0';
+// concurrent runs would pile up on the host's screen. An SGAP agent runs on the
+// tester's own PC and asks for them (SGAP_MONITOR_OVERLAY=1).
+const overlayWindows =
+  process.env.SGAP_MONITOR_OVERLAY === '1' || (!isManagedRun() && process.env.SGAP_MONITOR_OVERLAY !== '0');
 if (!shuttingDown && monitorEnabled && monitorUrl && overlayWindows) {
   setTimeout(() => {
     const chromeExe = findChromiumExe(playwrightBrowsersPath);

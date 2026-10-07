@@ -151,6 +151,11 @@
     .qa-state.failed, .qa-state.bad { color: var(--fail); }
     .qa-state.stopped { color: var(--muted); }
     .qa-state a { color: var(--accent); }
+    .qa-where { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+    .qa-where .tab svg { width: 14px; height: 14px; }
+    .qa-where .tab .m { color: var(--faint); font-family: var(--mono); font-size: var(--fs-sm); }
+    .qa-where .tab.on .m { color: var(--accent); }
+    .qa-where .tab.off { color: var(--faint); }
     .qa-log {
       margin: 0 var(--s4) var(--s4); max-height: 220px; overflow: auto; font: var(--fs-sm)/1.55 var(--mono);
       background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3);
@@ -225,6 +230,14 @@
     <div id="qa-form"></div>
     <div class="qa-actions">
       <span class="qa-state" id="qa-state"></span>
+      <div class="qa-where" id="qa-where" hidden>
+        <span class="field-label">Run on</span>
+        <div class="tabs" role="radiogroup" aria-label="Run on">
+          <button type="button" class="tab" role="radio" data-where="mine" data-icon="monitor"><span>My PC</span></button>
+          <button type="button" class="tab" role="radio" data-where="server"><span>Server PC</span></button>
+        </div>
+        <a class="btn ghost sm" id="qa-setup" href="/agent/setup.cmd" download="SGAP-setup.cmd" data-icon="download" hidden><span>Set up my PC</span></a>
+      </div>
       <button type="button" class="btn ghost sm" id="qa-log-toggle" data-icon="terminal"><span>Show log</span></button>
       <button type="button" class="btn danger" id="qa-stop" data-icon="stop" data-control disabled><span>Stop</span></button>
       <button type="button" class="btn primary" id="qa-run" data-icon="play" data-control><span>Run selected tests</span></button>
@@ -613,7 +626,34 @@
       preset: '', families: new Set(), games: new Set(), caseId: '',
       opts: { screenshots: true, trace: false, dryRun: false },
       runs: [], me: null, capacity: null, selected: window.SGAP_RUN_ID || '', pinned: Boolean(window.SGAP_RUN_ID), seen: new Map(),
+      agent: null, remote: false, where: '',
     };
+    try { qa.where = localStorage.getItem('sgap.runOn') || ''; } catch { /* storage blocked */ }
+    /** "mine" = the SGAP Agent on the caller's PC runs it; "server" = this host. The host's own browser always runs here. */
+    function runOn() {
+      if (!SERVED || !qa.remote) return 'server';
+      if (qa.where === 'mine' || qa.where === 'server') return qa.where;
+      return qa.agent ? 'mine' : 'server';
+    }
+    function renderWhere() {
+      const box = document.getElementById('qa-where');
+      box.hidden = !(SERVED && qa.remote);
+      if (box.hidden) return;
+      const where = runOn();
+      box.querySelectorAll('[data-where]').forEach((tab) => {
+        const on = tab.dataset.where === where;
+        tab.classList.toggle('on', on);
+        tab.setAttribute('aria-checked', String(on));
+      });
+      const mine = box.querySelector('[data-where="mine"]');
+      mine.classList.toggle('off', !qa.agent);
+      mine.querySelector('span').innerHTML = 'My PC' + (qa.agent ? ' <span class="m">' + esc(qa.agent.machine) + '</span>' : '');
+      mine.dataset.tip = qa.agent
+        ? 'Browsers, terminal and the Allure report open on ' + qa.agent.machine + ' (your SGAP Agent).'
+        : 'No SGAP Agent is running on your PC. Use "Set up my PC" once, or start the "SGAP Agent" window.';
+      box.querySelector('[data-where="server"]').dataset.tip = 'Runs on the server PC; you watch it here.';
+      document.getElementById('qa-setup').hidden = Boolean(qa.agent);
+    }
     /** Path of a run-scoped monitor endpoint; null when the panel has no run selected. */
     function runApi(p) {
       if (!SERVED) return p;
@@ -660,7 +700,8 @@
       list.innerHTML = qa.runs.slice(0, 60).map((run) => {
         const mine = qa.me && run.owner === qa.me.name;
         const games = (run.games || []).length;
-        const sub = run.state === 'queued' ? (run.queueReason || 'Waiting for capacity') : run.note || ((run.currentPackage ? 'package ' + run.currentPackage + ' · ' : '') + games + ' game' + (games === 1 ? '' : 's'));
+        const sub = (run.where === 'agent' ? 'on ' + run.machine + ' · ' : '') +
+          (run.state === 'queued' ? (run.queueReason || 'Waiting for capacity') : run.note || ((run.currentPackage ? 'package ' + run.currentPackage + ' · ' : '') + games + ' game' + (games === 1 ? '' : 's')));
         return '<div class="run-row' + (run.id === qa.selected ? ' sel' : '') + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
           '<span class="rid">' + esc(run.id) + '</span>' +
           '<span class="who">' + esc(run.owner) + (mine ? '<span class="you">you</span>' : '') + '</span>' +
@@ -668,7 +709,7 @@
           '<span><span class="pill ' + (pill[run.state] || '') + '">' + esc(run.state) + '</span></span>' +
           '<span class="el">' + runElapsed(run) + '</span>' +
           '<span class="acts">' +
-            '<a class="btn ghost sm icon" href="/runs/' + esc(run.id) + '/observe" target="_blank" rel="noreferrer" title="Observer for ' + esc(run.id) + '" aria-label="Observer">' + icon('observer') + '</a>' +
+            (run.where === 'agent' ? '' : '<a class="btn ghost sm icon" href="/runs/' + esc(run.id) + '/observe" target="_blank" rel="noreferrer" title="Observer for ' + esc(run.id) + '" aria-label="Observer">' + icon('observer') + '</a>') +
             (canStop(run) ? '<button type="button" class="btn ghost sm icon" data-stop-run="' + esc(run.id) + '" data-control title="Stop ' + esc(run.id) + '" aria-label="Stop ' + esc(run.id) + '">' + icon('stop') + '</button>' : '') +
           '</span></div>';
       }).join('');
@@ -852,7 +893,7 @@
       const runBtn = document.getElementById('qa-run');
       if (!runBtn.classList.contains('is-loading')) {
         // Runs are independent executions: starting another never waits on the one in view.
-        runBtn.disabled = !qa.online || !hasFamilies || qa.games.size === 0;
+        runBtn.disabled = !qa.online || !hasFamilies || qa.games.size === 0 || (runOn() === 'mine' && !qa.agent);
       }
       const stopBtn = document.getElementById('qa-stop');
       stopBtn.disabled = !canStop(job);
@@ -865,6 +906,11 @@
         return;
       }
       if (!job || (!running && qa.touchedSinceJob)) {
+        if (runOn() === 'mine' && !qa.agent) {
+          el.classList.add('bad');
+          el.textContent = 'No SGAP Agent on your PC yet. Click "Set up my PC" (one time), or start the "SGAP Agent" window — or choose Server PC.';
+          return;
+        }
         const pkgs = new Set([...qa.games].map((g) => (qaPackageOf(g) || {}).id));
         el.textContent = qaSelectionText() + ' · ' + qa.games.size + ' game(s) in ' + pkgs.size + ' package(s) · ' +
           qaPlannedRuns() + ' case run(s)';
@@ -872,7 +918,11 @@
       }
       el.classList.add(job.state);
       const pkgCount = (job.packages || []).length;
-      const where = job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '';
+      const where = (job.where === 'agent' ? ' · on ' + job.machine : '') +
+        (job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '');
+      const report = job.where === 'agent'
+        ? ' · report on ' + esc(job.machine) + ' (Allure history there)'
+        : ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>';
       const elapsed = runElapsed(job);
       const who = (job.id ? job.id + ' · ' : '') + (job.owner && (!qa.me || job.owner !== qa.me.name) ? job.owner + ' · ' : '');
       const what = job.label + (job.dryRun ? ' (dry run)' : '') + ' · ' + (job.games || []).length + ' game(s)';
@@ -880,8 +930,9 @@
         ? 'Queued · ' + esc(who + what) + ' · ' + esc(job.queueReason || 'waiting for capacity')
         : running
         ? 'Running · ' + esc(who + what) + esc(where) + ' · ' + elapsed
-        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(who + what) + ' · ' + pkgCount + ' package(s) in ' + elapsed +
-          (job.dryRun ? '' : ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>') +
+        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(who + what) + esc(job.where === 'agent' ? ' · on ' + job.machine : '') +
+          ' · ' + pkgCount + ' package(s) in ' + elapsed +
+          (job.dryRun ? '' : report) +
           (job.logFile ? ' · log <span class="mono">' + esc(job.logFile) + '</span>' : '');
     }
     async function qaPoll() {
@@ -894,6 +945,9 @@
         qa.runs = list.runs || [];
         qa.me = list.me || null;
         qa.capacity = list.capacity || null;
+        qa.agent = list.agent || null;
+        qa.remote = Boolean(list.remote);
+        renderWhere();
         // Toast when one of my runs finishes, whichever run is in view.
         for (const run of qa.runs) {
           const was = qa.seen.get(run.id);
@@ -902,7 +956,7 @@
             toast({ kind, title: run.id + ' ' + run.state, text: run.label + ' · ' + runElapsed(run) });
           }
           if (was === 'queued' && run.state === 'running' && qa.me && run.owner === qa.me.name) {
-            toast({ kind: 'info', title: run.id + ' started', text: 'Capacity freed up; it left the queue.' });
+            toast({ kind: 'info', title: run.id + ' started', text: run.where === 'agent' ? 'Running on ' + run.machine + '.' : 'Capacity freed up; it left the queue.' });
           }
           qa.seen.set(run.id, run.state);
         }
@@ -1003,6 +1057,8 @@
       if (games.length === 0 || (!preset && families.length === 0)) return;
       const names = games.map((g) => qa.catalog.packages.flatMap((p) => p.games).find((x) => x.gameId === g).name);
       const withPen = preset ? (preset.families || []).includes('PEN') : families.includes('PEN');
+      const where = runOn();
+      if (where === 'mine' && !qa.agent) return;
       if (!qa.opts.dryRun) {
         const ok = await confirmBox({
           title: 'Run ' + (preset ? preset.label : 'selected tests') + (qa.caseId ? ' — ' + qa.caseId + ' only' : ''),
@@ -1010,7 +1066,7 @@
             qaSelectionText(),
             'Games: ' + names.join(', '),
             qaPlannedRuns() + ' case run(s)',
-          ],
+          ].concat(SERVED && qa.remote ? ['Runs on: ' + (where === 'mine' ? 'your PC (' + qa.agent.machine + ')' : 'the server PC')] : []),
           warning: withPen ? 'Includes PEN (Security / Pentesting) — staging test accounts only.' : '',
           confirmLabel: 'Run',
         });
@@ -1022,6 +1078,7 @@
       const body = Object.assign(
         preset ? { suite: preset.id } : { families },
         { games, caseId: qa.caseId, dryRun: qa.opts.dryRun, screenshots: qa.opts.screenshots, trace: qa.opts.trace },
+        SERVED && qa.remote ? { where } : {},
       );
       try {
         const started = await qaFetch('/api/qa/run', {
@@ -1034,7 +1091,9 @@
         qa.runs = [run].concat(qa.runs.filter((r) => r.id !== run.id));
         qa.seen.set(run.id, run.state);
         if (run.id) selectRun(run.id, true);
-        toast(run.state === 'queued'
+        toast(run.where === 'agent'
+          ? { kind: 'success', title: run.id + ' sent to ' + run.machine, text: 'Your SGAP Agent starts it in a few seconds; browsers open on your PC.' }
+          : run.state === 'queued'
           ? { kind: 'warn', title: run.id + ' queued', text: run.queueReason || 'Waiting for capacity on the server.' }
           : { kind: 'success', title: (run.id ? run.id + ' ' : '') + (qa.opts.dryRun ? 'dry run started' : 'started'), text: names.length + ' game(s) · ' + qaPlannedRuns() + ' case run(s)' });
         runBtn.classList.remove('is-loading');
@@ -1054,6 +1113,23 @@
       btn.classList.add('is-loading');
       await stopRun(qa.job.id);
       btn.classList.remove('is-loading');
+    });
+    document.getElementById('qa-where').addEventListener('click', (ev) => {
+      const tab = ev.target.closest('[data-where]');
+      if (tab) {
+        qa.where = tab.dataset.where;
+        try { localStorage.setItem('sgap.runOn', qa.where); } catch { /* storage blocked */ }
+        renderWhere();
+        renderQaJob();
+        return;
+      }
+      if (ev.target.closest('#qa-setup')) {
+        toast({
+          kind: 'info',
+          title: 'Downloading SGAP-setup.cmd',
+          text: 'Open it from Downloads (if Windows warns: More info, then Run anyway). One-time install, about 10 minutes; it asks for your SGAP sign-in, then opens the "SGAP Agent" window.',
+        });
+      }
     });
     document.getElementById('qa-log-toggle').addEventListener('click', (ev) => {
       const logEl = document.getElementById('qa-log');

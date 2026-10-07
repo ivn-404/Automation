@@ -11,6 +11,11 @@
  * Run-scoped pages and reads live under /runs/<id>/ and are forwarded to that run's
  * monitor through an allowlist; worker-only monitor endpoints are never reachable.
  *
+ * "Run on: My PC" hands a run to the SGAP agent on the tester's own PC
+ * (scripts/qa-agent.mjs, installed by the /agent/setup.cmd download). The agent
+ * authenticates with its own token under /api/qa/agent/ and only ever receives
+ * the test selection; browsers, terminal and reports stay on that PC.
+ *
  * Usage: node scripts/qa-testing-page.mjs [port] [--server | --share[=view]]   (default 3850)
  *   --server   shared QA server: listens on the network, QA accounts required
  *              (npx pnpm qa:users add <name>); this PC's own browser is the host admin
@@ -20,7 +25,7 @@
  *        SGAP_QA_SHARE=control|view  same as --share
  *        SGAP_QA_SHARE_KEY=…         fixed access key instead of a random one per start
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import os from 'node:os';
@@ -57,6 +62,7 @@ const HTML_PATH = path.join(LIB, 'sgap-worker-monitor.html');
 const READER_HTML_PATH = path.join(LIB, 'sgap-backend-reader.html');
 const OBSERVE_HTML_PATH = path.join(LIB, 'sgap-monitor-worker.html');
 const LOGIN_HTML_PATH = path.join(LIB, 'sgap-login.html');
+const AGENT_SETUP_PATH = path.join(LIB, 'sgap-agent-setup.cmd');
 const ALLURE_ROOT = path.resolve(process.env.SGAP_ALLURE_HISTORY_ROOT ?? path.join(cwd, 'allure-history'));
 
 /** Per-run monitor endpoints the panel pages read; everything else there is worker-only. */
@@ -143,6 +149,11 @@ const OFFLINE = {
 async function proxyToRun(req, res, runId, subPath, search, raw) {
   const base = runId ? manager.monitorUrl(runId) : undefined;
   if (base === undefined) {
+    const live = runId ? manager.liveStatus(runId) : undefined;
+    if (subPath === '/api/status' && live !== undefined) {
+      send(res, 200, live);
+      return;
+    }
     if (OFFLINE[subPath]) send(res, 200, OFFLINE[subPath]);
     else send(res, 503, { ok: false, error: 'This run has no live worker monitor right now.' });
     return;
@@ -166,6 +177,71 @@ async function proxyToRun(req, res, runId, subPath, search, raw) {
     if (OFFLINE[subPath]) send(res, 200, OFFLINE[subPath]);
     else send(res, 503, { ok: false, error: 'This run has no live worker monitor right now.' });
   }
+}
+
+function clientIp(req) {
+  return String(req.socket.remoteAddress ?? '').replace(/^::ffff:/u, '');
+}
+
+/** Clone URL for agent PCs: this checkout's origin without any embedded credentials. */
+function agentRepoUrl() {
+  const fromGit = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf8', windowsHide: true });
+  const raw = String(config.agentRepoUrl ?? fromGit.stdout ?? '').trim();
+  try {
+    const url = new URL(raw);
+    url.username = '';
+    url.password = '';
+    return url.protocol === 'https:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+const REPO_URL = agentRepoUrl();
+
+/** setup.cmd for a tester's PC, pointed at the address they reached this server on. */
+function agentSetupScript(req) {
+  const host = String(req.headers.host ?? '');
+  const lan = lanUrls(port, '').map((entry) => entry.replace(/\?key=$/u, '').replace(/\/$/u, ''));
+  const reachable = /^[A-Za-z0-9.-]+(:\d{1,5})?$/u.test(host) && !/^(127\.|localhost\b|\[?::1)/u.test(host);
+  const server = reachable ? `http://${host}` : lan[0];
+  if (server === undefined || REPO_URL === undefined) return undefined;
+  return readFileSync(AGENT_SETUP_PATH, 'utf8')
+    .replaceAll('__SGAP_SERVER__', server)
+    .replaceAll('__SGAP_REPO__', REPO_URL)
+    .replace(/\r?\n/gu, '\r\n');
+}
+
+/** Requests from an SGAP agent (Bearer token); answered before the browser sign-in check. */
+async function handleAgent(req, res, url) {
+  if (req.method !== 'POST') {
+    send(res, 405, { ok: false, error: 'POST only.' });
+    return;
+  }
+  const body = parseJson(await readBody(req));
+  if (url.pathname === '/api/qa/agent/register') {
+    const result = auth.registerAgent(req, body.name, body.password, body.machine);
+    send(res, result.ok ? 200 : result.status, result.ok ? { ok: true, token: result.token, user: result.user, machine: result.machine } : { ok: false, error: result.error });
+    return;
+  }
+  const agent = auth.agent(req);
+  if (agent === undefined) {
+    send(res, 401, { ok: false, error: 'This agent is not registered (or its account changed). Run setup again: node scripts/qa-agent.mjs setup' });
+    return;
+  }
+  const owner = agent.user.name;
+  if (url.pathname === '/api/qa/agent/poll') {
+    send(res, 200, { ok: true, user: agent.user, machine: agent.machine, ...manager.agentPoll(owner, agent.machine, clientIp(req), body) });
+    return;
+  }
+  const action = url.pathname.match(/^\/api\/qa\/agent\/runs\/(RUN-\d{4,})\/(claim|report)$/u);
+  if (action) {
+    const result = action[2] === 'claim'
+      ? manager.agentClaim(owner, agent.machine, action[1])
+      : manager.agentReport(owner, agent.machine, action[1], body);
+    send(res, result.status, result.body);
+    return;
+  }
+  send(res, 404, { ok: false, error: 'not found' });
 }
 
 /** Run shown by the root-level pages: the caller's newest live run, else anyone's. */
@@ -334,6 +410,10 @@ const server = createServer(async (req, res) => {
       send(res, 200, { ok: true }, undefined, { 'Set-Cookie': auth.logout(req) });
       return;
     }
+    if (url.pathname.startsWith('/api/qa/agent/')) {
+      await handleAgent(req, res, url);
+      return;
+    }
 
     const who = identify(req, url);
     if (!who.ok) {
@@ -394,7 +474,22 @@ const server = createServer(async (req, res) => {
         return;
       }
       if (url.pathname === '/api/qa/runs') {
-        send(res, 200, { me: who.user, capacity: manager.capacity(), runs: manager.list() });
+        send(res, 200, {
+          me: who.user,
+          remote: who.remote,
+          agent: manager.myAgent(who.user, clientIp(req)),
+          capacity: manager.capacity(),
+          runs: manager.list(),
+        });
+        return;
+      }
+      if (url.pathname === '/agent/setup.cmd') {
+        const script = agentSetupScript(req);
+        if (script === undefined) {
+          send(res, 503, 'Setup needs the server to be reachable on the network (npx pnpm qa:server) and an https git remote.', 'text/plain; charset=utf-8');
+          return;
+        }
+        send(res, 200, script, 'application/octet-stream', { 'Content-Disposition': 'attachment; filename="SGAP-setup.cmd"' });
         return;
       }
       const runRead = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,})$/u);
@@ -416,7 +511,7 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'POST') {
       if (url.pathname === '/api/qa/run') {
-        const result = manager.submit(who.user, parseJson(await readBody(req)));
+        const result = manager.submit(who.user, parseJson(await readBody(req)), { ip: clientIp(req) });
         send(res, result.status, result.body);
         return;
       }
