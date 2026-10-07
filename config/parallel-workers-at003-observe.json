@@ -1,0 +1,49 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "AT-003 failed-bet refund investigation with the Monitor Worker recording network, console, websocket, game events and the HUD/server balance timeline. Mars is the passing control.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "AT",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-003.spec.ts"],
+      "playerId": "Sugar Wonderland_RR1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "AT",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-003.spec.ts"],
+      "playerId": "Felice in Space_RR1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "AT",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-003.spec.ts"],
+      "playerId": "Mars Triumph_RR1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    }
+  ]
+}

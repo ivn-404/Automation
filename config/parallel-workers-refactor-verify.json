@@ -1,0 +1,151 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "SGAP refactor verification: one spec set on all four package-1 games (capability gating, SpinController.spinAndRead + healer, interaction journal), plus Kobo Ass (package 2, scratch-only manifest) to show supported (SCG), not-configured (slot controllers absent from manifest) and never a false N/A.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "RV",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_RV1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "RV",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Beelze-Bop_RV1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "RV",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Felice in Space_RV1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "RV",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Mars Triumph_RV1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 5,
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "category": "RV",
+      "categories": [
+        "SCG",
+        "CSF",
+        "BF",
+        "AP",
+        "AT"
+      ],
+      "testMatch": [
+        "scg/**/SCG-001.spec.ts",
+        "csf/**/CSF-011.spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "at/**/AT-008.spec.ts"
+      ],
+      "playerId": "Kobo Ass_RV1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "example",
+  "displayName": "Example Slot (Scaffold)",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    { "id": "spin", "enabled": true },
+    { "id": "autoplay", "enabled": true },
+    { "id": "buyFeature", "enabled": false },
+    { "id": "bet", "enabled": true },
+    { "id": "amplifyBet", "enabled": false },
+    { "id": "turbo", "enabled": true },
+    { "id": "menu", "enabled": true },
+    { "id": "settings", "enabled": true },
+    { "id": "fullscreen", "enabled": true }
+  ],
+  "locatorKeys": {
+    "gameIframe": "iframe[data-sgap='game']",
+    "spinButton": "[data-testid='spin']",
+    "betDisplay": "[data-testid='bet']",
+    "balanceDisplay": "[data-testid='balance']"
+  },
+  "metadata": {
+    "provider": "example",
+    "notes": "Scaffold manifest only — replace selectors per real game config"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "SGAP refactor smoke: the same spin specs (now routed through SpinController.spinAndRead + canvas healer) on all four package-1 games.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "RF",
+      "categories": [
+        "CSF",
+        "BC"
+      ],
+      "testMatch": [
+        "csf/**/CSF-00[12].spec.ts",
+        "bc/**/BC-001.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_RF1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "RF",
+      "categories": [
+        "CSF",
+        "BC"
+      ],
+      "testMatch": [
+        "csf/**/CSF-00[12].spec.ts",
+        "bc/**/BC-001.spec.ts"
+      ],
+      "playerId": "Beelze-Bop_RF1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "RF",
+      "categories": [
+        "CSF",
+        "BC"
+      ],
+      "testMatch": [
+        "csf/**/CSF-00[12].spec.ts",
+        "bc/**/BC-001.spec.ts"
+      ],
+      "playerId": "Felice in Space_RF1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "RF",
+      "categories": [
+        "CSF",
+        "BC"
+      ],
+      "testMatch": [
+        "csf/**/CSF-00[12].spec.ts",
+        "bc/**/BC-001.spec.ts"
+      ],
+      "playerId": "Mars Triumph_RF1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

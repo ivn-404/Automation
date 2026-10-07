@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "driver-smoke",
+  "displayName": "Driver Smoke Fixture",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    { "id": "spin", "enabled": true },
+    { "id": "autoplay", "enabled": false },
+    { "id": "buyFeature", "enabled": false },
+    { "id": "bet", "enabled": true },
+    { "id": "amplifyBet", "enabled": false },
+    { "id": "turbo", "enabled": false },
+    { "id": "menu", "enabled": false },
+    { "id": "settings", "enabled": false },
+    { "id": "fullscreen", "enabled": false },
+    { "id": "scratchCard", "enabled": false }
+  ],
+  "locatorKeys": {
+    "gameIframe": "iframe#game",
+    "spinButton": "[data-testid='spin']",
+    "balanceDisplay": "[data-testid='balance']"
+  },
+  "metadata": {
+    "purpose": "Local HTML fixture for PlaywrightGameDriver smoke only",
+    "normalModeMultiplier": "false"
+  }
+}

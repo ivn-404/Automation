@@ -1,0 +1,84 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Sugar Wonderland and Beelze-Bop at the same time: 2 workers each. Monitor 1 = Sugar CORE|PLAY, monitor 2 = Beelze CORE|PLAY. Category split matches config/parallel-workers.json.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "CORE",
+      "categories": ["CSF", "SM", "CP", "UIDS", "MN", "FS", "TM"],
+      "testMatch": [
+        "probe/**/*.spec.ts",
+        "csf/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "cp/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "mn/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "tm/**/*.spec.ts"
+      ],
+      "playerId": "Gamename1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "PLAY",
+      "categories": ["BF", "AT", "AP", "BC", "ES"],
+      "testMatch": [
+        "bf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "es/**/*.spec.ts"
+      ],
+      "playerId": "Gamename2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "CORE",
+      "categories": ["CSF", "SM", "CP", "UIDS", "MN", "FS", "TM"],
+      "testMatch": [
+        "probe/**/*.spec.ts",
+        "csf/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "cp/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "mn/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "tm/**/*.spec.ts"
+      ],
+      "playerId": "Gamename3",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "PLAY",
+      "categories": ["BF", "AT", "AP", "BC", "ES"],
+      "testMatch": [
+        "bf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "es/**/*.spec.ts"
+      ],
+      "playerId": "Gamename4",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

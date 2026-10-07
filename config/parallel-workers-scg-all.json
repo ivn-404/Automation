@@ -1,0 +1,486 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Scratch (SCG) suite across every scratch-enabled game. One lane per game, 4 workers so the monitor shows 4 games at a time. Each SCG test stamps a gameId label, so the single Allure report groups by game.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "amazonians",
+      "gameName": "Amazonians",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Amazonians_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Lost Empire",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Aztec Lost Empire_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "bad-beach",
+      "gameName": "Bad Beach",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Bad Beach_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Beelze-Bop_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 5,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "blockchain-blitz",
+      "gameName": "Blockchain Blitz",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Blockchain Blitz_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 6,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Boobie Trap_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 7,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Felice in Space_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 8,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Genghis Bao_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 9,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "grave-threat",
+      "gameName": "Grave Threat",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Grave Threat_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 10,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "hustle-the-blazing-horse",
+      "gameName": "Hustle The Blazing Horse",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Hustle The Blazing Horse_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 11,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "joker-ace",
+      "gameName": "Joker Ace",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Joker Ace_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 12,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "jungle-fruity",
+      "gameName": "Jungle Fruity",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Jungle Fruity_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 13,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "king-in-gold",
+      "gameName": "King in Gold",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "King in Gold_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 14,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Kobo Ass_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 15,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "mad-freaks",
+      "gameName": "Mad Freaks",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Mad Freaks_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 16,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Mars Triumph_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 17,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "necronomicoin",
+      "gameName": "Necronomicoin",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Necronomicoin_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 18,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "oppals",
+      "gameName": "Oppals",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Oppals_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 19,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Pastry Cub_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 20,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 21,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Sk8leton_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 22,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "sugar-pals",
+      "gameName": "Sugar Pals",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Sugar Pals_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 23,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 24,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "That's Bait_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "id": 25,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 26,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "trippy-cat",
+      "gameName": "Trippy Cat",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Trippy Cat_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 27,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "War Freaks_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 28,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Zero Law_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

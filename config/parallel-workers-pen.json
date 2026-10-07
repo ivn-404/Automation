@@ -1,0 +1,21 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "PERSONALTESTING PEN suite (docs/PERSONALTESTING.md) against Sugar Wonderland scratch on staging. Single lane so the whole adversarial suite runs in one visible worker window with the monitor overlay. Economy/RNG cases skip themselves with a clear reason while the scratch hub's JoinScratch is erroring.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": ["pen/**/*.spec.ts"],
+      "playerId": "Sugar Wonderland_PEN01",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

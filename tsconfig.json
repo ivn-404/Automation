@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@sgap/core/*": ["src/core/*"],
+      "@sgap/platform/*": ["src/platform/*"],
+      "@sgap/driver/*": ["src/driver/*"],
+      "@sgap/controllers/*": ["src/controllers/*"],
+      "@sgap/events/*": ["src/events/*"],
+      "@sgap/data/*": ["src/data/*"],
+      "@sgap/verification/*": ["src/verification/*"],
+      "@sgap/network/*": ["src/network/*"],
+      "@sgap/state/*": ["src/state/*"],
+      "@sgap/readiness/*": ["src/readiness/*"],
+      "@sgap/reporting/*": ["src/reporting/*"],
+      "@sgap/traceability/*": ["src/traceability/*"],
+      "@sgap/ui/*": ["src/ui/*"],
+      "@sgap/shared/*": ["src/shared/*"]
+    },
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "playwright.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}

@@ -1,0 +1,41 @@
+---
+description: Always print detailed terminal updates when running SGAP staging/package simulations
+globs:
+  - scripts/run-*.mjs
+  - scripts/lib/simulation-terminal-report.mjs
+---
+
+# Simulation terminal updates
+
+When running **staging simulations** or **multi-game package tests**, always use the repo runners (they print full IDE terminal reports):
+
+| Command | Purpose |
+|---|---|
+| `pnpm test:package:staging` | 4 games × automated specs (non-BF then BF) |
+| `pnpm test:regression:staging` | Sugar Wonderland full regression + Allure pending |
+| `pnpm test:staging` | Sugar Wonderland grep sweep (non-BF then BF) |
+
+Do **not** call bare `playwright test` for package/regression gates unless debugging a single spec.
+
+## Required env (Windows)
+
+```bash
+SGAP_LAUNCHER_MODE=staging npx pnpm exec node scripts/run-package-games-staging.mjs
+```
+
+Use `SGAP_WORKERS=1` for stable multi-game runs unless explicitly testing parallelism.
+
+## What the terminal shows
+
+Each runner prints:
+
+1. **Header** — games, workers, mode, waves, report paths
+2. **Wave start** — which wave is running
+3. **Playwright list output** (live)
+4. **Wave summary** — pass/fail by game, failure lines with `{Game Name}_{random}` player ids
+5. **Final rollup** — all waves, duration, exit code, HTML report path
+
+After the run completes:
+
+1. Summarize the **FINAL ROLLUP** block for the user (game × pass counts, top failures).
+2. Confirm Allure was **generated and opened** (runners call `publishAllureReport()` automatically). If you launched bare `playwright test`, run `npx pnpm allure:publish` yourself.

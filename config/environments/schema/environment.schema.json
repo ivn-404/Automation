@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sgap.local/schemas/environment.schema.json",
+  "title": "SGAP Environment Config",
+  "description": "Environment-specific settings. Secrets must not be committed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "baseUrl", "defaultTimeoutMs"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Game host / launcher URL for this environment."
+    },
+    "defaultTimeoutMs": {
+      "type": "integer",
+      "minimum": 1000
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

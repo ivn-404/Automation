@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP Backend Reader</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    /* Backend Reader layout (tokens and components come from /ui.css). */
+    .summary { display: flex; gap: var(--s3); color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
+    .summary b { color: var(--text); font-weight: 600; }
+    .nav { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; padding: var(--s2) var(--s5) var(--s3); }
+    .legend { display: flex; gap: 2px; flex-wrap: wrap; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-raised); }
+    .legend-item {
+      display: inline-flex; align-items: center; gap: 7px; height: 26px;
+      background: none; border: 0; cursor: pointer; user-select: none;
+      padding: 0 10px; border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-md);
+    }
+    .legend-item:hover { background: var(--hover); color: var(--text); }
+    .legend-item.active { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
+    .legend-item .swatch { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+    .legend-item[data-filter="all"] .swatch { background: var(--accent); }
+    .legend-item[data-filter="passed"] .swatch { background: var(--pass); }
+    .legend-item[data-filter="failed"] .swatch { background: var(--fail); }
+    .legend-item[data-filter="timedOut"] .swatch { background: var(--run); }
+    .legend-item[data-filter="running"] .swatch { background: var(--accent); }
+    .legend-item .count { color: var(--faint); font-family: var(--mono); }
+    .legend-item.active .count { color: var(--muted); }
+
+    /* Sequence list */
+    .layout { flex: 1; display: grid; grid-template-columns: 340px minmax(0, 1fr); min-height: 0; }
+    .list { border-right: 1px solid var(--line); overflow: auto; background: var(--bg); padding: 8px 8px 16px; }
+    .list h2 {
+      margin: 0; padding: 6px 10px 8px; font-size: 12px; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.06em; text-transform: uppercase; position: sticky; top: -8px; background: var(--bg); z-index: 1;
+    }
+    .seq {
+      display: block; width: 100%; text-align: left; cursor: pointer;
+      border: 0; border-radius: 6px; background: transparent; color: inherit;
+      padding: 8px 10px 8px 12px; margin-bottom: 2px; box-shadow: inset 3px 0 0 var(--line);
+    }
+    .seq:hover { background: var(--hover); }
+    .seq.active { background: var(--surface); }
+    .seq .n { color: var(--accent); font-weight: 600; font-family: var(--mono); }
+    .seq .lbl { display: block; font-weight: 600; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .seq .meta { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .seq .rec { color: var(--run); font-weight: 600; }
+    .seq .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--pass); margin-right: 6px; vertical-align: middle; }
+    .seq .dot.off { background: var(--faint); opacity: 0.6; }
+    .seq.outcome-passed { box-shadow: inset 3px 0 0 var(--pass); }
+    .seq.outcome-failed, .seq.outcome-interrupted { box-shadow: inset 3px 0 0 var(--fail); }
+    .seq.outcome-timedOut { box-shadow: inset 3px 0 0 var(--run); }
+    .seq.outcome-running { box-shadow: inset 3px 0 0 var(--accent); }
+    .seq.outcome-skipped { box-shadow: inset 3px 0 0 var(--skip); }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; margin-left: 4px;
+      padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--line); color: var(--muted); vertical-align: middle;
+    }
+    .status-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+    .status-badge.passed { color: var(--pass); border-color: rgba(74, 217, 145, 0.35); }
+    .status-badge.passed::before { background: var(--pass); }
+    .status-badge.failed, .status-badge.interrupted { color: var(--fail); border-color: rgba(255, 107, 133, 0.4); }
+    .status-badge.failed::before, .status-badge.interrupted::before { background: var(--fail); }
+    .status-badge.timedOut { color: var(--run); border-color: rgba(255, 200, 87, 0.4); }
+    .status-badge.timedOut::before { background: var(--run); }
+    .status-badge.running { color: var(--accent); border-color: rgba(130, 170, 255, 0.4); }
+    .status-badge.running::before { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+
+    /* Stage */
+    .stage { overflow: auto; background: var(--bg); }
+    .stage-inner { padding: 18px 22px 40px; max-width: 1440px; }
+    .empty { color: var(--muted); padding: 48px 16px; text-align: center; }
+    .test-error {
+      margin: 0 0 16px; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid rgba(255, 107, 133, 0.4); background: rgba(255, 107, 133, 0.08);
+      color: #ffc2cc; font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .hero {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
+    }
+    .hero h1 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+    .hero .sub { color: var(--muted); font-size: 14px; }
+    .hero-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .payload-banner {
+      display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 20px;
+    }
+    .payload-banner h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .payload-banner .url { font-family: var(--mono); font-size: 13px; color: var(--accent); word-break: break-all; }
+    .payload-banner .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .spin-group { margin: 0 0 26px; }
+    .spin-group > .sg-head { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+    .spin-group > .sg-head h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 0 0 12px; }
+    .step.kind-idle { box-shadow: inset 3px 0 0 var(--pass); }
+    .step.kind-spin { box-shadow: inset 3px 0 0 var(--run); }
+    .step-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .step-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 999px; margin-right: 8px; vertical-align: middle;
+    }
+    .badge.idle { background: rgba(74, 217, 145, 0.15); color: var(--pass); }
+    .badge.spin { background: rgba(255, 200, 87, 0.15); color: var(--run); }
+    .qtag { font-size: 13px; color: var(--muted); }
+
+    .step-grid { display: grid; gap: 14px; align-items: start; }
+    .step-grid.idle-3 { grid-template-columns: minmax(160px, 240px) minmax(200px, 1fr) minmax(220px, 1.1fr); }
+    .step-grid.spin-1 { grid-template-columns: minmax(220px, 420px); }
+    @media (max-width: 1100px) {
+      .step-grid.idle-3 { grid-template-columns: 1fr 1fr; }
+      .step-grid.idle-3 .json-panel { grid-column: 1 / -1; }
+    }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .list { max-height: 240px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .step-grid.idle-3 { grid-template-columns: 1fr; }
+    }
+    .panel-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .shot { margin: 0; background: #000; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .shot img { display: block; width: 100%; background: #000; }
+    .shot figcaption { padding: 6px 10px; color: var(--muted); font-size: 13px; background: var(--surface-2); }
+
+    .skeleton-wrap { display: inline-block; width: 100%; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; }
+    .col-labels, .grid-row { display: grid; gap: 4px; }
+    .col-labels { margin: 0 0 6px 28px; }
+    .hdr { text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .grid-row { align-items: center; margin-bottom: 4px; }
+    .rlabel { width: 24px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .cell {
+      min-width: 46px; height: 52px; border-radius: 6px;
+      border: 1px solid var(--line-strong); background: var(--hover);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .cell .id { font-size: 16px; font-weight: 700; }
+    .cell .nm { font-size: 11px; color: var(--muted); max-width: 48px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .json-panel { background: var(--json-bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 120px; display: flex; flex-direction: column; }
+    .json-toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .json-toolbar .path { font-family: var(--mono); font-size: 12px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .json-body {
+      margin: 0; padding: 10px 12px; overflow: auto; max-height: 340px;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55; color: #d5dbe8;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .json-body .k, #payload-full .k { color: #89d4ff; }
+    .json-body .s, #payload-full .s { color: #b5e8b0; }
+    .json-body .n, #payload-full .n { color: #ffd27a; }
+    .json-body .b, #payload-full .b { color: #ff9e7a; }
+    .json-body .null, #payload-full .null { color: var(--faint); }
+
+    .modal-card pre {
+      margin: 0; padding: 16px; overflow: auto; flex: 1;
+      font-family: var(--mono); font-size: 13px; line-height: 1.55; color: #d5dbe8; background: var(--json-bg);
+    }
+    .seq:focus-visible { box-shadow: var(--ring); }
+    @media (max-width: 760px) {
+      .nav { padding: var(--s2) var(--s3) var(--s3); }
+      .stage-inner { padding: var(--s3); }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Backend Reader</span></div>
+      <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <div class="spacer"></div>
+      <div class="summary mono"><span><b id="count">0 sequences</b></span><span>keep last <b id="keep">50</b></span></div>
+      <span class="status idle" id="foot">Connecting…</span>
+      <button type="button" class="access" id="access" hidden></button>
+    </div>
+    <div class="nav">
+      <div class="legend" id="legend">
+        <button type="button" class="legend-item active" data-filter="all"><span class="swatch"></span>All <span class="count" id="count-all">0</span></button>
+        <button type="button" class="legend-item" data-filter="passed"><span class="swatch"></span>Passed <span class="count" id="count-passed">0</span></button>
+        <button type="button" class="legend-item" data-filter="failed"><span class="swatch"></span>Failed <span class="count" id="count-failed">0</span></button>
+        <button type="button" class="legend-item" data-filter="timedOut"><span class="swatch"></span>Timed out <span class="count" id="count-timedOut">0</span></button>
+        <button type="button" class="legend-item" data-filter="running"><span class="swatch"></span>Running <span class="count" id="count-running">0</span></button>
+        <button type="button" class="legend-item" data-filter="unknown"><span class="swatch"></span>Unknown <span class="count" id="count-unknown">0</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="list">
+      <h2>Sequences</h2>
+      <div id="seq-list"><div class="empty">Waiting for spins…</div></div>
+    </aside>
+    <main class="stage" id="stage"><div class="empty">Select a sequence to inspect Idle / Spin frames and network payload.</div></main>
+  </div>
+
+  <div class="modal" id="payload-modal" role="dialog" aria-modal="true">
+    <div class="modal-card wide">
+      <header>
+        <h2>Full network payload</h2>
+        <button type="button" class="btn sm" id="payload-copy" data-icon="copy"><span>Copy JSON</span></button>
+        <button type="button" class="btn ghost sm" id="payload-close">Close</button>
+      </header>
+      <pre id="payload-full">{}</pre>
+    </div>
+  </div>
+
+  <script src="/ui.js"></script>
+  <script>
+    if (window.SGAP) SGAP.mountChrome();
+    const params = new URLSearchParams(location.search);
+    const workerFilter = Number(params.get('worker') || '') || undefined;
+    let snapshot = { sequences: [], keep: 50, statusCounts: {} };
+    let selectedSeq = undefined;
+    let userPinnedSelection = false;
+    let outcomeFilter = params.get('outcome') || 'all';
+    let fullPayloadCache = {};
+    let snippetStore = [];
+    let lastListKey = '';
+    let lastStageKey = '';
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[ch]));
+    }
+
+    function normalizeStatus(status) {
+      if (status === 'passed') return 'passed';
+      if (status === 'failed' || status === 'interrupted') return 'failed';
+      if (status === 'timedOut') return 'timedOut';
+      if (status === 'skipped') return 'skipped';
+      if (status === 'running') return 'running';
+      return 'unknown';
+    }
+
+    function statusLabel(status) {
+      const key = normalizeStatus(status);
+      if (key === 'timedOut') return 'Timed out';
+      if (key === 'passed') return 'Passed';
+      if (key === 'failed') return 'Failed';
+      if (key === 'running') return 'Running';
+      if (key === 'skipped') return 'Skipped';
+      return 'Unknown';
+    }
+
+    function isTerminalStatus(status) {
+      const key = normalizeStatus(status);
+      return key === 'passed' || key === 'failed' || key === 'timedOut' || key === 'skipped';
+    }
+
+    function isActivelyRecording(item) {
+      return Boolean(item.open) && !isTerminalStatus(item.testStatus);
+    }
+
+    function statusBadge(status) {
+      const key = normalizeStatus(status);
+      return '<span class="status-badge ' + key + '">' + statusLabel(key) + '</span>';
+    }
+
+    function visibleSequences() {
+      const items = (snapshot.sequences || []).slice().reverse();
+      return items.filter((item) => {
+        if (workerFilter && item.workerId !== workerFilter) return false;
+        if (outcomeFilter === 'all') return true;
+        return normalizeStatus(item.testStatus) === outcomeFilter;
+      });
+    }
+
+    function updateLegend() {
+      const counts = snapshot.statusCounts || {};
+      const all = (snapshot.sequences || []).length;
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value ?? 0);
+      };
+      set('count-all', all);
+      set('count-passed', counts.passed || 0);
+      set('count-failed', counts.failed || 0);
+      set('count-timedOut', counts.timedOut || 0);
+      set('count-running', counts.running || 0);
+      set('count-unknown', counts.unknown || 0);
+      document.querySelectorAll('.legend-item').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-filter') === outcomeFilter);
+      });
+    }
+
+    function syntaxHighlight(json) {
+      const text = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
+      return esc(text).replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        (match) => {
+          let cls = 'n';
+          if (/^"/.test(match)) {
+            cls = /:$/.test(match) ? 'k' : 's';
+          } else if (/true|false/.test(match)) {
+            cls = 'b';
+          } else if (/null/.test(match)) {
+            cls = 'null';
+          }
+          return '<span class="' + cls + '">' + match + '</span>';
+        },
+      );
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+    }
+
+    function listFingerprint() {
+      const filtered = visibleSequences();
+      return filtered.map((item) => [
+        item.seq,
+        item.open ? 1 : 0,
+        item.hasPayload ? 1 : 0,
+        (item.steps && item.steps.length) || 0,
+        item.label,
+        item.testId,
+        normalizeStatus(item.testStatus),
+        item.testDurationMs || 0,
+      ].join(':')).join('|') + '#' + selectedSeq + '#' + outcomeFilter;
+    }
+
+    function stageFingerprint() {
+      const item = (snapshot.sequences || []).find((entry) => entry.seq === selectedSeq);
+      if (!item) return 'none';
+      const steps = item.steps || [];
+      return [
+        item.seq,
+        item.open ? 1 : 0,
+        item.at || 0,
+        item.payloadUrl || '',
+        item.featureSpinsSeen || 0,
+        item.featureSpinsTarget || 0,
+        normalizeStatus(item.testStatus),
+        item.testError || '',
+        item.testDurationMs || 0,
+        steps.length,
+        steps.map((s) => [s.key, s.shotQuality, s.shotUrl ? 1 : 0, s.kind].join('.')).join(','),
+      ].join('|');
+    }
+
+    function renderList() {
+      const filtered = visibleSequences();
+      updateLegend();
+      document.getElementById('keep').textContent = snapshot.keep ?? 50;
+      document.getElementById('count').textContent = filtered.length + ' sequences';
+      const list = document.getElementById('seq-list');
+      const key = listFingerprint();
+      if (key === lastListKey && list.childElementCount > 0) {
+        return;
+      }
+      lastListKey = key;
+      const scrollTop = list.scrollTop;
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty">' +
+          ((snapshot.sequences || []).length
+            ? 'No sequences match this legend filter.'
+            : 'Waiting for spins…') +
+          '</div>';
+        return;
+      }
+      list.innerHTML = filtered.map((item) => {
+        const outcome = normalizeStatus(item.testStatus);
+        return '<button type="button" class="seq outcome-' + outcome +
+          (item.seq === selectedSeq ? ' active' : '') + '" data-seq="' + item.seq + '">' +
+          '<span class="n">#' + String(item.seq).padStart(3, '0') + '</span> ' +
+          (item.workerId ? 'W' + item.workerId + ' ' : '') +
+          statusBadge(item.testStatus) +
+          '<span class="lbl">' +
+            '<span class="dot' + (item.hasPayload ? '' : ' off') + '"></span>' +
+            esc(item.label) + (isActivelyRecording(item) ? ' <span class="rec">recording</span>' : '') +
+          '</span>' +
+          '<span class="meta">' + esc(item.testId || '') + ' · ' + item.columns + '×' + item.rows +
+            (item.steps && item.steps.length ? ' · ' + item.steps.length + ' frames' : '') +
+          '</span>' +
+        '</button>';
+      }).join('');
+      list.querySelectorAll('.seq').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedSeq = Number(btn.getAttribute('data-seq'));
+          userPinnedSelection = true;
+          lastStageKey = '';
+          lastListKey = '';
+          render();
+        });
+      });
+      list.scrollTop = scrollTop;
+    }
+
+    function skeleton(board) {
+      if (!board || !Array.isArray(board.ids) || board.ids.length === 0) {
+        return '<div class="empty" style="padding:24px 8px;">No grid for this frame</div>';
+      }
+      const cols = board.columns || (board.ids[0] || []).length;
+      const colHead = '<div class="col-labels" style="grid-template-columns: repeat(' + cols + ', minmax(44px, 1fr));">' +
+        Array.from({ length: cols }, (_, c) => '<div class="hdr">C' + (c + 1) + '</div>').join('') + '</div>';
+      const body = board.ids.map((row, r) => {
+        const cells = row.map((id, c) => {
+          const name = (board.names && board.names[r] && board.names[r][c]) || '';
+          return '<div class="cell" data-tip="' + esc(name ? id + ' · ' + name : '') + '"><span class="id">' + esc(id) + '</span>' +
+            (name ? '<span class="nm">' + esc(name) + '</span>' : '') + '</div>';
+        }).join('');
+        return '<div class="grid-row" style="grid-template-columns: 24px repeat(' + cols + ', minmax(44px, 1fr));">' +
+          '<div class="rlabel">R' + (r + 1) + '</div>' + cells + '</div>';
+      }).join('');
+      return '<div class="skeleton-wrap">' + colHead + body + '</div>';
+    }
+
+    function jsonPanel(snippet, sourcePath) {
+      if (snippet === undefined || snippet === null) {
+        return '<div class="json-panel"><div class="json-toolbar"><span class="path">no payload slice</span></div>' +
+          '<pre class="json-body">—</pre></div>';
+      }
+      const raw = JSON.stringify(snippet, null, 2);
+      const idx = snippetStore.length;
+      snippetStore.push(raw);
+      return '<div class="json-panel">' +
+        '<div class="json-toolbar">' +
+          '<span class="path">' + esc(sourcePath || 'spin payload') + '</span>' +
+          '<button type="button" class="btn ghost sm copy-snippet" data-idx="' + idx + '">Copy</button>' +
+        '</div>' +
+        '<pre class="json-body">' + syntaxHighlight(raw) + '</pre>' +
+      '</div>';
+    }
+
+    function qualityLabel(q) {
+      if (q === 'uncertain') return '<span class="qtag">uncertain</span>';
+      if (q === 'pending') return '<span class="qtag">pending</span>';
+      if (q === 'motion') return '<span class="qtag">motion</span>';
+      if (q === 'idle') return '<span class="qtag" style="color:var(--idle)">settled</span>';
+      return '';
+    }
+
+    async function openFullPayload(item) {
+      const modal = document.getElementById('payload-modal');
+      const pre = document.getElementById('payload-full');
+      pre.textContent = 'Loading…';
+      modal.classList.add('open');
+      try {
+        let text = fullPayloadCache[item.seq];
+        if (!text && item.payloadUrl) {
+          const res = await fetch(item.payloadUrl, { cache: 'no-store' });
+          text = await res.text();
+          fullPayloadCache[item.seq] = text;
+        }
+        pre.innerHTML = syntaxHighlight(text || '{}');
+        pre.dataset.raw = text || '{}';
+      } catch (error) {
+        pre.textContent = 'Failed to load payload: ' + error;
+        pre.dataset.raw = '';
+      }
+    }
+
+    function renderStage() {
+      const item = (snapshot.sequences || []).find((entry) => entry.seq === selectedSeq);
+      const stage = document.getElementById('stage');
+      const key = stageFingerprint();
+      if (key === lastStageKey && stage.childElementCount > 0) {
+        return;
+      }
+      lastStageKey = key;
+      const scrollTop = stage.scrollTop;
+      snippetStore = [];
+      if (!item) {
+        stage.innerHTML = '<div class="empty">Select a sequence to inspect Idle / Spin frames and network payload.</div>';
+        return;
+      }
+      const steps = item.steps && item.steps.length ? item.steps : [];
+      const groups = [];
+      for (const step of steps) {
+        const spinIndex = step.spinIndex || groups.length + 1;
+        let group = groups.find((entry) => entry.spinIndex === spinIndex);
+        if (!group) {
+          group = { spinIndex, steps: [] };
+          groups.push(group);
+        }
+        group.steps.push(step);
+      }
+
+      const duration =
+        Number.isFinite(Number(item.testDurationMs))
+          ? Math.round(Number(item.testDurationMs) / 1000) + 's'
+          : '';
+      const hero =
+        '<div class="hero"><div>' +
+          '<h1>' + esc(item.label) + ' ' + statusBadge(item.testStatus) + '</h1>' +
+          '<div class="sub">' + esc(item.testTitle || item.testId || '') +
+            (item.sourcePath ? ' · read from <code>' + esc(item.sourcePath) + '</code>' : '') +
+          '</div>' +
+        '</div><div class="hero-pills">' +
+          '<div class="pill">#' + item.seq + (item.workerId ? ' · W' + item.workerId : '') + '</div>' +
+          '<div class="pill">' + item.columns + '×' + item.rows + '</div>' +
+          (item.testId ? '<div class="pill">' + esc(item.testId) + '</div>' : '') +
+          (isActivelyRecording(item)
+            ? '<div class="pill"><strong>recording</strong></div>'
+            : '<div class="pill">' + (isTerminalStatus(item.testStatus) ? statusLabel(item.testStatus) : 'closed') + '</div>') +
+          (duration ? '<div class="pill">' + duration + '</div>' : '') +
+          (item.testRetry ? '<div class="pill">retry ' + item.testRetry + '</div>' : '') +
+          (item.featureSpinsTarget ? '<div class="pill">FS <strong>' + (item.featureSpinsSeen || 0) + '/' + item.featureSpinsTarget + '</strong></div>' : '') +
+          '<div class="pill">' + steps.length + ' frames</div>' +
+          (item.totalWin !== undefined ? '<div class="pill">win <strong>' + esc(item.totalWin) + '</strong></div>' : '') +
+        '</div></div>';
+
+      const errorBlock = item.testError
+        ? '<pre class="test-error">' + esc(item.testError) + '</pre>'
+        : '';
+
+      const banner =
+        '<div class="payload-banner">' +
+          '<div><h3>Network spin payload</h3>' +
+            '<div class="url">' + esc(item.requestUrl || 'waiting for /bet or /buy response…') + '</div>' +
+          '</div>' +
+          '<div class="actions">' +
+            (item.payloadUrl
+              ? '<button type="button" class="btn primary sm" id="view-payload">View full JSON</button>' +
+                '<a class="btn sm" href="' + esc(item.payloadUrl) + '" target="_blank" rel="noreferrer">Open file</a>'
+              : '<button type="button" class="btn sm" disabled>No payload yet</button>') +
+          '</div>' +
+        '</div>';
+
+      const body = groups.map((group) => {
+        const idleWithPayload = group.steps.find((s) => s.kind !== 'spin' && s.payloadSnippet !== undefined);
+        return '<section class="spin-group">' +
+          '<div class="sg-head"><h2>Spin ' + group.spinIndex +
+            (group.steps.length > 1 ? ' · ' + group.steps.length + ' frames' : '') +
+          '</h2></div>' +
+          group.steps.map((step) => {
+            const kind = step.kind === 'spin' ? 'spin' : 'idle';
+            const showBackend = kind === 'idle' && Array.isArray(step.ids) && step.ids.length > 0;
+            const snippet = step.payloadSnippet !== undefined ? step.payloadSnippet : (kind === 'idle' ? idleWithPayload?.payloadSnippet : undefined);
+            const sourcePath = step.sourcePath || idleWithPayload?.sourcePath;
+            const shot = step.shotUrl
+              ? '<figure class="shot"><img alt="' + esc(step.title) + '" src="' + esc(step.shotUrl) + '" /><figcaption>' +
+                  (kind === 'idle' ? 'Screenshot → Backend' : 'Screenshot (in motion)') +
+                '</figcaption></figure>'
+              : '<div class="empty" style="padding:28px 8px;">' + (kind === 'spin' ? 'Waiting for spin screenshot…' : 'Waiting for idle screenshot…') + '</div>';
+
+            if (kind === 'spin') {
+              return '<article class="step kind-spin"><div class="step-head"><h3>' +
+                '<span class="badge spin">spin</span>' + esc(step.title) +
+                '</h3>' + qualityLabel(step.shotQuality) + '</div>' +
+                '<div class="step-grid spin-1"><div><div class="panel-label">Screenshot</div>' + shot + '</div></div></article>';
+            }
+
+            return '<article class="step kind-idle"><div class="step-head"><h3>' +
+              '<span class="badge idle">idle</span>' + esc(step.title) +
+              '</h3>' + qualityLabel(step.shotQuality) + '</div>' +
+              '<div class="step-grid idle-3">' +
+                '<div><div class="panel-label">Screenshot</div>' + shot + '</div>' +
+                '<div><div class="panel-label">Backend grid</div>' +
+                  (showBackend ? skeleton(step) : '<div class="empty" style="padding:24px 8px;">Symbols-only / no area</div>') +
+                '</div>' +
+                '<div><div class="panel-label">Spin data (JSON)</div>' + jsonPanel(snippet, sourcePath) + '</div>' +
+              '</div></article>';
+          }).join('') +
+        '</section>';
+      }).join('');
+
+      stage.innerHTML = '<div class="stage-inner">' + hero + errorBlock + banner +
+        (body || '<div class="empty">Waiting for the first Idle frame…</div>') + '</div>';
+
+      const viewBtn = document.getElementById('view-payload');
+      if (viewBtn) {
+        viewBtn.addEventListener('click', () => openFullPayload(item));
+      }
+      stage.querySelectorAll('.copy-snippet').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.getAttribute('data-idx'));
+          const raw = snippetStore[idx] || '';
+          void copyText(raw);
+          btn.textContent = 'Copied';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 900);
+        });
+      });
+      stage.scrollTop = scrollTop;
+    }
+
+    function render() {
+      renderList();
+      renderStage();
+    }
+
+    document.getElementById('payload-close').addEventListener('click', () => {
+      document.getElementById('payload-modal').classList.remove('open');
+    });
+    document.getElementById('payload-modal').addEventListener('click', (event) => {
+      if (event.target.id === 'payload-modal') {
+        document.getElementById('payload-modal').classList.remove('open');
+      }
+    });
+    document.getElementById('payload-copy').addEventListener('click', () => {
+      const raw = document.getElementById('payload-full').dataset.raw || '';
+      void copyText(raw);
+      if (window.SGAP) SGAP.toast({ kind: 'success', title: 'Payload JSON copied' });
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') document.getElementById('payload-modal').classList.remove('open');
+    });
+    document.getElementById('legend').addEventListener('click', (event) => {
+      const btn = event.target.closest('.legend-item');
+      if (!btn) return;
+      outcomeFilter = btn.getAttribute('data-filter') || 'all';
+      lastListKey = '';
+      lastStageKey = '';
+      const visible = visibleSequences();
+      if (selectedSeq !== undefined && !visible.some((item) => item.seq === selectedSeq)) {
+        selectedSeq = visible.length ? visible[0].seq : undefined;
+        userPinnedSelection = Boolean(selectedSeq);
+      }
+      render();
+    });
+
+    async function tick() {
+      try {
+        const res = await fetch('/api/reader', { cache: 'no-store' });
+        snapshot = await res.json();
+        if (snapshot.sequences && snapshot.sequences.length) {
+          const stillThere = snapshot.sequences.some((entry) => entry.seq === selectedSeq);
+          if (selectedSeq === undefined || !stillThere) {
+            const visible = visibleSequences();
+            selectedSeq = (visible[0] || snapshot.sequences[snapshot.sequences.length - 1]).seq;
+            userPinnedSelection = false;
+            lastStageKey = '';
+            lastListKey = '';
+          } else if (!userPinnedSelection) {
+            // Follow the newest sequence only when the user hasn't picked one.
+            const newest = snapshot.sequences[snapshot.sequences.length - 1].seq;
+            if (newest !== selectedSeq) {
+              selectedSeq = newest;
+              lastStageKey = '';
+              lastListKey = '';
+            }
+          }
+        } else {
+          selectedSeq = undefined;
+          lastStageKey = '';
+          lastListKey = '';
+        }
+        // Don't rebuild DOM while the full-payload modal is open.
+        if (!document.getElementById('payload-modal').classList.contains('open')) {
+          render();
+        }
+        const foot = document.getElementById('foot');
+        foot.classList.remove('bad');
+        foot.classList.toggle('idle', Boolean(snapshot.offline));
+        foot.textContent = snapshot.offline
+          ? 'No run active'
+          : 'Updated ' + new Date(snapshot.updatedAt || Date.now()).toLocaleTimeString();
+      } catch (error) {
+        const foot = document.getElementById('foot');
+        foot.classList.add('bad');
+        foot.textContent = 'Reader server unreachable';
+      }
+    }
+
+    // ── Hover card: full text for anything truncated ───────────────────────────
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.hidden = true;
+    document.body.appendChild(tip);
+    const tipState = { html: undefined, timer: undefined, x: 0, y: 0 };
+
+    function isTruncated(el) {
+      return Boolean(el) && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
+    }
+    function tipHtml(target) {
+      const row = target.closest('.seq');
+      if (row) {
+        if (!isTruncated(row.querySelector('.lbl')) && !isTruncated(row.querySelector('.meta'))) return undefined;
+        const item = (snapshot.sequences || []).find((entry) => entry.seq === Number(row.dataset.seq));
+        if (!item) return undefined;
+        return '<div class="tip-meta"><span class="mono">#' + item.seq + '</span>' + (item.workerId ? ' · W' + item.workerId : '') +
+          ' · ' + esc(statusLabel(item.testStatus)) + (item.testId ? ' · <span class="mono">' + esc(item.testId) + '</span>' : '') + '</div>' +
+          '<div><b>' + esc(item.label) + '</b></div>' +
+          (item.testTitle ? '<div>' + esc(item.testTitle) + '</div>' : '');
+      }
+      const tagged = target.closest('[data-tip]');
+      if (tagged) return tagged.dataset.tip ? esc(tagged.dataset.tip) : undefined;
+      const clipped = target.closest('.path, .hero h1, .hero .sub, .url, .nm');
+      return clipped && isTruncated(clipped) ? esc(clipped.textContent) : undefined;
+    }
+    function placeTip() {
+      const pad = 14;
+      const rect = tip.getBoundingClientRect();
+      let left = tipState.x + pad;
+      let top = tipState.y + pad;
+      if (left + rect.width > innerWidth - 8) left = Math.max(8, tipState.x - rect.width - pad);
+      if (top + rect.height > innerHeight - 8) top = Math.max(8, tipState.y - rect.height - pad);
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+    function hideTip() {
+      clearTimeout(tipState.timer);
+      tipState.html = undefined;
+      tip.hidden = true;
+    }
+    document.addEventListener('mousemove', (ev) => {
+      tipState.x = ev.clientX;
+      tipState.y = ev.clientY;
+      const html = ev.target instanceof Element ? tipHtml(ev.target) : undefined;
+      if (html === undefined) { hideTip(); return; }
+      if (html !== tipState.html) {
+        hideTip();
+        tipState.html = html;
+        tipState.timer = setTimeout(() => {
+          tip.innerHTML = html;
+          tip.hidden = false;
+          placeTip();
+        }, 250);
+        return;
+      }
+      if (!tip.hidden) placeTip();
+    });
+    document.addEventListener('mouseleave', hideTip);
+    document.addEventListener('scroll', hideTip, true);
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

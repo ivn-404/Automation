@@ -1,0 +1,25 @@
+---
+description: Always open the worker monitor when running any test
+alwaysApply: true
+---
+
+# Always run tests through the worker monitor
+
+Whenever you are about to run Playwright / SGAP tests (any spec, suite, sweep,
+probe, regression, package, or one-off `playwright test`), start them through the
+**worker monitor** so its tab/overlay is open and the user can watch live.
+
+- Launch via the parallel runner, which opens the monitor (HTTP status server on
+  port `3847` + the Chrome overlay) and auto-publishes Allure at the end:
+
+  ```bash
+  SGAP_PARALLEL_CONFIG=config/<lane-config>.json node scripts/run-parallel-workers.mjs
+  ```
+
+- Pick or create a `config/parallel-workers-*.json` lane layout that matches the
+  suite/games under test (e.g. `parallel-workers-pen.json` for the PEN suite).
+- Do **not** kick off bare `playwright test`, `pnpm test`, or a sequential driver
+  that skips the monitor. If a run must use a custom driver, still bring the
+  monitor up first (or fold the run into a lane config) so the worker tab is visible.
+- After the run, publish Allure per `allure-after-tests.mdc` (the parallel runner
+  already calls `publishAllureReport()`).

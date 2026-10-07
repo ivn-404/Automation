@@ -1,0 +1,62 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "PROBE-002 calibration: live Phaser positions of spin / turbo / amplify / bet± / autoplay / menu vs the manifest, written to test-results/probe/PROBE-002/<gameId>/calibration.json.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Sugar Wonderland_RR1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Felice in Space_RR1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Mars Triumph_RR1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Beelze-Bop_RR1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

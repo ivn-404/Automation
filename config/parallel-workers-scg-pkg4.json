@@ -1,0 +1,61 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "SCG scratch suite for pkg4 (thats-bait, genghis-bao, sk8leton). Max 4 games at a time; one Allure report grouped by gameId.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "That's Bait_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Genghis Bao_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Sk8leton_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    }
+  ]
+}

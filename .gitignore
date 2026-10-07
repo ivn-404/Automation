@@ -1,0 +1,19 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+allure-results/
+allure-report/
+allure-history/
+blob-report/
+playwright/.cache/
+
+*.log
+# Windows reserved device name; created by a stray shell redirect, not indexable by git.
+nul
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db

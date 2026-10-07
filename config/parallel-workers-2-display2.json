@@ -1,0 +1,43 @@
+{
+  "workers": 2,
+  "layout": "1 | 2 on display 2",
+  "notes": "Full Sugar Wonderland automation on display 2 only: Worker 1 CORE (probe/CSF/SM/CP/UIDS/MN/FS/TM), Worker 2 PLAY (BF/AT/AP/BC/ES). Both windows share monitor index 1 (second screen), left/right halves.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "CORE",
+      "categories": ["CSF", "SM", "CP", "UIDS", "MN", "FS", "TM"],
+      "testMatch": [
+        "probe/**/*.spec.ts",
+        "csf/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "cp/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "mn/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "tm/**/*.spec.ts"
+      ],
+      "playerId": "Gamename1",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PLAY",
+      "categories": ["BF", "AT", "AP", "BC", "ES"],
+      "testMatch": [
+        "bf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "es/**/*.spec.ts"
+      ],
+      "playerId": "Gamename3",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

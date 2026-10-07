@@ -1,0 +1,62 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Remaining regression cases (CSF-011, AT-002..005, ES-007, ES-008) on all package-1 games. One lane per game with its own player, so the two-session cases (AT-004/005) never touch another lane.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "REGR",
+      "categories": ["CSF", "AT", "ES"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-00[2-5].spec.ts", "es/**/ES-00[78].spec.ts"],
+      "playerId": "Sugar Wonderland_REGR1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "REGR",
+      "categories": ["CSF", "AT", "ES"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-00[2-5].spec.ts", "es/**/ES-00[78].spec.ts"],
+      "playerId": "Beelze-Bop_REGR1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "REGR",
+      "categories": ["CSF", "AT", "ES"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-00[2-5].spec.ts", "es/**/ES-00[78].spec.ts"],
+      "playerId": "Felice in Space_REGR1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "REGR",
+      "categories": ["CSF", "AT", "ES"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-00[2-5].spec.ts", "es/**/ES-00[78].spec.ts"],
+      "playerId": "Mars Triumph_REGR1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "CORE",
+      "categories": ["CSF", "SM", "CP", "UIDS", "MN"],
+      "testMatch": [
+        "probe/**/*.spec.ts",
+        "csf/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "cp/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "mn/**/*.spec.ts"
+      ],
+      "playerId": "Gamename1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "FEATURE",
+      "categories": ["FS", "TM"],
+      "testMatch": ["fs/**/*.spec.ts", "tm/**/*.spec.ts"],
+      "playerId": "Gamename2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "category": "BUY",
+      "categories": ["BF", "AT"],
+      "testMatch": ["bf/**/*.spec.ts", "at/**/*.spec.ts"],
+      "playerId": "Gamename3",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "category": "CONTROL",
+      "categories": ["AP", "BC", "ES"],
+      "testMatch": [
+        "ap/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "es/**/*.spec.ts"
+      ],
+      "playerId": "Gamename4",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionEnd": [
+      {
+        "command": "node scripts/stop-sgap-browsers.mjs",
+        "timeout": 30
+      }
+    ]
+  }
+}

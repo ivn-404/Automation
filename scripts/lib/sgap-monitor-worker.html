@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP Observer</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    /* Observer layout (tokens and components come from /ui.css). */
+    .layout { flex: 1; display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
+    aside { border-right: 1px solid var(--line); overflow: auto; padding: var(--s2); background: var(--bg-raised); }
+    .side-head { display: flex; align-items: center; gap: var(--s2); padding: 6px 6px var(--s2); }
+    .session { padding: 8px 10px; border-radius: var(--r-md); cursor: pointer; border: 1px solid transparent; margin-bottom: 4px; }
+    .session:hover { background: var(--hover); }
+    .session.on { background: var(--surface); border-color: var(--accent-line); }
+    .session .row1 { display: flex; gap: 8px; align-items: baseline; }
+    .session .code { font: 600 var(--fs-md) var(--mono); }
+    .session .game { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: var(--fs-md); }
+    .session .row2 { display: flex; gap: 10px; font-size: var(--fs-sm); color: var(--faint); margin-top: 2px; }
+    .st { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    .st.running { color: var(--run); }
+    .st.passed { color: var(--pass); }
+    .st.failed, .st.timedOut, .st.interrupted { color: var(--fail); }
+    .st.skipped { color: var(--skip); }
+    .cnt-e { color: var(--fail); }
+    .cnt-w { color: var(--run); }
+
+    section.main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+    .head { padding: var(--s3) var(--s5) 0; }
+    .head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+    .head .meta { color: var(--muted); font-size: var(--fs-md); }
+    .nav { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s3) var(--s5); border-bottom: 1px solid var(--line); }
+    .search { width: 240px; }
+
+    .content { flex: 1; overflow: auto; padding: 6px 12px 24px; }
+    table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+    th { text-align: left; color: var(--faint); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px; position: sticky; top: 0; background: var(--bg); z-index: 1; border-bottom: 1px solid var(--line); }
+    td { padding: 5px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; }
+    tr.row { cursor: pointer; }
+    tr.row:hover td { background: var(--hover); }
+    tr.error td { color: var(--fail); }
+    tr.warn td { color: var(--run); }
+    tr.detail td { background: var(--surface); cursor: default; }
+    td.t { white-space: nowrap; color: var(--faint); width: 1%; }
+    td.k { white-space: nowrap; width: 1%; }
+    .kind { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); }
+    .kind.network { color: var(--accent); }
+    .kind.console { color: #c792ea; }
+    .kind.websocket { color: #89ddff; }
+    .kind.event { color: #c3e88d; }
+    .kind.balance { color: #ffcb6b; }
+    .summary { word-break: break-word; }
+    .injected { color: var(--run); font-size: 11px; text-transform: uppercase; margin-left: 6px; }
+    pre { margin: 6px 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, Consolas, monospace; color: var(--muted); max-height: 420px; overflow: auto; }
+    .dl { display: grid; grid-template-columns: 140px 1fr; gap: 2px 12px; font-size: 13px; }
+    .dl dt { color: var(--faint); }
+    .dl dd { margin: 0; word-break: break-all; }
+    .sub { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 8px; }
+    .num { text-align: right; white-space: nowrap; }
+    .diff-bad { color: var(--fail); font-weight: 600; }
+    .diff-ok { color: var(--pass); }
+    pre { background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      aside { max-height: 34vh; border-right: 0; border-bottom: 1px solid var(--line); }
+      .head, .nav { padding-left: var(--s3); padding-right: var(--s3); }
+      .search { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Observer</span></div>
+      <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <div class="spacer"></div>
+      <span class="status idle" id="status">Connecting…</span>
+      <button type="button" class="access" id="access" hidden></button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside>
+      <div class="side-head"><span class="field-label">Tests</span><span class="spacer"></span>
+        <button type="button" class="chip on" id="follow" title="Jump to the newest running test">Follow</button>
+      </div>
+      <div id="sessions"><div class="empty">No observed tests yet.</div></div>
+    </aside>
+    <section class="main">
+      <div class="head"><h2 id="title">—</h2><div class="meta" id="meta"></div></div>
+      <div class="nav">
+        <div class="tabs" id="tabs"></div>
+        <input class="search" id="search" type="search" placeholder="Filter  /" autocomplete="off" />
+        <button type="button" class="chip" id="problems" title="Errors and warnings only">Problems only</button>
+        <button type="button" class="chip" id="noise" title="Include console.log/info and every websocket frame in the timeline">Show noise</button>
+      </div>
+      <div class="content" id="content"><div class="empty">Pick a test on the left.</div></div>
+    </section>
+  </div>
+  <script src="/ui.js"></script>
+  <script>
+    if (window.SGAP) SGAP.mountChrome();
+    const TABS = [
+      ['timeline', 'Timeline'], ['network', 'Network'], ['console', 'Console'],
+      ['websocket', 'WebSocket'], ['event', 'Events'], ['balance', 'Balance'],
+    ];
+    const state = {
+      sessions: [], selected: null, observations: [], lastSeq: 0,
+      tab: 'timeline', query: '', problems: false, noise: false, follow: true, open: new Set(),
+    };
+    const $ = (id) => document.getElementById(id);
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const clock = (at) => new Date(at).toISOString().slice(11, 23);
+    const money = (v) => (v === undefined || v === null ? '—' : Number(v).toFixed(2));
+    const pretty = (value) => (typeof value === 'string' ? value : JSON.stringify(value, null, 2));
+
+    function renderTabs() {
+      const counts = { timeline: visibleTimeline().length };
+      for (const [key] of TABS.slice(1)) counts[key] = state.observations.filter((o) => o.kind === key).length;
+      $('tabs').innerHTML = TABS.map(([key, label]) =>
+        `<button type="button" class="tab${state.tab === key ? ' on' : ''}" data-tab="${key}">${label}<span class="n">${counts[key]}</span></button>`).join('');
+    }
+
+    function renderSessions() {
+      if (state.sessions.length === 0) {
+        $('sessions').innerHTML = '<div class="empty">No observed tests yet.</div>';
+        return;
+      }
+      $('sessions').innerHTML = state.sessions.map((s) => {
+        const diff = s.lastBalance?.diff;
+        const diffText = diff === undefined || diff === null ? '' : `<span class="${diff === 0 ? 'diff-ok' : 'diff-bad'}">Δ ${diff}</span>`;
+        return `<div class="session${s.id === state.selected ? ' on' : ''}" data-id="${esc(s.id)}">
+          <div class="row1"><span class="code">${esc(s.testCode)}</span><span class="game">${esc(s.gameId)}</span><span class="st ${esc(s.status)}">${esc(s.status)}</span></div>
+          <div class="row2 mono"><span>w${esc(s.workerId ?? '?')} · r${esc(s.retry)}</span>
+            <span class="cnt-e">${s.counts.errors} err</span><span class="cnt-w">${s.counts.warnings} warn</span>${diffText}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function matches(o) {
+      if (state.problems && o.severity === 'info') return false;
+      if (state.query && !JSON.stringify(o).toLowerCase().includes(state.query)) return false;
+      return true;
+    }
+
+    function visibleTimeline() {
+      return state.observations.filter((o) => {
+        if (!state.noise) {
+          if (o.kind === 'console' && o.severity === 'info') return false;
+          if (o.kind === 'websocket' && (o.event === 'sent' || o.event === 'received') && o.severity === 'info') return false;
+          if (o.kind === 'balance' && o.trigger === 'sample' && !o.diff) return false;
+        }
+        return matches(o);
+      });
+    }
+
+    function detailHtml(o) {
+      const rows = [];
+      const dl = (pairs) => `<dl class="dl">${pairs.filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(v)}</dd>`).join('')}</dl>`;
+      if (o.kind === 'network') {
+        rows.push(dl([['method', o.method], ['url', o.url], ['status', o.status], ['failure', o.failure], ['duration', o.durationMs === undefined ? '' : `${o.durationMs} ms`],
+          ['resource', o.resourceType], ['frame', o.frame], ['tags', (o.tags || []).join(', ')], ['injected', o.injected ? 'yes — answered by a test route, not the backend' : 'no'],
+          ['started', clock(o.startedAt)]]));
+        if (o.requestBody !== undefined && o.requestBody !== null) rows.push(`<div class="sub">Request payload</div><pre>${esc(pretty(o.requestBody))}</pre>`);
+        if (o.responseBody !== undefined && o.responseBody !== null) rows.push(`<div class="sub">Response body</div><pre>${esc(pretty(o.responseBody))}</pre>`);
+        if (o.requestHeaders) rows.push(`<div class="sub">Request headers</div><pre>${esc(pretty(o.requestHeaders))}</pre>`);
+        if (o.responseHeaders) rows.push(`<div class="sub">Response headers</div><pre>${esc(pretty(o.responseHeaders))}</pre>`);
+      } else if (o.kind === 'console') {
+        rows.push(dl([['level', o.level], ['frame', o.frame], ['location', o.location]]));
+        rows.push(`<pre>${esc(o.text)}</pre>`);
+        if (o.stack) rows.push(`<div class="sub">Stack</div><pre>${esc(o.stack)}</pre>`);
+      } else if (o.kind === 'websocket') {
+        rows.push(dl([['socket', `ws#${o.socketId}`], ['url', o.url], ['event', o.event], ['bytes', o.bytes], ['targets', (o.targets || []).join(', ')]]));
+        if (o.payload !== undefined) rows.push(`<div class="sub">Payload</div><pre>${esc(pretty(o.payload))}</pre>`);
+      } else if (o.kind === 'event') {
+        rows.push(dl([['event', o.name], ['detail', o.detail], ['related', relatedText(o.relatedSeq)]]));
+        if (o.data !== undefined) rows.push(`<pre>${esc(pretty(o.data))}</pre>`);
+      } else if (o.kind === 'balance') {
+        rows.push(dl([['HUD', money(o.hud)], ['server', money(o.server)], ['host', money(o.host)], ['Δ hud − server', o.diff], ['trigger', o.trigger], ['related', relatedText(o.relatedSeq)]]));
+      }
+      return rows.join('');
+    }
+
+    function relatedText(seq) {
+      if (seq === undefined || seq === null) return '';
+      const hit = state.observations.find((o) => o.seq === seq);
+      return hit ? `#${seq} ${hit.summary}` : `#${seq}`;
+    }
+
+    function rowHtml(o, cells) {
+      const open = state.open.has(o.seq);
+      const cls = `row ${o.severity === 'error' ? 'error' : o.severity === 'warn' ? 'warn' : ''}`;
+      const main = `<tr class="${cls}" data-seq="${o.seq}">${cells}</tr>`;
+      return open ? `${main}<tr class="detail"><td colspan="9">${detailHtml(o)}</td></tr>` : main;
+    }
+
+    function renderContent() {
+      const content = $('content');
+      if (state.selected === null) {
+        content.innerHTML = '<div class="empty">Pick a test on the left.</div>';
+        return;
+      }
+      let html = '';
+      if (state.tab === 'timeline') {
+        const list = visibleTimeline();
+        html = `<table><thead><tr><th>time</th><th>#</th><th>kind</th><th>what happened</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.at)}</td><td class="t mono">${o.seq}</td><td class="k"><span class="kind ${o.kind}">${o.kind === 'websocket' ? 'ws' : o.kind}</span></td><td class="summary">${esc(o.summary)}${o.injected ? '<span class="injected">injected</span>' : ''}</td>`)).join('')}</tbody></table>`;
+      } else if (state.tab === 'network') {
+        const list = state.observations.filter((o) => o.kind === 'network' && matches(o));
+        html = `<table><thead><tr><th>time</th><th>method</th><th>status</th><th>url</th><th class="num">ms</th><th>tags</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.startedAt)}</td><td class="mono">${esc(o.method)}</td><td class="mono">${esc(o.failure ?? o.status ?? '?')}${o.injected ? '<span class="injected">injected</span>' : ''}</td><td class="summary mono">${esc(o.url.replace(/^https?:\/\/[^/]+/, ''))}</td><td class="num mono">${esc(o.durationMs ?? '')}</td><td>${esc((o.tags || []).join(' '))}</td>`)).join('')}</tbody></table>`;
+      } else if (state.tab === 'console') {
+        const list = state.observations.filter((o) => o.kind === 'console' && matches(o));
+        html = `<table><thead><tr><th>time</th><th>level</th><th>frame</th><th>message</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.at)}</td><td class="mono">${esc(o.level)}</td><td>${esc(o.frame)}</td><td class="summary mono">${esc(o.text.split('\n')[0])}</td>`)).join('')}</tbody></table>`;
+      } else if (state.tab === 'websocket') {
+        const list = state.observations.filter((o) => o.kind === 'websocket' && matches(o));
+        html = `<table><thead><tr><th>time</th><th>socket</th><th>event</th><th>targets / payload</th><th class="num">bytes</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.at)}</td><td class="mono">ws#${o.socketId}</td><td class="mono">${esc(o.event)}</td><td class="summary mono">${esc(o.summary.replace(/^ws#\d+\s*/, ''))}</td><td class="num mono">${esc(o.bytes ?? '')}</td>`)).join('')}</tbody></table>`;
+      } else if (state.tab === 'event') {
+        const list = state.observations.filter((o) => o.kind === 'event' && matches(o));
+        html = `<table><thead><tr><th>time</th><th>event</th><th>detail</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.at)}</td><td class="mono">${esc(o.name)}</td><td class="summary">${esc(o.detail ?? '')}</td>`)).join('')}</tbody></table>`;
+      } else if (state.tab === 'balance') {
+        const list = state.observations.filter((o) => o.kind === 'balance' && matches(o));
+        html = `<table><thead><tr><th>time</th><th class="num">HUD</th><th class="num">server</th><th class="num">host</th><th class="num">Δ hud − server</th><th>trigger / related request or event</th></tr></thead><tbody>${list.map((o) => {
+          const diff = o.diff === undefined || o.diff === null ? '—' : `<span class="${o.diff === 0 ? 'diff-ok' : 'diff-bad'}">${o.diff}</span>`;
+          return rowHtml(o, `<td class="t mono">${clock(o.at)}</td><td class="num mono">${money(o.hud)}</td><td class="num mono">${money(o.server)}</td><td class="num mono">${money(o.host)}</td><td class="num mono">${diff}</td><td class="summary">${esc(o.trigger)}${o.relatedSeq ? ` — ${esc(relatedText(o.relatedSeq))}` : ''}</td>`);
+        }).join('')}</tbody></table>`;
+      }
+      const atBottom = content.scrollHeight - content.scrollTop - content.clientHeight < 40;
+      content.innerHTML = html || '<div class="empty">Nothing here.</div>';
+      if (atBottom && state.follow) content.scrollTop = content.scrollHeight;
+    }
+
+    function renderHead() {
+      const s = state.sessions.find((x) => x.id === state.selected);
+      $('title').textContent = s ? `${s.testCode} · ${s.title}` : '—';
+      $('meta').innerHTML = s
+        ? `${esc(s.gameId)} · worker ${esc(s.workerId ?? '?')} · retry ${esc(s.retry)} · <span class="st ${esc(s.status)}">${esc(s.status)}</span> · ${s.size} observations`
+        : '';
+    }
+
+    function render() { renderSessions(); renderHead(); renderTabs(); renderContent(); }
+
+    async function select(id) {
+      if (state.selected === id) return;
+      state.selected = id; state.observations = []; state.lastSeq = 0; state.open.clear();
+      await pullSession();
+      render();
+    }
+
+    async function pullSession() {
+      if (state.selected === null) return false;
+      const res = await fetch(`/api/observe/session?id=${encodeURIComponent(state.selected)}&since=${state.lastSeq}`);
+      if (!res.ok) return false;
+      const body = await res.json();
+      if (body.observations.length === 0) return false;
+      state.observations.push(...body.observations);
+      state.lastSeq = state.observations[state.observations.length - 1].seq;
+      return true;
+    }
+
+    async function tick() {
+      try {
+        const res = await fetch('/api/observe');
+        const index = await res.json();
+        state.sessions = index.sessions;
+        $('status').textContent = `${index.sessions.length} test${index.sessions.length === 1 ? '' : 's'} observed · ${new Date().toLocaleTimeString()}`;
+        $('status').classList.remove('bad', 'idle');
+        if (state.follow) {
+          const live = state.sessions.find((s) => s.status === 'running') ?? state.sessions[0];
+          if (live && live.id !== state.selected) { await select(live.id); return; }
+        } else if (state.selected === null && state.sessions[0]) {
+          await select(state.sessions[0].id); return;
+        }
+        const grew = await pullSession();
+        renderSessions(); renderHead();
+        if (grew) { renderTabs(); renderContent(); }
+      } catch {
+        $('status').textContent = 'Monitor unreachable';
+        $('status').classList.add('bad');
+      }
+    }
+
+    $('sessions').addEventListener('click', (event) => {
+      const row = event.target.closest('.session');
+      if (!row) return;
+      state.follow = false; $('follow').classList.remove('on');
+      void select(row.dataset.id);
+    });
+    $('tabs').addEventListener('click', (event) => {
+      const tab = event.target.closest('.tab');
+      if (!tab) return;
+      state.tab = tab.dataset.tab; renderTabs(); renderContent();
+    });
+    $('content').addEventListener('click', (event) => {
+      const row = event.target.closest('tr.row');
+      if (!row) return;
+      const seq = Number(row.dataset.seq);
+      if (state.open.has(seq)) state.open.delete(seq); else state.open.add(seq);
+      renderContent();
+    });
+    $('search').addEventListener('input', (event) => { state.query = event.target.value.trim().toLowerCase(); renderTabs(); renderContent(); });
+    $('problems').addEventListener('click', () => { state.problems = !state.problems; $('problems').classList.toggle('on', state.problems); renderTabs(); renderContent(); });
+    $('noise').addEventListener('click', () => { state.noise = !state.noise; $('noise').classList.toggle('on', state.noise); renderTabs(); renderContent(); });
+    $('follow').addEventListener('click', () => { state.follow = !state.follow; $('follow').classList.toggle('on', state.follow); void tick(); });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === '/' && document.activeElement !== $('search')) { event.preventDefault(); $('search').focus(); }
+    });
+    render();
+    void tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

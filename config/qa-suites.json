@@ -1,0 +1,99 @@
+{
+  "notes": "Test selection for the Quality Automation Testing page (scripts/qa-testing-page.mjs) and scripts/run-suite-queue.mjs: pick families (or a preset suite) and games/packages. Each package runs through the worker monitor, max 4 games at a time. gameIds must match config/manifests/*.json. Saved selections live in config/qa-selections/.",
+  "environments": { "STG": "staging", "LOCAL": "local" },
+  "packages": {
+    "1": ["sugar-wonderland", "beelze-bop", "felice-in-space", "mars-triumph"],
+    "2": ["kobo-ass", "hustle-the-blazing-horse", "jungle-fruity", "bad-beach"],
+    "3": ["war-freaks", "rainbow-fist", "the-shuten-doji"],
+    "4": ["thats-bait", "genghis-bao", "sk8leton"],
+    "5": ["pastry-cub", "aztec-lost-empire", "grave-threat"],
+    "6": ["zero-law", "boobie-trap"],
+    "7": ["oppals", "amazonians"],
+    "8": ["blockchain-blitz", "trippy-cat", "mad-freaks", "necronomicoin", "sugar-pals"],
+    "11": ["joker-ace", "king-in-gold"]
+  },
+  "familyNotes": "One entry per tests/specs/<folder>, in display order. group places the family on the QA page: regression families make up 'All Regression'; security (PEN) runs only when named explicitly; other families are selectable but never implied. testMatch overrides the folder glob. scope decides where a family runs: game = every selected game, package = the first selected game of each package, environment = once per run (first lane only). requires is the baseline every case in the family needs; the shared fixture turns an unsupported baseline into N/A and an undeclared one into NOT CONFIGURED before the game opens. Case-specific features stay on the spec via requireCapabilities.",
+  "familyGroups": {
+    "regression": {
+      "label": "Regression",
+      "description": "docs/RegressionTestCases.md families. 'All Regression' selects exactly these."
+    },
+    "security": {
+      "label": "Security / Pentesting",
+      "description": "Security checks against staging with test accounts only. Never part of a regression selection; select PEN explicitly."
+    },
+    "other": {
+      "label": "Other automated families",
+      "description": "Scratch game, menu, wilds and the reel data contract. Selectable on their own; not implied by 'All Regression'."
+    }
+  },
+  "families": {
+    "CSF": { "label": "Core Spin Flow", "group": "regression", "folder": "csf", "scope": "game", "requires": ["spin", "bet"] },
+    "AT": { "label": "Additional Test", "group": "regression", "folder": "at", "scope": "game", "requires": ["spin", "bet"] },
+    "BC": { "label": "Bet Control", "group": "regression", "folder": "bc", "scope": "game", "requires": ["spin", "bet"] },
+    "BF": { "label": "Buy Feature", "group": "regression", "folder": "bf", "scope": "game", "requires": ["spin", "bet"] },
+    "AP": { "label": "Autoplay", "group": "regression", "folder": "ap", "scope": "game", "requires": ["spin", "bet"] },
+    "TM": { "label": "Turbo Mode", "group": "regression", "folder": "tm", "scope": "game", "requires": ["spin", "bet"] },
+    "FS": { "label": "Feature / Free Spins", "group": "regression", "folder": "fs", "scope": "game", "requires": ["spin", "bet"] },
+    "UIDS": { "label": "UI & Display Sync", "group": "regression", "folder": "uids", "scope": "game", "requires": ["spin", "bet"] },
+    "AS": { "label": "Audio & Settings", "group": "regression", "folder": "as", "scope": "game", "requires": ["spin", "bet"] },
+    "SM": { "label": "State Management", "group": "regression", "folder": "sm", "scope": "game", "requires": ["spin", "bet"] },
+    "ES": { "label": "Edge & Stability", "group": "regression", "folder": "es", "scope": "game", "requires": ["spin", "bet"] },
+    "CP": { "label": "Currency Precision", "group": "regression", "folder": "cp", "scope": "game", "requires": ["spin", "bet"] },
+    "PEN": { "label": "Pentesting", "group": "security", "folder": "pen", "scope": "environment", "requires": [] },
+    "SCG": { "label": "Scratch Game", "group": "other", "folder": "scg", "scope": "game", "requires": ["scratchCard"] },
+    "MN": { "label": "Menu", "group": "other", "folder": "mn", "scope": "game", "requires": ["spin", "bet"] },
+    "WD": { "label": "Wilds (packages 7 and 11)", "group": "other", "folder": "wd", "scope": "game", "requires": ["spin", "bet"] },
+    "PROBE": { "label": "Reel data contract (PROBE-004)", "group": "other", "folder": "probe", "testMatch": ["probe/**/PROBE-004.spec.ts"], "scope": "game", "requires": [] }
+  },
+  "suiteNotes": "Presets on the QA page. families accepts family ids and @group tokens (@regression never includes PEN); testMatch is for presets that pick individual cases.",
+  "suites": [
+    {
+      "id": "regression",
+      "label": "All Regression (no PEN)",
+      "description": "Every regression family on each selected game. Pentesting is not included.",
+      "category": "REGRESSION",
+      "families": ["@regression"],
+      "playerSuffix": "REG1",
+      "defaultPackages": ["1"]
+    },
+    {
+      "id": "pentest",
+      "label": "Security / Pentesting (PEN only)",
+      "description": "Every PEN case once per run, on the first selected game. Staging test accounts only.",
+      "category": "PEN",
+      "families": ["PEN"],
+      "playerSuffix": "PEN1",
+      "defaultPackages": ["1"]
+    },
+    {
+      "id": "full",
+      "label": "Full automated regression + scratch, menu, wilds, reel data (no PEN)",
+      "description": "Every regression family plus the other automated families. Pentesting is not included; select PEN on its own.",
+      "category": "FULL",
+      "families": ["@regression", "@other"],
+      "playerSuffix": "FULL1",
+      "defaultPackages": ["1"]
+    },
+    {
+      "id": "scg",
+      "label": "Scratch Game (SCG) — all cases",
+      "description": "Every SCG scratch-card case on each game of the selected packages.",
+      "category": "SCG",
+      "categories": ["SCG"],
+      "testMatch": ["scg/**/*.spec.ts"],
+      "playerSuffix": "SCG1",
+      "defaultPackages": ["1", "2", "3", "4", "5", "6", "7", "8", "11"]
+    },
+    {
+      "id": "regression-remaining",
+      "label": "Regression — CSF-011, AT-002–005, ES-007–008",
+      "description": "The regression cases automated last (currency, refund, multiple sessions, max win cap and message, normal-mode multiplier).",
+      "category": "REGR",
+      "categories": ["CSF", "AT", "ES"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-00[2-5].spec.ts", "es/**/ES-00[78].spec.ts"],
+      "playerSuffix": "REGR1",
+      "defaultPackages": ["1"]
+    }
+  ]
+}

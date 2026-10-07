@@ -1,0 +1,164 @@
+{
+  "id": "base",
+  "notes": "Platform-wide defaults for DiJoker canvas slots. Every number here was previously a constant in src/eye, src/runtime or tests/support, measured on Package 1. Treat it as the starting point for a new package, not as verified truth: override in config/surfaces/<packageId>.json or <gameId>.json and record what was measured.",
+  "portraitAspect": { "width": 390, "height": 844 },
+  "hudLabels": {
+    "balance": "^BALANCE$",
+    "scratch": "^scratch$",
+    "buyPanelClose": "^[xX×✕✖✗]$",
+    "pressAnywhere": "^press anywhere"
+  },
+  "controls": {
+    "spin": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.84, "y1": 0.98, "x0": 0.38, "x1": 0.62 },
+        "minAreaRatio": 0.0065,
+        "maxAreaRatio": 0.015
+      },
+      "phaser": { "x0": 0.38, "x1": 0.62, "y0": 0.82, "y1": 0.95, "minW": 60, "minH": 60, "pick": "largest" }
+    },
+    "buyFeature": {
+      "vision": {
+        "hue": "pink",
+        "band": { "y0": 0.74, "y1": 0.81, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.003,
+        "maxAreaRatio": 0.02,
+        "accept": { "y0": 0.75, "y1": 0.8 }
+      },
+      "candidates": [
+        { "x": 0.48, "y": 0.77 },
+        { "x": 0.5, "y": 0.77 },
+        { "x": 0.5, "y": 0.78 },
+        { "x": 0.46, "y": 0.77 },
+        { "x": 0.5, "y": 0.76 },
+        { "x": 0.45, "y": 0.78 },
+        { "x": 0.38, "y": 0.72 }
+      ]
+    },
+    "menuClose": {
+      "candidates": [
+        { "x": 0.86, "y": 0.08 },
+        { "x": 0.84, "y": 0.1 },
+        { "x": 0.88, "y": 0.08 },
+        { "x": 0.86, "y": 0.1 },
+        { "x": 0.82, "y": 0.08 },
+        { "x": 0.84, "y": 0.08 }
+      ]
+    },
+    "buyFeatureConfirm": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.74, "y1": 0.88, "x0": 0.22, "x1": 0.78 },
+        "minAreaRatio": 0.02,
+        "maxAreaRatio": 0.12
+      },
+      "candidates": [
+        { "x": 0.5, "y": 0.58 },
+        { "x": 0.5, "y": 0.56 },
+        { "x": 0.5, "y": 0.62 },
+        { "x": 0.5, "y": 0.78 },
+        { "x": 0.5, "y": 0.76 },
+        { "x": 0.5, "y": 0.8 },
+        { "x": 0.42, "y": 0.78 },
+        { "x": 0.58, "y": 0.78 },
+        { "x": 0.5, "y": 0.74 }
+      ]
+    },
+    "betPlus": {
+      "vision": {
+        "hue": "amber",
+        "band": { "y0": 0.78, "y1": 0.83 },
+        "minAreaRatio": 0.0006,
+        "maxAreaRatio": 0.02,
+        "pick": "rightmost"
+      },
+      "phaser": { "x0": 0.82, "x1": 0.98, "y0": 0.75, "y1": 0.84, "minW": 18, "minH": 18, "pick": "rightmost" }
+    },
+    "betMinus": {
+      "vision": {
+        "hue": "amber",
+        "band": { "y0": 0.78, "y1": 0.83 },
+        "minAreaRatio": 0.0006,
+        "maxAreaRatio": 0.02,
+        "pick": "leftmost"
+      },
+      "phaser": { "x0": 0.62, "x1": 0.82, "y0": 0.75, "y1": 0.84, "minW": 18, "minH": 18, "pick": "leftmost" }
+    },
+    "turbo": {
+      "phaser": { "x0": 0.8, "x1": 0.98, "y0": 0.82, "y1": 0.95, "minW": 30, "minH": 30, "pick": "rightmost" }
+    },
+    "amplifyBet": {
+      "phaser": { "x0": 0.62, "x1": 0.82, "y0": 0.82, "y1": 0.95, "minW": 30, "minH": 30, "pick": "largest" }
+    },
+    "autoplay": {
+      "phaser": { "x0": 0.18, "x1": 0.38, "y0": 0.8, "y1": 0.95, "minW": 40, "minH": 40, "pick": "largest" }
+    },
+    "menu": {
+      "phaser": { "x0": 0.02, "x1": 0.18, "y0": 0.8, "y1": 0.95, "minW": 24, "minH": 24, "pick": "leftmost" }
+    },
+    "enter": {
+      "vision": { "hue": "green", "band": { "y0": 0.7, "y1": 0.98 }, "minAreaRatio": 0.004 },
+      "phaser": { "x0": 0.3, "x1": 0.7, "y0": 0.7, "y1": 0.85, "minW": 80, "minH": 40, "pick": "largest" }
+    },
+    "attractPlay": {
+      "phaser": { "x0": 0.3, "x1": 0.7, "y0": 0.7, "y1": 0.85, "minW": 80, "minH": 40, "pick": "largest" }
+    },
+    "errorOk": {
+      "vision": { "hue": "green", "band": { "y0": 0.15, "y1": 0.75 }, "minAreaRatio": 0.002 }
+    },
+    "acknowledge": {
+      "vision": { "hue": "green", "band": { "y0": 0.15, "y1": 0.78 }, "minAreaRatio": 0.002 }
+    }
+  },
+  "blockers": {
+    "sessionContinue": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.48, "y1": 0.68, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.02,
+        "maxAreaRatio": 0.1
+      }
+    },
+    "splashPlay": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.68, "y1": 0.76, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    },
+    "splashPlayLow": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.76, "y1": 0.8, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    },
+    "attractSplashPlay": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.68, "y1": 0.79 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    },
+    "winBanner": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.78, "y1": 0.88 },
+        "minAreaRatio": 0.03,
+        "maxAreaRatio": 0.08
+      }
+    }
+  },
+  "pressAnywhere": {
+    "band": { "y0": 0.35, "y1": 0.65, "x0": 0.2, "x1": 0.8 },
+    "maxLuma": 70,
+    "center": { "x": 0.5, "y": 0.55 }
+  },
+  "buyConfirmPill": { "minWidthRatio": 0.45, "minFill": 0.5 },
+  "idleSpinClip": { "maxAreaRatio": 0.025, "solidFill": 0.75 },
+  "splashPlayShape": { "minAspect": 0.75, "maxAspect": 1.33 }
+}

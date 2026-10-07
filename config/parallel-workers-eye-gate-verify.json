@@ -1,0 +1,130 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Eye-gate + Package 1 recalibration verify: refactor-verify spec set plus BC-003/BC-004 (blind modal paths). Compare interactions journals (point/low, manifest FALLBACK) with run-20261005-135734.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "EG",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts",
+        "bc/**/BC-00[34].spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_RV1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "EG",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts",
+        "bc/**/BC-00[34].spec.ts"
+      ],
+      "playerId": "Beelze-Bop_RV1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "EG",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts",
+        "bc/**/BC-00[34].spec.ts"
+      ],
+      "playerId": "Felice in Space_RV1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "EG",
+      "categories": [
+        "AT",
+        "BF",
+        "AP",
+        "TM",
+        "MN",
+        "ES",
+        "CSF"
+      ],
+      "testMatch": [
+        "at/**/AT-00[38].spec.ts",
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "csf/**/CSF-011.spec.ts",
+        "bc/**/BC-00[34].spec.ts"
+      ],
+      "playerId": "Mars Triumph_RV1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+---
+description: After every automation test run, generate and open the Allure report
+alwaysApply: true
+---
+
+# Allure after every test run
+
+Whenever you finish running Playwright / SGAP automation (parallel workers, staging sweep, regression, package, probe, or a focused `playwright test` grep), **always** publish Allure:
+
+```bash
+npx pnpm allure:publish
+# or: node scripts/publish-allure-report.mjs
+```
+
+Each publish writes a **new** folder under `allure-history/run-YYYYMMDD-HHmmss/` (prior runs are kept) and opens the history index at `http://127.0.0.1:5055/` so every past report is listed. `allure-report/` is only a shortcut to the latest run.
+
+Repo runners (`test:parallel:staging`, `test:staging`, `test:regression:staging`, `test:package:staging`) already call `publishAllureReport()` at the end. For bare `playwright test` / agent-launched one-offs, run `allure:publish` yourself after the run exits.
+
+- Generate + open history index is the default. Do not ask the user whether to open Allure.
+- Skip only when the user sets `SGAP_SKIP_ALLURE=1`, or generate-only with `SGAP_SKIP_ALLURE_OPEN=1`.
+- After publish, mention the history URL (or that open was skipped).

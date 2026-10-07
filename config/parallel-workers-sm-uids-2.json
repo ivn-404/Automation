@@ -1,0 +1,28 @@
+{
+  "workers": 2,
+  "layout": "1 | 2",
+  "notes": "Focused SM + UIDS gate: Worker 1 runs SM-002..006, Worker 2 runs UIDS-003..006 + UIDS-012. Monitor + Backend Reader enabled via parallel runner.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "SM",
+      "categories": ["SM"],
+      "testMatch": ["sm/**/*.spec.ts"],
+      "playerId": "Gamename1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "UIDS",
+      "categories": ["UIDS"],
+      "testMatch": ["uids/**/*.spec.ts"],
+      "playerId": "Gamename2",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

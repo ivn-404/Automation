@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP Control Panel</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    /* Worker Monitor layout (tokens and components come from /ui.css). */
+    body { display: block; min-height: 100%; height: auto; }
+
+    /* Header stats */
+    .summary { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
+    .summary .stat { display: inline-flex; align-items: center; gap: 6px; }
+    .summary b { color: var(--text); font-weight: 600; }
+    .summary .p b { color: var(--pass); }
+    .summary .f b { color: var(--fail); }
+    .summary .r b { color: var(--run); }
+    .summary .sep { width: 1px; height: 14px; background: var(--line-strong); }
+
+    /* Lane toolbar */
+    .nav {
+      display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
+      padding: var(--s3) var(--s5) 0;
+    }
+    .search { width: 240px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+
+    /* Lanes */
+    main {
+      display: grid; gap: var(--s4); padding: var(--s4) var(--s5) var(--s5);
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      align-content: start;
+    }
+    main.single { grid-template-columns: minmax(320px, 960px); justify-content: center; }
+    .lane {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+      display: flex; flex-direction: column; min-height: 168px; max-height: min(72vh, 760px);
+      transition: border-color 0.2s var(--ease);
+    }
+    .lane:hover { border-color: var(--line-strong); }
+    .lane.mine { border-color: var(--accent-line); }
+    .lane.stopped { opacity: 0.6; }
+    .lane.is-running { box-shadow: inset 0 2px 0 var(--run); }
+    .lane.is-failed { box-shadow: inset 0 2px 0 var(--fail); }
+    .lane.is-done { box-shadow: inset 0 2px 0 var(--pass); }
+    .lane-head { padding: var(--s3) var(--s4) var(--s3); }
+    .lane-row { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+    .lane-id {
+      font: 600 var(--fs-sm)/20px var(--mono); color: var(--accent);
+      padding: 0 6px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent-line);
+    }
+    .lane-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .lane-cat { color: var(--faint); font-size: var(--fs-sm); white-space: nowrap; }
+    .lane-count { margin-left: auto; color: var(--muted); font-size: var(--fs-md); }
+    .lane-now { color: var(--muted); font-size: var(--fs-md); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lane-now .mono { color: var(--run); }
+    .lane-now.idle { color: var(--faint); }
+    .lane .meter { margin-top: var(--s3); border-radius: 2px; height: 3px; }
+    .tag { font-size: var(--fs-xs); color: var(--fail); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+
+    .tests { list-style: none; margin: 0; padding: 4px 6px 8px; overflow: auto; flex: 1; border-top: 1px solid var(--line-soft); }
+    .test {
+      display: grid; grid-template-columns: 8px 78px 1fr auto;
+      gap: 10px; align-items: baseline;
+      padding: 6px 8px; border-radius: var(--r-sm);
+    }
+    .test .dot { align-self: center; }
+    .test.has-error { cursor: pointer; }
+    .test:hover { background: var(--hover); }
+    .test .id { color: var(--muted); font-size: var(--fs-md); }
+    .test .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .test.open .title { white-space: normal; }
+    .test.failed .title, .test.timedOut .title { color: var(--fail); }
+    .test.running .title { color: var(--text); }
+    .test.queued .title, .test.skipped .title { color: var(--muted); }
+    .test .dur { color: var(--faint); font-size: var(--fs-sm); white-space: nowrap; }
+    .test .err {
+      grid-column: 2 / -1; display: none;
+      color: #ffb3be; font: var(--fs-sm)/1.5 var(--mono); white-space: pre-wrap; word-break: break-word;
+      margin-top: 6px; padding: 8px 10px; border-radius: var(--r-sm);
+      background: var(--fail-soft); border: 1px solid var(--fail-line);
+    }
+    .test.open .err { display: block; }
+    .lane .empty { padding: 18px 8px; }
+
+    /* ── Test runner ─────────────────────────────────────────────────────── */
+    .qa { margin: var(--s4) var(--s5) 0; }
+    .qa .card-head { flex-wrap: wrap; }
+    .qa-desc { color: var(--muted); font-size: var(--fs-md); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .qa-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); }
+    .qa-col { padding: var(--s4); min-width: 0; display: grid; gap: var(--s4); align-content: start; }
+    .qa-col + .qa-col { border-left: 1px solid var(--line-soft); }
+    .qa-step { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+    .qa-step .num {
+      width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+      font: 600 var(--fs-xs)/1 var(--mono); color: var(--accent); border: 1px solid var(--accent-line);
+    }
+    .qa-step .tools { margin-left: auto; display: flex; gap: 2px; }
+    .qa-row { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .qa-field { display: grid; gap: 6px; }
+    .qa select { width: 100%; }
+
+    .qa-groups { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; }
+    .qa-group { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3); margin: 0; min-width: 0; background: var(--bg-raised); }
+    .qa-group.g-regression { grid-column: 1 / -1; }
+    .qa-group legend { padding: 0 6px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .qa-group.g-security { border-color: var(--fail-line); }
+    .qa-group.g-security legend { color: var(--fail); }
+    .qa-group .gdesc { color: var(--faint); font-size: var(--fs-sm); margin: 0 0 var(--s2); }
+    .qa-group .gtools { display: flex; gap: 4px; margin-bottom: 6px; }
+    .qa-fams { display: grid; gap: 2px var(--s2); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .qa-fam {
+      display: flex; gap: var(--s2); align-items: center; padding: 5px 8px; border-radius: var(--r-sm);
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .qa-fam:hover { background: var(--hover); }
+    .qa-fam:has(input:checked) { background: var(--accent-soft); border-color: var(--accent-line); }
+    .g-security .qa-fam:has(input:checked) { background: var(--fail-soft); border-color: var(--fail-line); }
+    .qa-fam b { min-width: 40px; font: 600 var(--fs-md) var(--mono); }
+    .qa-fam .fl { color: var(--muted); font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .qa-fam .n { color: var(--faint); font: var(--fs-sm) var(--mono); }
+    .qa-fam.off { opacity: 0.45; cursor: not-allowed; }
+    .qa-fam.off:hover { background: none; }
+
+    .qa-pkgs { display: grid; gap: var(--s2); max-height: min(440px, 55vh); overflow: auto; padding-right: 4px; }
+    .qa-pkgbox { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3); background: var(--bg-raised); }
+    .qa-pkgbox > label { display: flex; gap: var(--s2); align-items: center; cursor: pointer; font-weight: 600; font-size: var(--fs-md); }
+    .qa-pkgbox > label .n { margin-left: auto; color: var(--faint); font: var(--fs-sm) var(--mono); font-weight: 400; }
+    .qa-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px var(--s2); padding: 6px 0 0 23px; }
+    .qa-games label { display: flex; gap: 6px; align-items: center; cursor: pointer; color: var(--muted); font-size: var(--fs-md); padding: 2px 0; }
+    .qa-games label.on { color: var(--text); }
+
+    .qa-opts { display: grid; gap: 2px; }
+    .qa-opts label {
+      display: grid; grid-template-columns: 15px 1fr; gap: 2px 10px; align-items: center;
+      padding: 6px 8px; border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-md);
+    }
+    .qa-opts label:hover { background: var(--hover); }
+    .qa-opts label small { grid-column: 2; color: var(--faint); font-size: var(--fs-sm); }
+    .qa-opts .hint { padding: 6px 8px 0; }
+
+    .qa-actions {
+      display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap;
+      padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: var(--bg-raised);
+      border-radius: 0 0 var(--r-lg) var(--r-lg);
+    }
+    .qa-state { color: var(--muted); font-size: var(--fs-md); flex: 1; min-width: 220px; }
+    .qa-state.running { color: var(--run); }
+    .qa-state.passed { color: var(--pass); }
+    .qa-state.failed, .qa-state.bad { color: var(--fail); }
+    .qa-state.stopped { color: var(--muted); }
+    .qa-state a { color: var(--accent); }
+    .qa-log {
+      margin: 0 var(--s4) var(--s4); max-height: 220px; overflow: auto; font: var(--fs-sm)/1.55 var(--mono);
+      background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3);
+      white-space: pre-wrap; word-break: break-word; color: var(--muted);
+    }
+
+    .keys { color: var(--faint); font-size: var(--fs-sm); padding: 0 var(--s5) var(--s4); display: flex; flex-wrap: wrap; gap: 6px var(--s3); align-items: center; }
+
+    @media (max-width: 1100px) {
+      .qa-layout { grid-template-columns: 1fr; }
+      .qa-col + .qa-col { border-left: 0; border-top: 1px solid var(--line-soft); }
+    }
+    @media (max-width: 720px) {
+      .summary { order: 5; width: 100%; }
+      .qa { margin: var(--s3) var(--s3) 0; }
+      .nav { padding: var(--s3) var(--s3) 0; }
+      .search { width: 100%; }
+      .chips { margin-left: 0; }
+      main { padding: var(--s3); grid-template-columns: 1fr; }
+      .test { grid-template-columns: 8px 64px 1fr; }
+      .test .dur { grid-column: 3; }
+      .keys { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Control Panel</span></div>
+      <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <div class="spacer"></div>
+      <div class="summary mono" id="summary"></div>
+      <span class="status idle" id="status">Connecting…</span>
+      <button type="button" class="access" id="access" hidden></button>
+      <button type="button" class="btn sm" id="qa-toggle" data-icon="sliders" title="Pick test families and games, then run them through the worker monitor"><span>Test runner</span></button>
+      <button type="button" class="btn sm danger" id="stop-all" data-icon="stop" data-control title="Stop every worker and close Playwright browsers"><span>Stop all</span></button>
+    </div>
+    <div class="overall" id="overall"></div>
+  </header>
+
+  <section class="qa card" id="qa" hidden aria-label="Test runner">
+    <div class="card-head">
+      <span class="card-title">Test runner</span>
+      <span class="qa-desc" id="qa-desc">Loading simulations…</span>
+    </div>
+    <div id="qa-form"></div>
+    <div class="qa-actions">
+      <span class="qa-state" id="qa-state"></span>
+      <button type="button" class="btn ghost sm" id="qa-log-toggle" data-icon="terminal"><span>Show log</span></button>
+      <button type="button" class="btn danger" id="qa-stop" data-icon="stop" data-control disabled><span>Stop</span></button>
+      <button type="button" class="btn primary" id="qa-run" data-icon="play" data-control><span>Run selected tests</span></button>
+    </div>
+    <pre class="qa-log mono" id="qa-log" hidden></pre>
+  </section>
+
+  <div class="nav">
+    <div class="tabs" id="tabs" role="tablist" aria-label="Filter tests"></div>
+    <input class="search" id="search" type="search" placeholder="Search tests" aria-label="Search tests" autocomplete="off" />
+    <div class="chips" id="chips"></div>
+  </div>
+  <main id="lanes"><div class="empty">Waiting for worker sessions…</div></main>
+  <div class="keys">
+    <span><kbd>/</kbd> search</span><span><kbd>A</kbd> all</span><span><kbd>R</kbd> running</span><span><kbd>F</kbd> failed</span>
+    <span><kbd>P</kbd> passed</span><span><kbd>Q</kbd> queued</span><span><kbd>1</kbd>–<kbd>9</kbd> focus worker</span>
+    <span><kbd>0</kbd> all workers</span><span><kbd>Esc</kbd> clear</span>
+  </div>
+  <script src="/ui.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const highlightId = Number(params.get('worker') || '') || undefined;
+    const startedFallback = Date.now();
+
+    const FILTERS = [
+      { key: 'all', label: 'All', match: () => true },
+      { key: 'running', label: 'Running', match: (s) => s === 'running' },
+      { key: 'failed', label: 'Failed', match: (s) => s === 'failed' || s === 'timedOut' || s === 'interrupted' },
+      { key: 'passed', label: 'Passed', match: (s) => s === 'passed' },
+      { key: 'queued', label: 'Queued', match: (s) => s === 'queued' || s === 'skipped' },
+    ];
+    const state = {
+      filter: params.get('filter') || 'all',
+      query: '',
+      focus: Number(params.get('focus') || '') || undefined,
+      open: new Set(),
+      data: null,
+      lastKey: '',
+    };
+    let stopBusy = false;
+    const icon = (name) => (window.SGAP ? SGAP.icon(name) : '');
+    const toast = (opts) => { if (window.SGAP) SGAP.toast(opts); };
+    const confirmBox = (opts) => (window.SGAP ? SGAP.confirm(opts) : Promise.resolve(window.confirm([opts.title].concat(opts.lines || [], opts.warning ? ['', opts.warning] : []).join('\n'))));
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[ch]));
+    }
+    function fmtDur(ms) {
+      if (!ms && ms !== 0) return '';
+      const sec = Math.max(0, Math.round(ms / 1000));
+      return sec < 60 ? sec + 's' : Math.floor(sec / 60) + 'm ' + String(sec % 60).padStart(2, '0') + 's';
+    }
+    function fmtElapsed(ms) {
+      const sec = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = String(sec % 60).padStart(2, '0');
+      return h > 0 ? h + ':' + String(m).padStart(2, '0') + ':' + s : m + ':' + s;
+    }
+    function statusOf(test) { return test.status || 'queued'; }
+    function failedCount(x) { return (x.failed || 0) + (x.timedOut || 0); }
+    function laneName(lane) { return lane.gameName || lane.gameId || lane.category || 'Worker'; }
+    function testKey(lane, test) { return lane.id + ':' + (test.key || test.id); }
+    function currentFilter() { return FILTERS.find((f) => f.key === state.filter) || FILTERS[0]; }
+    function matchesQuery(test) {
+      if (!state.query) return true;
+      const q = state.query.toLowerCase();
+      return String(test.id || '').toLowerCase().includes(q) || String(test.title || '').toLowerCase().includes(q);
+    }
+
+    async function requestStop(options) {
+      if (stopBusy) return;
+      const all = options.all === true;
+      const workers = Array.isArray(options.workers) ? options.workers : [];
+      const ok = await confirmBox({
+        title: all ? 'Stop all workers?' : 'Stop worker W' + workers.join(', W') + '?',
+        lines: [all ? 'Every worker ends and the Playwright browsers close.' : 'This worker ends; the other workers keep running.'],
+        confirmLabel: all ? 'Stop all' : 'Stop worker',
+        danger: true,
+      });
+      if (!ok) return;
+      stopBusy = true;
+      const btn = document.getElementById('stop-all');
+      btn.disabled = true;
+      if (all) btn.classList.add('is-loading');
+      try {
+        const res = await fetch('/api/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(all ? { all: true } : { workers }),
+        });
+        const data = await res.json();
+        setStatus(data.message || data.error || 'Stop requested', data.ok === false);
+        toast({ kind: data.ok === false ? 'error' : 'warn', title: data.message || data.error || 'Stop requested' });
+        await tick();
+      } catch (error) {
+        setStatus('Stop failed: ' + error, true);
+        toast({ kind: 'error', title: 'Stop failed', text: String(error) });
+      } finally {
+        stopBusy = false;
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+      }
+    }
+
+    function setStatus(text, bad, idle) {
+      const el = document.getElementById('status');
+      el.textContent = text;
+      el.classList.toggle('bad', Boolean(bad));
+      el.classList.toggle('idle', Boolean(idle) && !bad);
+    }
+
+    function renderTop(data, workers) {
+      const t = data.totals || {};
+      const total = t.total || 0;
+      const done = t.done || 0;
+      document.getElementById('summary').innerHTML = total === 0 ? '' :
+        '<span class="stat" title="Finished / total"><span><b>' + done + '</b>/' + total + '</span></span><span class="sep"></span>' +
+        '<span class="stat p" title="Passed"><span class="dot" style="background:var(--pass)"></span><b>' + (t.passed || 0) + '</b></span>' +
+        '<span class="stat f" title="Failed or timed out"><span class="dot" style="background:var(--fail)"></span><b>' + failedCount(t) + '</b></span>' +
+        '<span class="stat r" title="Running"><span class="dot" style="background:var(--run)"></span><b>' + (t.running || 0) + '</b></span><span class="sep"></span>' +
+        '<span class="stat" title="Elapsed">' + fmtElapsed(Date.now() - (data.startedAt || startedFallback)) + '</span>';
+      const pct = (n) => (total ? (100 * n) / total : 0);
+      document.getElementById('overall').innerHTML =
+        '<i class="ok" style="width:' + pct(t.passed || 0) + '%"></i>' +
+        '<i class="bad" style="width:' + pct(failedCount(t)) + '%"></i>' +
+        '<i class="live" style="width:' + pct(t.running || 0) + '%"></i>';
+
+      const all = workers.flatMap((lane) => lane.tests || []);
+      document.getElementById('tabs').innerHTML = FILTERS.map((f) => {
+        const n = all.filter((test) => f.match(statusOf(test))).length;
+        return '<button type="button" role="tab" aria-selected="' + (state.filter === f.key) + '" class="tab' + (state.filter === f.key ? ' on' : '') + '" data-filter="' + f.key + '">' +
+          f.label + '<span class="n">' + n + '</span></button>';
+      }).join('');
+
+      const expected = data.expectedWorkers || workers.length;
+      document.getElementById('chips').innerHTML =
+        (workers.length > 1
+          ? '<button type="button" class="chip' + (state.focus === undefined ? ' on' : '') + '" data-focus="0">All workers</button>'
+          : '') +
+        workers.map((lane) => {
+          const done = (lane.passed || 0) + failedCount(lane) + (lane.skipped || 0);
+          const cls = failedCount(lane) > 0 ? 'failed' : lane.running > 0 ? 'running' : done === lane.total && lane.total > 0 ? 'passed' : 'queued';
+          return '<button type="button" class="chip ' + cls + (state.focus === lane.id ? ' on' : '') + '" data-focus="' + lane.id + '" data-tip="' + esc(laneName(lane)) + '">' +
+            '<span class="dot"></span>W' + lane.id + ' <span class="mono">' + done + '/' + (lane.total || 0) + '</span></button>';
+        }).join('') +
+        (workers.length < expected ? '<span class="hint">' + workers.length + ' of ' + expected + ' workers</span>' : '');
+    }
+
+    function renderLane(lane) {
+      const total = lane.total || (lane.tests || []).length || 0;
+      const done = (lane.passed || 0) + failedCount(lane) + (lane.skipped || 0);
+      const pct = (n) => (total ? (100 * n) / total : 0);
+      const isStopped = lane.status === 'stopped';
+      const isDone = lane.status === 'done' || isStopped;
+      const tone = failedCount(lane) > 0 ? ' is-failed' : lane.running > 0 ? ' is-running' : isDone && total > 0 ? ' is-done' : '';
+      const filter = currentFilter();
+      const tests = (lane.tests || []).filter((test) => filter.match(statusOf(test)) && matchesQuery(test));
+      const rows = tests.map((test) => {
+        const status = statusOf(test);
+        const key = testKey(lane, test);
+        const hasError = Boolean(test.error);
+        const retry = test.retry > 0 ? 'retry ' + test.retry + ' · ' : '';
+        return '<li class="test ' + esc(status) + (hasError ? ' has-error' : '') + (state.open.has(key) ? ' open' : '') + '"' +
+          (hasError ? ' data-toggle="' + esc(key) + '"' : '') + '>' +
+          '<span class="dot" title="' + esc(status) + '"></span>' +
+          '<span class="id mono">' + esc(test.id) + '</span>' +
+          '<span class="title">' + esc(test.title) + '</span>' +
+          '<span class="dur mono">' + esc(retry + fmtDur(test.durationMs)) + '</span>' +
+          (hasError ? '<div class="err">' + esc(test.error) + '</div>' : '') +
+          '</li>';
+      }).join('');
+      const empty = (lane.tests || []).length === 0 ? 'No tests reported yet' : 'No tests match';
+      const now = lane.current
+        ? '<div class="lane-now">Now · <span class="mono">' + esc(lane.current.id) + '</span> ' + esc(lane.current.title) + '</div>'
+        : '<div class="lane-now idle">' + (isDone ? 'Finished' : 'Idle') + '</div>';
+      return '<section class="lane' + tone + (highlightId === lane.id ? ' mine' : '') + (isStopped ? ' stopped' : '') + '" data-lane="' + lane.id + '">' +
+        '<div class="lane-head">' +
+          '<div class="lane-row">' +
+            '<span class="lane-id">W' + lane.id + '</span>' +
+            '<span class="lane-name">' + esc(laneName(lane)) + '</span>' +
+            (lane.category || lane.packageId
+              ? '<span class="lane-cat">' + esc((lane.packageId ? 'P' + lane.packageId + ' · ' : '') + (lane.category || '')) + '</span>'
+              : '') +
+            (isStopped ? '<span class="tag">stopped</span>' : '') +
+            '<span class="lane-count mono">' + done + '/' + total + '</span>' +
+            '<button type="button" class="btn ghost danger sm icon" data-control data-stop-worker="' + lane.id + '"' + (isDone ? ' disabled' : '') +
+              ' title="Stop this worker" aria-label="Stop worker W' + lane.id + '">' + icon('stop') + '</button>' +
+          '</div>' +
+          now +
+          '<div class="meter"><i class="ok" style="width:' + pct(lane.passed || 0) + '%"></i>' +
+            '<i class="bad" style="width:' + pct(failedCount(lane)) + '%"></i>' +
+            '<i class="live" style="width:' + pct(lane.running || 0) + '%"></i></div>' +
+        '</div>' +
+        '<ul class="tests">' + (rows || '<li class="empty">' + empty + '</li>') + '</ul>' +
+      '</section>';
+    }
+
+    function render(force) {
+      const data = state.data;
+      if (!data) return;
+      const workers = Array.isArray(data.workers) ? data.workers.slice().sort((a, b) => a.id - b.id) : [];
+      renderTop(data, workers);
+      setStatus('Live · ' + new Date(data.updatedAt || Date.now()).toLocaleTimeString());
+
+      const key = JSON.stringify([workers, state.filter, state.query, state.focus, [...state.open]]);
+      if (!force && key === state.lastKey) return;
+      state.lastKey = key;
+
+      const main = document.getElementById('lanes');
+      const scroll = {};
+      main.querySelectorAll('.lane').forEach((el) => {
+        const list = el.querySelector('.tests');
+        if (list) scroll[el.dataset.lane] = list.scrollTop;
+      });
+      const visible = state.focus === undefined ? workers : workers.filter((lane) => lane.id === state.focus);
+      main.classList.toggle('single', visible.length === 1);
+      main.innerHTML = visible.length === 0
+        ? '<div class="empty">Waiting for worker sessions…</div>'
+        : visible.map(renderLane).join('');
+      main.querySelectorAll('.lane').forEach((el) => {
+        const list = el.querySelector('.tests');
+        if (list && scroll[el.dataset.lane] !== undefined) list.scrollTop = scroll[el.dataset.lane];
+      });
+    }
+
+    function setFilter(key) { state.filter = key; render(true); }
+    function setFocus(id) { state.focus = id > 0 ? id : undefined; render(true); }
+
+    document.getElementById('stop-all').addEventListener('click', () => void requestStop({ all: true }));
+    document.getElementById('tabs').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-filter]');
+      if (btn) setFilter(btn.dataset.filter);
+    });
+    document.getElementById('chips').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-focus]');
+      if (!btn) return;
+      const id = Number(btn.dataset.focus);
+      setFocus(state.focus === id ? 0 : id);
+    });
+    document.getElementById('lanes').addEventListener('click', (ev) => {
+      const stop = ev.target.closest('[data-stop-worker]');
+      if (stop) {
+        const id = Number(stop.dataset.stopWorker);
+        if (Number.isFinite(id)) void requestStop({ workers: [id] });
+        return;
+      }
+      const row = ev.target.closest('[data-toggle]');
+      if (row) {
+        const key = row.dataset.toggle;
+        if (state.open.has(key)) state.open.delete(key); else state.open.add(key);
+        render(true);
+      }
+    });
+    const search = document.getElementById('search');
+    search.addEventListener('input', () => { state.query = search.value.trim(); render(true); });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      if (document.querySelector('.modal.open')) return;
+      const active = document.activeElement;
+      if (active && active !== search && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)) return;
+      if (document.activeElement === search) {
+        if (ev.key === 'Escape') { search.value = ''; state.query = ''; search.blur(); render(true); }
+        return;
+      }
+      const k = ev.key.toLowerCase();
+      if (k === '/') { ev.preventDefault(); search.focus(); return; }
+      if (k === 'escape') { state.query = ''; search.value = ''; state.filter = 'all'; state.focus = undefined; render(true); return; }
+      const byKey = { a: 'all', r: 'running', f: 'failed', p: 'passed', q: 'queued' }[k];
+      if (byKey) { setFilter(byKey); return; }
+      if (/^[0-9]$/.test(k)) setFocus(Number(k));
+    });
+
+    async function tick() {
+      try {
+        const res = await fetch('/api/status', { cache: 'no-store' });
+        state.data = await res.json();
+        if (state.data.offline) {
+          setStatus(qa.job && qa.job.state === 'running' ? 'Starting next package…' : 'No run active', false, true);
+          renderTop(state.data, []);
+          document.getElementById('lanes').innerHTML =
+            '<div class="empty">No run active. Open the Test runner, pick families and games, then Run.</div>';
+          state.lastKey = '';
+          if (!qa.touched && qa.online) setQaOpen(true);
+          return;
+        }
+        render(false);
+      } catch (error) {
+        setStatus('Monitor server unreachable', true);
+      }
+    }
+
+    // ── Hover card: full text for anything truncated ───────────────────────────
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.hidden = true;
+    document.body.appendChild(tip);
+    const tipState = { html: undefined, timer: undefined, x: 0, y: 0 };
+
+    function isTruncated(el) {
+      return Boolean(el) && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
+    }
+    function tipHtml(target) {
+      const row = target.closest('.test');
+      if (row) {
+        const title = row.querySelector('.title');
+        const canExpand = row.classList.contains('has-error') && !row.classList.contains('open');
+        if (!isTruncated(title) && !canExpand) return undefined;
+        const status = row.querySelector('.dot')?.getAttribute('title') || '';
+        const dur = row.querySelector('.dur')?.textContent || '';
+        return '<div class="tip-meta"><span class="mono">' + esc(row.querySelector('.id')?.textContent) + '</span> · ' +
+          '<span class="' + esc(status) + '">' + esc(status) + '</span>' + (dur ? ' · ' + esc(dur) : '') +
+          (canExpand ? ' · click to show the error' : '') + '</div>' +
+          '<div>' + esc(title.textContent) + '</div>';
+      }
+      const tagged = target.closest('[data-tip]');
+      if (tagged) return esc(tagged.dataset.tip);
+      const clipped = target.closest('.lane-name, .lane-now, .qa-desc, .qa-state, .qa-fam .fl');
+      return clipped && isTruncated(clipped) ? esc(clipped.textContent) : undefined;
+    }
+    function placeTip() {
+      const pad = 14;
+      const rect = tip.getBoundingClientRect();
+      let left = tipState.x + pad;
+      let top = tipState.y + pad;
+      if (left + rect.width > innerWidth - 8) left = Math.max(8, tipState.x - rect.width - pad);
+      if (top + rect.height > innerHeight - 8) top = Math.max(8, tipState.y - rect.height - pad);
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+    function hideTip() {
+      clearTimeout(tipState.timer);
+      tipState.html = undefined;
+      tip.hidden = true;
+    }
+    document.addEventListener('mousemove', (ev) => {
+      tipState.x = ev.clientX;
+      tipState.y = ev.clientY;
+      const html = ev.target instanceof Element ? tipHtml(ev.target) : undefined;
+      if (html === undefined) { hideTip(); return; }
+      if (html !== tipState.html) {
+        hideTip();
+        tipState.html = html;
+        tipState.timer = setTimeout(() => {
+          tip.innerHTML = html;
+          tip.hidden = false;
+          placeTip();
+        }, 250);
+        return;
+      }
+      if (!tip.hidden) placeTip();
+    });
+    document.addEventListener('mouseleave', hideTip);
+    document.addEventListener('scroll', hideTip, true);
+
+    // ── Test runner (Quality Automation Testing) ───────────────────────────────
+    // Served by scripts/qa-testing-page.mjs (always on, :3850) the API is same-origin;
+    // inside a run's own monitor (:3847) it talks to that server instead.
+    const QA_API = window.SGAP_QA_API !== undefined ? window.SGAP_QA_API : (params.get('qa') || 'http://127.0.0.1:3850');
+    const qa = {
+      catalog: null, job: null, since: 0, log: [], online: false, touched: false,
+      preset: '', families: new Set(), games: new Set(), caseId: '',
+      opts: { screenshots: true, trace: false, dryRun: false },
+    };
+
+    async function qaFetch(path, init) {
+      const res = await fetch(QA_API + path, Object.assign({ cache: 'no-store' }, init || {}));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+    function qaLink(href) {
+      return /^https?:/.test(href) ? href : QA_API + href;
+    }
+    function setQaOpen(open) {
+      document.getElementById('qa').hidden = !open;
+      document.getElementById('qa-toggle').setAttribute('aria-expanded', String(open));
+      document.getElementById('qa-toggle').classList.toggle('on', open);
+    }
+    function qaFamilies() {
+      return qa.catalog ? qa.catalog.groups.flatMap((g) => g.families.map((f) => Object.assign({ group: g.id }, f))) : [];
+    }
+    function qaPreset() {
+      return qa.catalog && qa.preset ? qa.catalog.suites.find((s) => s.id === qa.preset) : undefined;
+    }
+    /** A preset that names individual cases (no families) disables the family boxes. */
+    function qaCaseList() {
+      const preset = qaPreset();
+      if (preset && !preset.families) return preset.cases;
+      return qaFamilies().filter((f) => qa.families.has(f.id)).flatMap((f) => f.cases);
+    }
+    function qaPackageOf(gameId) {
+      return qa.catalog.packages.find((p) => p.games.some((g) => g.gameId === gameId));
+    }
+    function applyPreset(id) {
+      qa.preset = id;
+      qa.caseId = '';
+      const preset = qaPreset();
+      if (preset) {
+        qa.families = new Set(preset.families || []);
+        qa.games = new Set(qa.catalog.packages.filter((p) => preset.defaultPackages.includes(p.id)).flatMap((p) => p.games.map((g) => g.gameId)));
+      }
+      renderQaForm();
+    }
+    /** Case runs the selection will execute: game-scope per game, package-scope per package, environment-scope once. */
+    function qaPlannedRuns() {
+      const preset = qaPreset();
+      const gameCount = qa.games.size;
+      const pkgCount = new Set([...qa.games].map((g) => (qaPackageOf(g) || {}).id)).size;
+      const fams = preset && !preset.families ? [] : qaFamilies().filter((f) => qa.families.has(f.id));
+      const per = (f, n) => (f.scope === 'environment' ? 1 : f.scope === 'package' ? pkgCount : gameCount) * n;
+      if (qa.caseId) {
+        const fam = fams.find((f) => f.cases.includes(qa.caseId));
+        return fam ? per(fam, 1) : gameCount;
+      }
+      if (preset && !preset.families) return preset.cases.length * gameCount;
+      return fams.reduce((sum, f) => sum + per(f, f.cases.length), 0);
+    }
+    function renderQaForm() {
+      const form = document.getElementById('qa-form');
+      if (!qa.catalog) return;
+      const preset = qaPreset();
+      const locked = Boolean(preset && !preset.families);
+      document.getElementById('qa-desc').textContent = preset
+        ? preset.description || ''
+        : 'Tick test families and games, then run. Pentesting runs only when PEN is ticked.';
+      const presetOptions = '<option value="">Custom — tick families below</option>' + qa.catalog.suites.map((s) =>
+        '<option value="' + esc(s.id) + '"' + (s.id === qa.preset ? ' selected' : '') + '>' + esc(s.label) + '</option>').join('');
+      const cases = qaCaseList();
+      const caseOptions = '<option value="">All selected cases (' + cases.length + ')</option>' +
+        cases.map((c) => '<option value="' + esc(c) + '"' + (c === qa.caseId ? ' selected' : '') + '>' + esc(c) + ' only</option>').join('');
+      const groups = qa.catalog.groups.map((g) => {
+        const fams = g.families.map((f) => {
+          const manual = f.cases.length === 0;
+          const off = locked || manual;
+          return '<label class="qa-fam' + (off ? ' off' : '') + '" data-tip="' + esc(f.id + ' — ' + f.label + (manual ? ' (manual only, no automated cases)' : ': ' + f.cases.length + ' automated case(s), scope ' + f.scope)) + '">' +
+            '<input type="checkbox" data-fam="' + esc(f.id) + '"' + (qa.families.has(f.id) && !manual ? ' checked' : '') + (off ? ' disabled' : '') + ' />' +
+            '<b>' + esc(f.id) + '</b><span class="fl">' + esc(f.label) + '</span>' +
+            '<span class="n">' + (manual ? 'manual' : f.cases.length) + '</span></label>';
+        }).join('');
+        const tools = g.id === 'regression'
+          ? '<div class="gtools"><button type="button" class="btn ghost sm" data-fam-all="regression"' + (locked ? ' disabled' : '') + '>All Regression</button>' +
+            '<button type="button" class="btn ghost sm" data-fam-none="regression"' + (locked ? ' disabled' : '') + '>None</button></div>'
+          : '';
+        return '<fieldset class="qa-group g-' + esc(g.id) + '"><legend>' + esc(g.label) + '</legend>' +
+          '<p class="gdesc">' + esc(g.description || '') + '</p>' + tools +
+          '<div class="qa-fams">' + fams + '</div></fieldset>';
+      }).join('');
+      const pkgs = qa.catalog.packages.map((p) => {
+        const picked = p.games.filter((g) => qa.games.has(g.gameId)).length;
+        return '<div class="qa-pkgbox"><label><input type="checkbox" data-pkg="' + esc(p.id) + '" />Package ' + esc(p.id) +
+          '<span class="n">' + picked + '/' + p.games.length + '</span></label>' +
+          '<div class="qa-games">' + p.games.map((g) =>
+            '<label class="' + (qa.games.has(g.gameId) ? 'on' : '') + '"><input type="checkbox" data-game="' + esc(g.gameId) + '"' + (qa.games.has(g.gameId) ? ' checked' : '') + ' />' + esc(g.name) + '</label>').join('') +
+          '</div></div>';
+      }).join('');
+      const opt = (key, label, hint) =>
+        '<label><input type="checkbox" data-opt="' + key + '"' + (qa.opts[key] ? ' checked' : '') + ' /><span>' + esc(label) + '</span><small>' + esc(hint) + '</small></label>';
+      const step = (n, label, tools) =>
+        '<div class="qa-step"><span class="num">' + n + '</span><span class="field-label">' + label + '</span>' + (tools ? '<span class="tools">' + tools + '</span>' : '') + '</div>';
+      form.innerHTML =
+        '<div class="qa-layout">' +
+          '<div class="qa-col">' +
+            '<div>' + step(1, 'Tests') +
+              '<div class="qa-row">' +
+                '<label class="qa-field"><span class="field-label">Preset</span><select id="qa-preset">' + presetOptions + '</select></label>' +
+                '<label class="qa-field"><span class="field-label">Case</span><select id="qa-case">' + caseOptions + '</select></label>' +
+              '</div>' +
+            '</div>' +
+            '<div class="qa-groups">' + groups + '</div>' +
+          '</div>' +
+          '<div class="qa-col">' +
+            '<div>' + step(2, 'Games',
+              '<button type="button" class="btn ghost sm" data-games="all">All</button>' +
+              '<button type="button" class="btn ghost sm" data-games="none">None</button>') +
+              '<div class="qa-pkgs">' + pkgs + '</div>' +
+            '</div>' +
+            '<div>' + step(3, 'Evidence') +
+              '<div class="qa-opts">' +
+                opt('screenshots', 'Capture failure screenshots', 'Playwright screenshot on failure. Canvas checks always take theirs.') +
+                opt('trace', 'Record trace', 'Keep a Playwright trace for failed tests. Heavier under 4 workers.') +
+                opt('dryRun', 'Dry run', 'Only write lane configs; nothing is launched.') +
+                '<div class="hint">The monitor stays live either way: progress, network, console, WebSocket, events, errors, balance.</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      form.querySelectorAll('[data-pkg]').forEach((box) => {
+        const pkg = qa.catalog.packages.find((p) => p.id === box.dataset.pkg);
+        const picked = pkg.games.filter((g) => qa.games.has(g.gameId)).length;
+        box.checked = picked > 0 && picked === pkg.games.length;
+        box.indeterminate = picked > 0 && picked < pkg.games.length;
+      });
+      renderQaJob();
+    }
+    function qaSelectionText() {
+      const preset = qaPreset();
+      if (preset && !preset.families) return preset.label;
+      const picked = qaFamilies().filter((f) => qa.families.has(f.id) && f.cases.length > 0);
+      const by = (group) => picked.filter((f) => f.group === group).map((f) => f.id).join(', ');
+      const other = by('other');
+      return 'Regression: ' + (by('regression') || '—') + ' · Security: ' + (by('security') || '— (PEN not selected)') + (other ? ' · Other: ' + other : '');
+    }
+    function renderQaJob() {
+      const job = qa.job;
+      const running = Boolean(job && job.state === 'running');
+      const el = document.getElementById('qa-state');
+      const preset = qaPreset();
+      const hasFamilies = (preset && !preset.families) || qaFamilies().some((f) => qa.families.has(f.id) && f.cases.length > 0);
+      const runBtn = document.getElementById('qa-run');
+      if (!runBtn.classList.contains('is-loading')) {
+        runBtn.disabled = running || !qa.online || !hasFamilies || qa.games.size === 0;
+      }
+      document.getElementById('qa-stop').disabled = !running;
+      document.getElementById('qa-toggle').classList.toggle('primary', running);
+      el.className = 'qa-state';
+      if (!qa.online) {
+        el.classList.add('bad');
+        el.textContent = 'Runner offline — start it with: npx pnpm qa';
+        return;
+      }
+      if (!job || (!running && qa.touchedSinceJob)) {
+        const pkgs = new Set([...qa.games].map((g) => (qaPackageOf(g) || {}).id));
+        el.textContent = qaSelectionText() + ' · ' + qa.games.size + ' game(s) in ' + pkgs.size + ' package(s) · ' +
+          qaPlannedRuns() + ' case run(s)';
+        return;
+      }
+      el.classList.add(job.state);
+      const pkgCount = job.packages.length;
+      const where = job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '';
+      const elapsed = fmtElapsed((job.endedAt || Date.now()) - job.startedAt);
+      const what = job.label + (job.caseId ? ' — ' + job.caseId : '') + (job.dryRun ? ' (dry run)' : '') +
+        ' · ' + (job.games || []).length + ' game(s)';
+      el.innerHTML = running
+        ? 'Running · ' + esc(what) + esc(where) + ' · ' + elapsed
+        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(what) + ' · ' + pkgCount + ' package(s) in ' + elapsed +
+          (job.dryRun ? '' : ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>') +
+          ' · log <span class="mono">' + esc(job.logFile) + '</span>';
+    }
+    async function qaPoll() {
+      try {
+        const data = await qaFetch('/api/qa/job?since=' + qa.since);
+        if (!qa.online) {
+          qa.online = true;
+          if (!qa.catalog) await qaLoadCatalog();
+        }
+        if (data.log.from < qa.since || (data.job && qa.job && data.job.startedAt !== qa.job.startedAt)) qa.log = [];
+        qa.log = qa.log.concat(data.log.lines).slice(-300);
+        qa.since = data.log.next;
+        const before = qa.job;
+        qa.job = data.job;
+        if (before && qa.job && before.startedAt === qa.job.startedAt && before.state === 'running' && qa.job.state !== 'running') {
+          const kind = qa.job.state === 'passed' ? 'success' : qa.job.state === 'stopped' ? 'warn' : 'error';
+          toast({ kind, title: 'Run ' + qa.job.state, text: qa.job.label + ' · ' + fmtElapsed((qa.job.endedAt || Date.now()) - qa.job.startedAt) });
+        }
+        const logEl = document.getElementById('qa-log');
+        const atBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 4;
+        logEl.textContent = qa.log.join('\n');
+        if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+      } catch {
+        qa.online = false;
+      }
+      renderQaJob();
+    }
+    async function qaLoadCatalog() {
+      try {
+        qa.catalog = await qaFetch('/api/qa/catalog');
+        qa.online = true;
+        const first = qa.catalog.packages[0];
+        qa.games = new Set(first ? first.games.map((g) => g.gameId) : []);
+        applyPreset('');
+      } catch {
+        qa.online = false;
+        document.getElementById('qa-desc').textContent = 'Runner offline.';
+        renderQaJob();
+      }
+    }
+
+    document.getElementById('qa-toggle').addEventListener('click', () => {
+      qa.touched = true;
+      setQaOpen(document.getElementById('qa').hidden);
+    });
+    function qaTouched() {
+      qa.touchedSinceJob = true;
+    }
+    document.getElementById('qa-form').addEventListener('change', (ev) => {
+      const t = ev.target;
+      qaTouched();
+      if (t.id === 'qa-preset') { applyPreset(t.value); return; }
+      if (t.id === 'qa-case') { qa.caseId = t.value; renderQaJob(); return; }
+      if (t.dataset.fam) {
+        qa.preset = '';
+        qa.caseId = '';
+        if (t.checked) qa.families.add(t.dataset.fam); else qa.families.delete(t.dataset.fam);
+        renderQaForm();
+        return;
+      }
+      if (t.dataset.pkg) {
+        const pkg = qa.catalog.packages.find((p) => p.id === t.dataset.pkg);
+        pkg.games.forEach((g) => (t.checked ? qa.games.add(g.gameId) : qa.games.delete(g.gameId)));
+        renderQaForm();
+        return;
+      }
+      if (t.dataset.game) {
+        if (t.checked) qa.games.add(t.dataset.game); else qa.games.delete(t.dataset.game);
+        renderQaForm();
+        return;
+      }
+      if (t.dataset.opt) {
+        qa.opts[t.dataset.opt] = t.checked;
+        renderQaJob();
+      }
+    });
+    document.getElementById('qa-form').addEventListener('click', (ev) => {
+      const all = ev.target.closest('[data-fam-all]');
+      const none = ev.target.closest('[data-fam-none]');
+      const games = ev.target.closest('[data-games]');
+      if (!all && !none && !games) return;
+      qaTouched();
+      if (all || none) {
+        const group = (all || none).dataset.famAll || (none && none.dataset.famNone);
+        qa.preset = '';
+        qa.caseId = '';
+        qaFamilies().filter((f) => f.group === group && f.cases.length > 0)
+          .forEach((f) => (all ? qa.families.add(f.id) : qa.families.delete(f.id)));
+      } else {
+        qa.games = new Set(games.dataset.games === 'all' ? qa.catalog.packages.flatMap((p) => p.games.map((g) => g.gameId)) : []);
+      }
+      renderQaForm();
+    });
+    document.getElementById('qa-run').addEventListener('click', async () => {
+      const preset = qaPreset();
+      const families = qaFamilies().filter((f) => qa.families.has(f.id) && f.cases.length > 0).map((f) => f.id);
+      const games = qa.catalog.packages.flatMap((p) => p.games.map((g) => g.gameId)).filter((g) => qa.games.has(g));
+      if (games.length === 0 || (!preset && families.length === 0)) return;
+      const names = games.map((g) => qa.catalog.packages.flatMap((p) => p.games).find((x) => x.gameId === g).name);
+      const withPen = preset ? (preset.families || []).includes('PEN') : families.includes('PEN');
+      if (!qa.opts.dryRun) {
+        const ok = await confirmBox({
+          title: 'Run ' + (preset ? preset.label : 'selected tests') + (qa.caseId ? ' — ' + qa.caseId + ' only' : ''),
+          lines: [
+            qaSelectionText(),
+            'Games: ' + names.join(', '),
+            qaPlannedRuns() + ' case run(s)',
+          ],
+          warning: withPen ? 'Includes PEN (Security / Pentesting) — staging test accounts only.' : '',
+          confirmLabel: 'Run',
+        });
+        if (!ok) return;
+      }
+      const runBtn = document.getElementById('qa-run');
+      runBtn.disabled = true;
+      runBtn.classList.add('is-loading');
+      const body = Object.assign(
+        preset ? { suite: preset.id } : { families },
+        { games, caseId: qa.caseId, dryRun: qa.opts.dryRun, screenshots: qa.opts.screenshots, trace: qa.opts.trace },
+      );
+      try {
+        await qaFetch('/api/qa/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        qa.touchedSinceJob = false;
+        qa.log = [];
+        qa.since = 0;
+        toast({ kind: 'success', title: qa.opts.dryRun ? 'Dry run started' : 'Run started', text: names.length + ' game(s) · ' + qaPlannedRuns() + ' case run(s)' });
+        runBtn.classList.remove('is-loading');
+        await qaPoll();
+      } catch (error) {
+        runBtn.classList.remove('is-loading');
+        const el = document.getElementById('qa-state');
+        el.className = 'qa-state bad';
+        el.textContent = String(error.message || error);
+        toast({ kind: 'error', title: 'Could not start the run', text: String(error.message || error) });
+        runBtn.disabled = false;
+      }
+    });
+    document.getElementById('qa-stop').addEventListener('click', async () => {
+      const ok = await confirmBox({
+        title: 'Stop the run?',
+        lines: ['The queue ends and its test browsers close. Results so far stay in Allure.'],
+        confirmLabel: 'Stop run',
+        danger: true,
+      });
+      if (!ok) return;
+      const btn = document.getElementById('qa-stop');
+      btn.classList.add('is-loading');
+      try {
+        await qaFetch('/api/qa/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      } catch (error) {
+        setStatus('Stop failed: ' + error, true);
+        toast({ kind: 'error', title: 'Stop failed', text: String(error.message || error) });
+      }
+      btn.classList.remove('is-loading');
+      await qaPoll();
+    });
+    document.getElementById('qa-log-toggle').addEventListener('click', (ev) => {
+      const logEl = document.getElementById('qa-log');
+      const btn = ev.currentTarget;
+      logEl.hidden = !logEl.hidden;
+      btn.querySelector('span').textContent = logEl.hidden ? 'Show log' : 'Hide log';
+      if (!logEl.hidden) logEl.scrollTop = logEl.scrollHeight;
+    });
+
+    if (window.SGAP) SGAP.mountChrome();
+    if (params.get('qa-open') === '1') { qa.touched = true; setQaOpen(true); }
+    qaLoadCatalog().then(qaPoll);
+    setInterval(qaPoll, 1500);
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "gameId": "beelze-bop",
+  "packageId": "package-1",
+  "source": "docs/PackageFiles/Package Specs/Package1.pdf — same ids as Sugar Wonderland",
+  "reelHint": "6 columns × 5 rows (always read from slot.area, never hardcode)",
+  "rowOrder": "bottom-to-top",
+  "symbols": [
+    { "id": 0, "name": "Scatter", "visualName": "Scatter", "kind": "scatter", "helpOrder": 10 },
+    { "id": 1, "name": "Heart", "visualName": "Heart", "kind": "high", "helpOrder": 1 },
+    { "id": 2, "name": "Star", "visualName": "Star", "kind": "high", "helpOrder": 2 },
+    { "id": 3, "name": "Flower", "visualName": "Flower", "kind": "high", "helpOrder": 3 },
+    { "id": 4, "name": "Triangle", "visualName": "Triangle", "kind": "high", "helpOrder": 4 },
+    { "id": 5, "name": "Diamond", "visualName": "Diamond", "kind": "low", "helpOrder": 5 },
+    { "id": 6, "name": "Teardrop", "visualName": "Teardrop", "kind": "low", "helpOrder": 6 },
+    { "id": 7, "name": "Circle", "visualName": "Circle", "kind": "low", "helpOrder": 7 },
+    { "id": 8, "name": "Square", "visualName": "Square", "kind": "low", "helpOrder": 8 },
+    { "id": 9, "name": "Scallop", "visualName": "Scallop", "kind": "low", "helpOrder": 9 },
+    { "id": 10, "name": "Multiplier 2x", "visualName": "Bomb 2x", "kind": "multiplier", "multiplierValue": 2 },
+    { "id": 11, "name": "Multiplier 3x", "visualName": "Bomb 3x", "kind": "multiplier", "multiplierValue": 3 },
+    { "id": 12, "name": "Multiplier 4x", "visualName": "Bomb 4x", "kind": "multiplier", "multiplierValue": 4 },
+    { "id": 13, "name": "Multiplier 5x", "visualName": "Bomb 5x", "kind": "multiplier", "multiplierValue": 5 },
+    { "id": 14, "name": "Multiplier 6x", "visualName": "Bomb 6x", "kind": "multiplier", "multiplierValue": 6 },
+    { "id": 15, "name": "Multiplier 8x", "visualName": "Bomb 8x", "kind": "multiplier", "multiplierValue": 8 },
+    { "id": 16, "name": "Multiplier 10x", "visualName": "Bomb 10x", "kind": "multiplier", "multiplierValue": 10 },
+    { "id": 17, "name": "Multiplier 12x", "visualName": "Bomb 12x", "kind": "multiplier", "multiplierValue": 12 },
+    { "id": 18, "name": "Multiplier 15x", "visualName": "Bomb 15x", "kind": "multiplier", "multiplierValue": 15 },
+    { "id": 19, "name": "Multiplier 20x", "visualName": "Bomb 20x", "kind": "multiplier", "multiplierValue": 20 },
+    { "id": 20, "name": "Multiplier 25x", "visualName": "Bomb 25x", "kind": "multiplier", "multiplierValue": 25 },
+    { "id": 21, "name": "Multiplier 50x", "visualName": "Bomb 50x", "kind": "multiplier", "multiplierValue": 50 },
+    { "id": 22, "name": "Multiplier 100x", "visualName": "Bomb 100x", "kind": "multiplier", "multiplierValue": 100 }
+  ]
+}

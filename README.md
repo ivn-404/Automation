@@ -40,13 +40,44 @@ Read before contributing:
 - Playwright (Chrome + Edge)
 - pnpm
 
-## Setup
+## Setup (each QA PC)
+
+Every tester runs SGAP on their own PC: tests, browsers and reports stay local,
+and everyone gets the same test cases from this repository.
+
+Install once: [Git](https://git-scm.com/download/win), [Node.js 20+](https://nodejs.org/),
+Google Chrome, Microsoft Edge and [Java 17+](https://adoptium.net/) (for Allure reports).
 
 ```bash
-pnpm install
+git clone https://github.com/ivn-404/Automation.git
+cd Automation
+npx pnpm install
+npx playwright install chromium
 ```
 
-Chrome and Edge must be installed on the host machine (Playwright uses `channel: 'chrome'` and `channel: 'msedge'`).
+Create a `.env` file in the project folder with your name (letters/digits only).
+It is added to every staging player id, so testers on different PCs never share
+a player, wallet or session:
+
+```bash
+SGAP_TESTER=Ana
+```
+
+Start the control panel (opens http://127.0.0.1:3850/):
+
+```bash
+npx pnpm qa
+```
+
+Get the latest test cases and fixes:
+
+```bash
+git pull
+npx pnpm install
+```
+
+Optional — let someone else watch or drive your PC's panel over the LAN:
+`npx pnpm qa:share` (control) or `npx pnpm qa:share:view` (watch only).
 
 ## Commands
 

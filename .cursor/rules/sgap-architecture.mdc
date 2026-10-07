@@ -1,0 +1,15 @@
+---
+description: SGAP build-once rule — read the architecture map before adding game-specific code
+alwaysApply: true
+---
+
+# SGAP architecture
+
+Before adding game logic, read `docs/architecture/README.md`.
+
+- New game = manifest + symbols + probe. Do not copy specs or controllers per title.
+- No `if (gameId === '…')` in `src/controllers` or `tests/specs`.
+- Button ratios, iframe selectors, and bet URL patterns belong in `config/manifests/<gameId>.json`.
+- Vision bands and Phaser HUD boxes are still leaked in support/runtime code. Extend config; do not add another hardcoded Sugar coordinate.
+- Pass/fail is an observable response (usually `/bet`), not a screenshot alone.
+- Host page is the launcher. Game clicks happen inside the iframe.

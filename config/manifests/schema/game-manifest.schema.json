@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sgap.local/schemas/game-manifest.schema.json",
+  "title": "SGAP Game Manifest",
+  "description": "Per-game configuration for the Slot Game Automation Platform. Configuration only — no framework logic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "gameId",
+    "displayName",
+    "iframeSelectorKey",
+    "controllers",
+    "locatorKeys"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Manifest schema version."
+    },
+    "gameId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Stable game identifier. Must match the filename without .json."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "iframeSelectorKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logical key into locatorKeys for the game iframe."
+    },
+    "controllers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "enabled"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "spin",
+              "autoplay",
+              "buyFeature",
+              "bet",
+              "amplifyBet",
+              "turbo",
+              "menu",
+              "settings",
+              "fullscreen",
+              "scratchCard"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "locatorKeys": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canvasActions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions"],
+      "properties": {
+        "canvasSelector": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canvas selector inside the game iframe (default: canvas)."
+        },
+        "actions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "number", "minimum": 0, "maximum": 1 },
+              "y": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["betUrlPattern", "fields"],
+      "properties": {
+        "betUrlPattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Playwright URL glob for bet/spin responses."
+        },
+        "initializeUrlPattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional Playwright URL glob for game initialize."
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["balance", "totalWin"],
+          "properties": {
+            "balance": { "type": "string", "minLength": 1 },
+            "totalWin": { "type": "string", "minLength": 1 },
+            "transactionState": { "type": "string", "minLength": 1 },
+            "baseWin": { "type": "string", "minLength": 1 },
+            "bonusWin": { "type": "string", "minLength": 1 },
+            "unresolvedSpin": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "reelValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "areaPath, tumblesPath, featureItemsPath, rowOrder and symbols fall back to the package catalog (config/packages/<packageId>.json) when omitted.",
+      "required": ["symbolTemplateDir", "reelRegion"],
+      "properties": {
+        "areaPath": { "type": "string", "minLength": 1 },
+        "tumblesPath": { "type": "string", "minLength": 1 },
+        "featureItemsPath": { "type": "string", "minLength": 1 },
+        "rowOrder": { "enum": ["top-to-bottom", "bottom-to-top"] },
+        "symbolTemplateDir": { "type": "string", "minLength": 1 },
+        "cellInset": { "type": "number", "minimum": 0, "exclusiveMaximum": 0.45 },
+        "matchThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "helpOpenActions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "helpCloseActions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reelRegion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          }
+        },
+        "symbols": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "scratchCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hubUrlPattern", "inCanvasDrawer", "actions", "scratchArea"],
+      "description": "Scratch-card side game. Drawer points are fractions of the drawer (side canvas on desktop, inCanvasDrawer area on mobile).",
+      "properties": {
+        "hubUrlPattern": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Websocket URL glob for the scratch hub (SignalR JSON)."
+        },
+        "sideCanvasSelector": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canvas outside the main game canvas, used when visible."
+        },
+        "inCanvasDrawer": { "$ref": "#/$defs/normalizedRect" },
+        "scratchArea": { "$ref": "#/$defs/normalizedRect" },
+        "openProbe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["area", "hue", "minShare"],
+          "description": "In-canvas drawer open check: at least minShare of the patch pixels are in hue (a drawer control such as the BUY CARD pill).",
+          "properties": {
+            "area": { "$ref": "#/$defs/normalizedRect" },
+            "hue": { "type": "string", "enum": ["green", "red", "amber", "pink"] },
+            "minShare": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          }
+        },
+        "textAreas": {
+          "type": "object",
+          "description": "Named drawer regions (drawer ratios) whose Phaser texts are read: betValue, legend, totalWin.",
+          "additionalProperties": { "$ref": "#/$defs/normalizedRect" }
+        },
+        "actions": {
+          "type": "object",
+          "required": ["buyCard", "close"],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "number", "minimum": 0, "maximum": 1 },
+              "y": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "normalizedRect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

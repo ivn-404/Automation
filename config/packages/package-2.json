@@ -1,0 +1,42 @@
+{
+  "packageId": "package-2",
+  "gameId": "kobo-ass",
+  "gameIds": [
+    "kobo-ass",
+    "hustle-the-blazing-horse",
+    "jungle-fruity",
+    "bad-beach"
+  ],
+  "displayName": "Package 2",
+  "specTitle": "[Package Specification] -Package 2",
+  "reelsHint": {
+    "columns": 5,
+    "rows": 3
+  },
+  "winPattern": "paylines-20",
+  "capabilities": {
+    "freeSpins": true,
+    "scatterTrigger": true,
+    "multiplierWild": true,
+    "maxWin": true,
+    "tumble": false,
+    "freeSpinRetrigger": false
+  },
+  "notes": "From docs/PackageFiles/Package Specs/Package2.pdf: 5x3, 20 paylines, max win 6,750x, bet 0.20-150.00. Symbol 0 triggers Free Spins (spec text also says '3 Wild symbols' — open question for QA); a wheel reveals the spin count; wild multipliers 2x/3x only on reels 2-4 and add together on a line; Bonus Mode cannot be retriggered and has no scatter. tumble=false: paylines with no cascade in the spec — confirm with PROBE-004. areaPath / rowOrder / featureItemsPath are intentionally absent until a staging /bet is captured, so reelValidation stays NOT CONFIGURED instead of guessed.",
+  "symbols": [
+    { "id": 0, "name": "Symbol 0", "kind": "scatter" },
+    { "id": 1, "name": "Symbol 1", "kind": "high" },
+    { "id": 2, "name": "Symbol 2", "kind": "high" },
+    { "id": 3, "name": "Symbol 3", "kind": "high" },
+    { "id": 4, "name": "Symbol 4", "kind": "high" },
+    { "id": 5, "name": "Symbol 5", "kind": "high" },
+    { "id": 6, "name": "Symbol 6", "kind": "high" },
+    { "id": 7, "name": "Symbol 7", "kind": "low" },
+    { "id": 8, "name": "Symbol 8", "kind": "low" },
+    { "id": 9, "name": "Symbol 9", "kind": "low" },
+    { "id": 10, "name": "Symbol 10", "kind": "low" },
+    { "id": 11, "name": "Symbol 11", "kind": "low" },
+    { "id": 12, "name": "Wild Multiplier 2x", "kind": "wild", "multiplierValue": 2 },
+    { "id": 13, "name": "Wild Multiplier 3x", "kind": "wild", "multiplierValue": 3 }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "balance": 9721.85,
+  "transactionState": "completed",
+  "slot": {
+    "area": [
+      [7, 9, 9, 3, 3],
+      [5, 4, 4, 6, 6],
+      [5, 3, 3, 4, 4],
+      [9, 8, 8, 1, 1],
+      [5, 0, 1, 1, 9],
+      [6, 8, 8, 3, 3]
+    ],
+    "totalWin": 0,
+    "tumbles": [],
+    "freeSpin": {
+      "multiplierValue": 0,
+      "items": []
+    },
+    "base": {
+      "win": 0
+    },
+    "bonus": {
+      "win": 0
+    }
+  }
+}

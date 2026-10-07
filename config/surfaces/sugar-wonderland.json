@@ -1,0 +1,32 @@
+{
+  "id": "sugar-wonderland",
+  "extends": "base",
+  "notes": "Sugar confirms a purchase on the wide green BUY FEATURE pill at y~0.81, not the mid-panel YES at y~0.58 that the other Package 1 titles use. This override replaces the gameId === 'sugar-wonderland' branch that used to live in tests/support/canvas-bet-flow.ts. buyFeature: since the SCRATCH pill was added the HUD sits lower — the pink BUY (USD) pill is an interactive Phaser Rectangle 121x54 centred at 0.500,0.830 (PROBE-002 inventory, 2026-10-06), below the base band 0.74-0.81.",
+  "controls": {
+    "buyFeature": {
+      "vision": {
+        "hue": "pink",
+        "band": { "y0": 0.79, "y1": 0.87, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.003,
+        "maxAreaRatio": 0.02,
+        "accept": { "y0": 0.8, "y1": 0.86 }
+      },
+      "phaser": { "x0": 0.35, "x1": 0.65, "y0": 0.79, "y1": 0.87, "minW": 80, "minH": 30, "maxW": 200, "pick": "largest" },
+      "candidates": [
+        { "x": 0.5, "y": 0.83 },
+        { "x": 0.5, "y": 0.82 },
+        { "x": 0.5, "y": 0.84 },
+        { "x": 0.46, "y": 0.83 }
+      ]
+    },
+    "buyFeatureConfirm": {
+      "candidates": [
+        { "x": 0.5, "y": 0.81 },
+        { "x": 0.5, "y": 0.8 },
+        { "x": 0.5, "y": 0.78 },
+        { "x": 0.48, "y": 0.81 },
+        { "x": 0.52, "y": 0.81 }
+      ]
+    }
+  }
+}

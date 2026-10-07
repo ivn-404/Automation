@@ -1,0 +1,32 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Remaining regression cases (CSF-011, AT-002..005, ES-007, ES-008) on Sugar Wonderland. Separate players per lane so the two-session cases (AT-004/005) never touch the other lane.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "REGR-A",
+      "categories": ["CSF", "AT"],
+      "testMatch": ["csf/**/CSF-011.spec.ts", "at/**/AT-002.spec.ts", "at/**/AT-003.spec.ts", "at/**/AT-004.spec.ts"],
+      "playerId": "Sugar Wonderland_REGR1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "REGR-B",
+      "categories": ["AT", "ES"],
+      "testMatch": ["at/**/AT-005.spec.ts", "es/**/ES-007.spec.ts", "es/**/ES-008.spec.ts"],
+      "playerId": "Sugar Wonderland_REGR2",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

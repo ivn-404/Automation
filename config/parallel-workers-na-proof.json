@@ -1,0 +1,42 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Capability N/A proof. Lane 1: driver-smoke manifest disables buy/autoplay/turbo/menu/amplify and has no scratch card, so the optional-feature specs must report N/A before any launch. Lane 2: Sugar has no normal-mode multiplier, so CSF-011 must report N/A.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "driver-smoke",
+      "gameName": "Driver Smoke (no optional features)",
+      "category": "NA",
+      "categories": ["BF", "AP", "TM", "MN", "SCG"],
+      "testMatch": [
+        "bf/**/BF-001.spec.ts",
+        "ap/**/AP-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "mn/**/MN-001.spec.ts",
+        "scg/**/SCG-001.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_NA1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "NA",
+      "categories": ["CSF"],
+      "testMatch": ["csf/**/CSF-011.spec.ts"],
+      "playerId": "Sugar Wonderland_NA2",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}

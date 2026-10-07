@@ -1,0 +1,102 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 1 rerun after the Phase 1 full run: Sugar buy-open fix (stale buyFeature point / Phaser band), freeSpinRetrigger gate, AT-001 multipliers from the package profile, leftover-round wait after session Continue. Sugar is split over two players so the buy-heavy cases finish in one pass.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "RERUN",
+      "categories": ["FS", "SCG", "SM"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": [
+        "fs/**/FS-001.spec.ts",
+        "fs/**/FS-002.spec.ts",
+        "fs/**/FS-003.spec.ts",
+        "fs/**/FS-004.spec.ts",
+        "fs/**/FS-005.spec.ts",
+        "fs/**/FS-006.spec.ts",
+        "fs/**/FS-007.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "fs/**/FS-009.spec.ts",
+        "scg/**/SCG-024.spec.ts",
+        "sm/**/SM-001.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_RERUN1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "RERUN",
+      "categories": ["AT", "BF", "CSF", "ES", "UIDS"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "at/**/AT-006.spec.ts",
+        "at/**/AT-009.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "bf/**/BF-002.spec.ts",
+        "bf/**/BF-003.spec.ts",
+        "bf/**/BF-004.spec.ts",
+        "bf/**/BF-005.spec.ts",
+        "bf/**/BF-006.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "bf/**/BF-010.spec.ts",
+        "csf/**/CSF-012.spec.ts",
+        "es/**/ES-004.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "uids/**/UIDS-004.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_RERUN2",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "category": "RERUN",
+      "categories": ["AT", "BF"],
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "testMatch": [
+        "bf/**/BF-002.spec.ts",
+        "bf/**/BF-003.spec.ts",
+        "bf/**/BF-004.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "fs/**/FS-008.spec.ts"
+      ],
+      "playerId": "Felice in Space_RERUN1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "category": "RERUN",
+      "categories": ["BC", "FS"],
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "testMatch": [
+        "bc/**/BC-004.spec.ts",
+        "fs/**/FS-007.spec.ts",
+        "fs/**/FS-008.spec.ts"
+      ],
+      "playerId": "Beelze-Bop_RERUN1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

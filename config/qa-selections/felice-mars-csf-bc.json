@@ -1,0 +1,6 @@
+{
+  "notes": "Saved test selection for scripts/run-suite-queue.mjs --selection. families takes family ids or @group tokens (@regression never includes PEN); games picks titles across packages; environment is a key of qa-suites.json environments.",
+  "games": ["felice-in-space", "mars-triumph"],
+  "families": ["CSF", "BC"],
+  "environment": "STG"
+}

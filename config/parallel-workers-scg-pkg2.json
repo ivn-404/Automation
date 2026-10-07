@@ -1,0 +1,78 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "SCG scratch suite for pkg2 (kobo-ass, hustle-the-blazing-horse, jungle-fruity, bad-beach). Max 4 games at a time; one Allure report grouped by gameId.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Kobo Ass_SCG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "hustle-the-blazing-horse",
+      "gameName": "Hustle The Blazing Horse",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Hustle The Blazing Horse_SCG1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "jungle-fruity",
+      "gameName": "Jungle Fruity",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Jungle Fruity_SCG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "category": "SCG",
+      "categories": [
+        "SCG"
+      ],
+      "gameId": "bad-beach",
+      "gameName": "Bad Beach",
+      "testMatch": [
+        "scg/**/*.spec.ts"
+      ],
+      "playerId": "Bad Beach_SCG1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

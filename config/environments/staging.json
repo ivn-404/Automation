@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "staging",
+  "baseUrl": "https://stg-asset-tools.dijoker.com/game-launcher",
+  "defaultTimeoutMs": 60000,
+  "metadata": {
+    "provider": "dijoker",
+    "purpose": "DiJoker asset tools game launcher (staging)",
+    "launcherPlayerId": "SgapCsf001",
+    "launcherBrandId": "123"
+  }
+}

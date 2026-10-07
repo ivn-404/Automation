@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "executionTabName": "Execution Report",
+  "manualTabName": "Manual Test Cases",
+  "localCsvPath": "test-results/sheet-execution-append.csv",
+  "columns": [
+    "manualTestId",
+    "status",
+    "startedAt",
+    "finishedAt",
+    "browserProject",
+    "errorMessage",
+    "verificationSummary"
+  ],
+  "metadata": {
+    "purpose": "Append-only automation execution log. Never write to manualTabName.",
+    "googleSpreadsheetIdEnv": "SGAP_SHEETS_SPREADSHEET_ID",
+    "googleAccessTokenEnv": "SGAP_SHEETS_ACCESS_TOKEN"
+  }
+}

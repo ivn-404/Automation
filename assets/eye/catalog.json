@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "notes": "Game-agnostic screen catalog. Golden PNGs live in scenarios/<id>/references/<gameId>.png and are captured automatically on the first reliable host-text match. Runtime unknowns go to test-results/eye/, not here.",
+  "templateMatchMinScore": 0.995,
+  "maxRecoveryPasses": 2,
+  "screens": [
+    {
+      "id": "session-timeout",
+      "layer": "host",
+      "policy": "restartSession",
+      "readyFor": [],
+      "hostPatterns": [
+        "session (has )?expired",
+        "session timeout",
+        "session timed out",
+        "connection (was )?lost",
+        "disconnected"
+      ],
+      "hostButtons": ["Extend"],
+      "neverClick": ["Close", "Update"]
+    },
+    {
+      "id": "ongoing-spin-round",
+      "layer": "canvas",
+      "policy": "continue",
+      "readyFor": ["resumeFeature"],
+      "hostPatterns": [
+        "ongoing spin round",
+        "ongoing free spin",
+        "unfinished round",
+        "you have an ongoing",
+        "continue this round",
+        "incomplete round",
+        "from the last session"
+      ],
+      "hostButtons": ["Continue", "OK", "Resume", "Play"],
+      "canvasActions": ["enter", "acknowledge"],
+      "neverClick": ["Close", "Update", "Cancel", "Play in modal"]
+    },
+    {
+      "id": "rotate-portrait",
+      "layer": "canvas",
+      "policy": "restartSession",
+      "readyFor": [],
+      "hostPatterns": ["rotate to portrait"],
+      "neverClick": ["Close"]
+    },
+    {
+      "id": "host-continue",
+      "layer": "host",
+      "policy": "continue",
+      "readyFor": [],
+      "hostPatterns": ["please confirm", "are you sure"],
+      "hostButtons": ["Continue", "OK", "Resume"],
+      "neverClick": ["Close", "Update", "Cancel", "Play in modal"]
+    },
+    {
+      "id": "attract",
+      "layer": "canvas",
+      "policy": "continue",
+      "readyFor": [],
+      "canvasActions": ["attractPlay", "enter"],
+      "neverClick": ["Close", "spin", "buyFeature", "closeOverlay"]
+    },
+    {
+      "id": "win-dialogue",
+      "layer": "canvas",
+      "policy": "dismiss",
+      "readyFor": ["idle"],
+      "hostPatterns": [
+        "press anywhere to continue",
+        "congratulations",
+        "you won",
+        "in \\d+ freespin"
+      ],
+      "canvasActions": ["enter", "acknowledge", "acknowledgeAlt", "skip"],
+      "neverClick": ["Close", "spin", "buyFeature"]
+    },
+    {
+      "id": "free-spin-hud",
+      "layer": "canvas",
+      "policy": "continue",
+      "readyFor": ["resumeFeature"],
+      "hostPatterns": ["remaining free spin"],
+      "canvasActions": ["skip", "enter", "acknowledge"],
+      "neverClick": ["Close", "spin", "buyFeature", "buyFeatureCancel", "closeOverlay"]
+    },
+    {
+      "id": "buy-panel",
+      "layer": "canvas",
+      "policy": "leave",
+      "readyFor": ["buyFeature"],
+      "canvasActions": [],
+      "neverClick": ["spin", "buyFeatureCancel", "closeOverlay"]
+    },
+    {
+      "id": "game-error",
+      "layer": "canvas",
+      "policy": "dismiss",
+      "readyFor": ["idle"],
+      "hostPatterns": ["something went wrong"],
+      "canvasActions": ["errorOk", "acknowledge", "enter", "dismiss"],
+      "neverClick": ["Close", "spin", "buyFeature"]
+    },
+    {
+      "id": "base-idle",
+      "layer": "canvas",
+      "policy": "leave",
+      "readyFor": ["spin", "buyFeature", "bet", "autoplay", "idle"]
+    }
+  ]
+}

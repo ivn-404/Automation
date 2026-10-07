@@ -1,0 +1,43 @@
+{
+  "workers": 2,
+  "layout": "1 | 2",
+  "notes": "Two-lane control for the flakiness experiment. Window geometry per lane is identical to the 4-worker layout (one half of one monitor), so the only variable is how many game sessions run at once.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "CORE",
+      "categories": ["CSF", "SM", "CP", "UIDS", "MN", "FS", "TM"],
+      "testMatch": [
+        "probe/**/*.spec.ts",
+        "csf/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "cp/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "mn/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "tm/**/*.spec.ts"
+      ],
+      "playerId": "Gamename1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PLAY",
+      "categories": ["BF", "AT", "AP", "BC", "ES"],
+      "testMatch": [
+        "bf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "es/**/*.spec.ts"
+      ],
+      "playerId": "Gamename3",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

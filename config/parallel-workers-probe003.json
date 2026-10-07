@@ -1,0 +1,36 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "PROBE-003: HUD balance sync after one injected /bet failure, several real spins afterwards. Sugar fails AT-003; Mars is the passing control.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-003.spec.ts"],
+      "playerId": "Sugar Wonderland_RR1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-003.spec.ts"],
+      "playerId": "Mars Triumph_RR1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}
