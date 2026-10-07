@@ -157,6 +157,32 @@
       white-space: pre-wrap; word-break: break-word; color: var(--muted);
     }
 
+    .runs { margin: var(--s4) var(--s5) 0; }
+    .runs .card-head { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+    .runs .cap { color: var(--faint); font-size: var(--fs-sm); margin-left: auto; }
+    .runs .cap b { color: var(--muted); font-weight: 600; }
+    .run-list { max-height: 248px; overflow: auto; }
+    .run-row {
+      display: grid; grid-template-columns: 92px minmax(90px, 140px) minmax(0, 1fr) 96px 72px auto; gap: var(--s3);
+      align-items: center; padding: var(--s2) var(--s4); border-top: 1px solid var(--line-soft); font-size: var(--fs-md); cursor: pointer;
+    }
+    .run-row:hover { background: var(--hover); }
+    .run-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+    .run-row .rid { font-family: var(--mono); color: var(--text); }
+    .run-row .who { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .run-row .who .you { color: var(--accent); font-size: var(--fs-xs); margin-left: 4px; }
+    .run-row .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+    .run-row .what small { display: block; color: var(--faint); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; }
+    .run-row .el { font-family: var(--mono); color: var(--faint); font-size: var(--fs-sm); text-align: right; }
+    .run-row .acts { display: flex; gap: var(--s1); justify-content: flex-end; }
+    .run-empty { padding: var(--s4); color: var(--faint); font-size: var(--fs-md); border-top: 1px solid var(--line-soft); }
+    .pill.queued { color: var(--muted); }
+    @media (max-width: 720px) {
+      .runs { margin: var(--s3) var(--s3) 0; }
+      .run-row { grid-template-columns: 80px 1fr auto; }
+      .run-row .who, .run-row .el { display: none; }
+    }
+
     .keys { color: var(--faint); font-size: var(--fs-sm); padding: 0 var(--s5) var(--s4); display: flex; flex-wrap: wrap; gap: 6px var(--s3); align-items: center; }
 
     @media (max-width: 1100px) {
@@ -204,6 +230,14 @@
       <button type="button" class="btn primary" id="qa-run" data-icon="play" data-control><span>Run selected tests</span></button>
     </div>
     <pre class="qa-log mono" id="qa-log" hidden></pre>
+  </section>
+
+  <section class="runs card" id="runs" hidden aria-label="Runs">
+    <div class="card-head">
+      <span class="card-title">Runs</span>
+      <span class="cap" id="cap"></span>
+    </div>
+    <div class="run-list" id="run-list"></div>
   </section>
 
   <div class="nav">
@@ -287,7 +321,9 @@
       btn.disabled = true;
       if (all) btn.classList.add('is-loading');
       try {
-        const res = await fetch('/api/stop', {
+        const stopUrl = runApi('api/stop');
+        if (stopUrl === null) throw new Error('No run selected');
+        const res = await fetch(stopUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(all ? { all: true } : { workers }),
@@ -476,13 +512,23 @@
 
     async function tick() {
       try {
-        const res = await fetch('/api/status', { cache: 'no-store' });
-        state.data = await res.json();
+        const statusUrl = runApi('api/status');
+        state.data = statusUrl === null
+          ? { offline: true, workers: [], totals: {} }
+          : await (await fetch(statusUrl, { cache: 'no-store' })).json();
         if (state.data.offline) {
-          setStatus(qa.job && qa.job.state === 'running' ? 'Starting next package…' : 'No run active', false, true);
+          const job = qa.job;
+          setStatus(
+            job && job.state === 'running' ? (job.id ? job.id + ' · ' : '') + 'Starting next package…'
+              : job && job.state === 'queued' ? job.id + ' · Waiting for capacity'
+              : job ? job.id + ' · ' + job.state : 'No run active',
+            false, true);
           renderTop(state.data, []);
-          document.getElementById('lanes').innerHTML =
-            '<div class="empty">No run active. Open the Test runner, pick families and games, then Run.</div>';
+          document.getElementById('lanes').innerHTML = '<div class="empty">' + (
+            job && job.state === 'queued' ? esc(job.id) + ' is queued: ' + esc(job.queueReason || 'waiting for capacity') + '.'
+              : job && job.state === 'running' ? esc(job.id) + ' is between packages; its lanes appear when the next package starts.'
+              : job ? esc(job.id) + ' has ended. Results are in Allure; pick a live run under Runs or start a new one.'
+              : 'No run active. Open the Test runner, pick families and games, then Run.') + '</div>';
           state.lastKey = '';
           if (!qa.touched && qa.online) setQaOpen(true);
           return;
@@ -560,15 +606,108 @@
     // Served by scripts/qa-testing-page.mjs (always on, :3850) the API is same-origin;
     // inside a run's own monitor (:3847) it talks to that server instead.
     const QA_API = window.SGAP_QA_API !== undefined ? window.SGAP_QA_API : (params.get('qa') || 'http://127.0.0.1:3850');
+    // Served by the control panel, this page follows one selected run (RUN-0001…) out of many.
+    const SERVED = window.SGAP_QA_API === '';
     const qa = {
       catalog: null, job: null, since: 0, log: [], online: false, touched: false,
       preset: '', families: new Set(), games: new Set(), caseId: '',
       opts: { screenshots: true, trace: false, dryRun: false },
+      runs: [], me: null, capacity: null, selected: window.SGAP_RUN_ID || '', pinned: Boolean(window.SGAP_RUN_ID), seen: new Map(),
     };
+    /** Path of a run-scoped monitor endpoint; null when the panel has no run selected. */
+    function runApi(p) {
+      if (!SERVED) return p;
+      return qa.selected ? '/runs/' + qa.selected + '/' + p : null;
+    }
+    const ACTIVE_RUN = new Set(['queued', 'running']);
+    function canStop(run) {
+      return Boolean(run && qa.me && ACTIVE_RUN.has(run.state) && (run.owner === qa.me.name || qa.me.role === 'admin'));
+    }
+    function selectRun(id, pin) {
+      if (pin) qa.pinned = true;
+      if (id === qa.selected) return;
+      qa.selected = id;
+      qa.since = 0;
+      qa.log = [];
+      qa.job = qa.runs.find((r) => r.id === id) || null;
+      state.lastKey = '';
+      if (SERVED && id) history.replaceState(null, '', '/runs/' + id + '/' + location.search);
+      if (window.SGAP && SGAP.setRun) SGAP.setRun(id);
+      renderRuns();
+      renderQaJob();
+      tick();
+    }
+    function runElapsed(run) {
+      const from = run.startedAt || run.queuedAt;
+      return from ? fmtElapsed((run.endedAt || Date.now()) - from) : '';
+    }
+    function renderRuns() {
+      const box = document.getElementById('runs');
+      if (!SERVED) { box.hidden = true; return; }
+      box.hidden = false;
+      const cap = qa.capacity;
+      document.getElementById('cap').innerHTML = cap
+        ? '<b>' + cap.browsersInUse + '/' + cap.maxBrowsers + '</b> browsers in use · ' + (cap.freeMB / 1024).toFixed(1) + ' GB RAM free · ' +
+          cap.cores + ' cores' + (cap.maxRuns ? ' · max ' + cap.maxRuns + ' runs' : '')
+        : '';
+      document.getElementById('cap').title = cap ? 'Limited by ' + cap.limitedBy.by + ': ' + cap.limitedBy.detail : '';
+      const list = document.getElementById('run-list');
+      if (qa.runs.length === 0) {
+        list.innerHTML = '<div class="run-empty">No runs yet. Open the Test runner, pick tests and games, then Run.</div>';
+        return;
+      }
+      const pill = { running: 'run', queued: 'queued', passed: 'pass', failed: 'fail' };
+      list.innerHTML = qa.runs.slice(0, 60).map((run) => {
+        const mine = qa.me && run.owner === qa.me.name;
+        const games = (run.games || []).length;
+        const sub = run.state === 'queued' ? (run.queueReason || 'Waiting for capacity') : run.note || ((run.currentPackage ? 'package ' + run.currentPackage + ' · ' : '') + games + ' game' + (games === 1 ? '' : 's'));
+        return '<div class="run-row' + (run.id === qa.selected ? ' sel' : '') + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
+          '<span class="rid">' + esc(run.id) + '</span>' +
+          '<span class="who">' + esc(run.owner) + (mine ? '<span class="you">you</span>' : '') + '</span>' +
+          '<span class="what">' + esc(run.label) + (run.dryRun ? ' (dry run)' : '') + '<small data-tip="' + esc(sub) + '">' + esc(sub) + '</small></span>' +
+          '<span><span class="pill ' + (pill[run.state] || '') + '">' + esc(run.state) + '</span></span>' +
+          '<span class="el">' + runElapsed(run) + '</span>' +
+          '<span class="acts">' +
+            '<a class="btn ghost sm icon" href="/runs/' + esc(run.id) + '/observe" target="_blank" rel="noreferrer" title="Observer for ' + esc(run.id) + '" aria-label="Observer">' + icon('observer') + '</a>' +
+            (canStop(run) ? '<button type="button" class="btn ghost sm icon" data-stop-run="' + esc(run.id) + '" data-control title="Stop ' + esc(run.id) + '" aria-label="Stop ' + esc(run.id) + '">' + icon('stop') + '</button>' : '') +
+          '</span></div>';
+      }).join('');
+    }
+    async function stopRun(id) {
+      const run = qa.runs.find((r) => r.id === id);
+      const ok = await confirmBox({
+        title: 'Stop ' + id + '?',
+        lines: [run && run.state === 'queued' ? 'It leaves the queue without starting.' : 'Its packages end and its test browsers close. Other runs keep going.'],
+        confirmLabel: 'Stop ' + id,
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await qaFetch('/api/qa/runs/' + encodeURIComponent(id) + '/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        toast({ kind: 'warn', title: id + ' stopping' });
+      } catch (error) {
+        toast({ kind: 'error', title: 'Stop failed', text: String(error.message || error) });
+      }
+      await qaPoll();
+    }
+    document.getElementById('run-list').addEventListener('click', (ev) => {
+      const stop = ev.target.closest('[data-stop-run]');
+      if (stop) { ev.stopPropagation(); stopRun(stop.dataset.stopRun); return; }
+      if (ev.target.closest('a')) return;
+      const row = ev.target.closest('[data-run]');
+      if (row) selectRun(row.dataset.run, true);
+    });
+    document.getElementById('run-list').addEventListener('keydown', (ev) => {
+      const row = ev.target.closest('[data-run]');
+      if (row && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); selectRun(row.dataset.run, true); }
+    });
 
     async function qaFetch(path, init) {
       const res = await fetch(QA_API + path, Object.assign({ cache: 'no-store' }, init || {}));
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401 && data.login && SERVED) {
+        location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
+      }
       if (!res.ok) throw new Error(data.error || res.statusText);
       return data;
     }
@@ -706,16 +845,19 @@
     }
     function renderQaJob() {
       const job = qa.job;
-      const running = Boolean(job && job.state === 'running');
+      const running = Boolean(job && ACTIVE_RUN.has(job.state));
       const el = document.getElementById('qa-state');
       const preset = qaPreset();
       const hasFamilies = (preset && !preset.families) || qaFamilies().some((f) => qa.families.has(f.id) && f.cases.length > 0);
       const runBtn = document.getElementById('qa-run');
       if (!runBtn.classList.contains('is-loading')) {
-        runBtn.disabled = running || !qa.online || !hasFamilies || qa.games.size === 0;
+        // Runs are independent executions: starting another never waits on the one in view.
+        runBtn.disabled = !qa.online || !hasFamilies || qa.games.size === 0;
       }
-      document.getElementById('qa-stop').disabled = !running;
-      document.getElementById('qa-toggle').classList.toggle('primary', running);
+      const stopBtn = document.getElementById('qa-stop');
+      stopBtn.disabled = !canStop(job);
+      stopBtn.querySelector('span').textContent = job && canStop(job) ? 'Stop ' + job.id : 'Stop';
+      document.getElementById('qa-toggle').classList.toggle('primary', qa.runs.some((r) => r.state === 'running'));
       el.className = 'qa-state';
       if (!qa.online) {
         el.classList.add('bad');
@@ -729,32 +871,54 @@
         return;
       }
       el.classList.add(job.state);
-      const pkgCount = job.packages.length;
+      const pkgCount = (job.packages || []).length;
       const where = job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '';
-      const elapsed = fmtElapsed((job.endedAt || Date.now()) - job.startedAt);
-      const what = job.label + (job.caseId ? ' — ' + job.caseId : '') + (job.dryRun ? ' (dry run)' : '') +
-        ' · ' + (job.games || []).length + ' game(s)';
-      el.innerHTML = running
-        ? 'Running · ' + esc(what) + esc(where) + ' · ' + elapsed
-        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(what) + ' · ' + pkgCount + ' package(s) in ' + elapsed +
+      const elapsed = runElapsed(job);
+      const who = (job.id ? job.id + ' · ' : '') + (job.owner && (!qa.me || job.owner !== qa.me.name) ? job.owner + ' · ' : '');
+      const what = job.label + (job.dryRun ? ' (dry run)' : '') + ' · ' + (job.games || []).length + ' game(s)';
+      el.innerHTML = job.state === 'queued'
+        ? 'Queued · ' + esc(who + what) + ' · ' + esc(job.queueReason || 'waiting for capacity')
+        : running
+        ? 'Running · ' + esc(who + what) + esc(where) + ' · ' + elapsed
+        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(who + what) + ' · ' + pkgCount + ' package(s) in ' + elapsed +
           (job.dryRun ? '' : ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>') +
-          ' · log <span class="mono">' + esc(job.logFile) + '</span>';
+          (job.logFile ? ' · log <span class="mono">' + esc(job.logFile) + '</span>' : '');
     }
     async function qaPoll() {
       try {
-        const data = await qaFetch('/api/qa/job?since=' + qa.since);
+        const list = await qaFetch('/api/qa/runs');
         if (!qa.online) {
           qa.online = true;
           if (!qa.catalog) await qaLoadCatalog();
         }
-        if (data.log.from < qa.since || (data.job && qa.job && data.job.startedAt !== qa.job.startedAt)) qa.log = [];
-        qa.log = qa.log.concat(data.log.lines).slice(-300);
-        qa.since = data.log.next;
-        const before = qa.job;
-        qa.job = data.job;
-        if (before && qa.job && before.startedAt === qa.job.startedAt && before.state === 'running' && qa.job.state !== 'running') {
-          const kind = qa.job.state === 'passed' ? 'success' : qa.job.state === 'stopped' ? 'warn' : 'error';
-          toast({ kind, title: 'Run ' + qa.job.state, text: qa.job.label + ' · ' + fmtElapsed((qa.job.endedAt || Date.now()) - qa.job.startedAt) });
+        qa.runs = list.runs || [];
+        qa.me = list.me || null;
+        qa.capacity = list.capacity || null;
+        // Toast when one of my runs finishes, whichever run is in view.
+        for (const run of qa.runs) {
+          const was = qa.seen.get(run.id);
+          if (was && ACTIVE_RUN.has(was) && !ACTIVE_RUN.has(run.state) && qa.me && run.owner === qa.me.name) {
+            const kind = run.state === 'passed' ? 'success' : run.state === 'stopped' ? 'warn' : 'error';
+            toast({ kind, title: run.id + ' ' + run.state, text: run.label + ' · ' + runElapsed(run) });
+          }
+          if (was === 'queued' && run.state === 'running' && qa.me && run.owner === qa.me.name) {
+            toast({ kind: 'info', title: run.id + ' started', text: 'Capacity freed up; it left the queue.' });
+          }
+          qa.seen.set(run.id, run.state);
+        }
+        if (!qa.pinned) {
+          const mine = qa.runs.filter((r) => qa.me && r.owner === qa.me.name);
+          const pick = mine.find((r) => ACTIVE_RUN.has(r.state)) || qa.runs.find((r) => r.state === 'running') || mine[0];
+          if (pick && pick.id !== qa.selected) selectRun(pick.id, false);
+        }
+        if (qa.selected) {
+          const data = await qaFetch('/api/qa/runs/' + encodeURIComponent(qa.selected) + '?since=' + qa.since);
+          if (data.log.from < qa.since) qa.log = [];
+          qa.log = qa.log.concat(data.log.lines).slice(-300);
+          qa.since = data.log.next;
+          qa.job = data.run;
+        } else {
+          qa.job = null;
         }
         const logEl = document.getElementById('qa-log');
         const atBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 4;
@@ -763,6 +927,7 @@
       } catch {
         qa.online = false;
       }
+      renderRuns();
       renderQaJob();
     }
     async function qaLoadCatalog() {
@@ -859,15 +1024,19 @@
         { games, caseId: qa.caseId, dryRun: qa.opts.dryRun, screenshots: qa.opts.screenshots, trace: qa.opts.trace },
       );
       try {
-        await qaFetch('/api/qa/run', {
+        const started = await qaFetch('/api/qa/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
         qa.touchedSinceJob = false;
-        qa.log = [];
-        qa.since = 0;
-        toast({ kind: 'success', title: qa.opts.dryRun ? 'Dry run started' : 'Run started', text: names.length + ' game(s) · ' + qaPlannedRuns() + ' case run(s)' });
+        const run = started.run || {};
+        qa.runs = [run].concat(qa.runs.filter((r) => r.id !== run.id));
+        qa.seen.set(run.id, run.state);
+        if (run.id) selectRun(run.id, true);
+        toast(run.state === 'queued'
+          ? { kind: 'warn', title: run.id + ' queued', text: run.queueReason || 'Waiting for capacity on the server.' }
+          : { kind: 'success', title: (run.id ? run.id + ' ' : '') + (qa.opts.dryRun ? 'dry run started' : 'started'), text: names.length + ' game(s) · ' + qaPlannedRuns() + ' case run(s)' });
         runBtn.classList.remove('is-loading');
         await qaPoll();
       } catch (error) {
@@ -880,23 +1049,11 @@
       }
     });
     document.getElementById('qa-stop').addEventListener('click', async () => {
-      const ok = await confirmBox({
-        title: 'Stop the run?',
-        lines: ['The queue ends and its test browsers close. Results so far stay in Allure.'],
-        confirmLabel: 'Stop run',
-        danger: true,
-      });
-      if (!ok) return;
+      if (!qa.job) return;
       const btn = document.getElementById('qa-stop');
       btn.classList.add('is-loading');
-      try {
-        await qaFetch('/api/qa/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      } catch (error) {
-        setStatus('Stop failed: ' + error, true);
-        toast({ kind: 'error', title: 'Stop failed', text: String(error.message || error) });
-      }
+      await stopRun(qa.job.id);
       btn.classList.remove('is-loading');
-      await qaPoll();
     });
     document.getElementById('qa-log-toggle').addEventListener('click', (ev) => {
       const logEl = document.getElementById('qa-log');
@@ -907,6 +1064,9 @@
     });
 
     if (window.SGAP) SGAP.mountChrome();
+    // Stopping happens per run (Runs list / runner); "Stop all" is for a run's own monitor only.
+    if (SERVED) document.getElementById('stop-all').hidden = true;
+    renderRuns();
     if (params.get('qa-open') === '1') { qa.touched = true; setQaOpen(true); }
     qaLoadCatalog().then(qaPoll);
     setInterval(qaPoll, 1500);

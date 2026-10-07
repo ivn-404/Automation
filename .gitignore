@@ -7,6 +7,10 @@ allure-report/
 allure-history/
 blob-report/
 playwright/.cache/
+# Execution manager: one folder per run (results, Allure input, logs) + run index
+runs/
+# Host-only QA server state: accounts (password hashes), local limits
+.sgap/
 
 *.log
 # Windows reserved device name; created by a stray shell redirect, not indexable by git.

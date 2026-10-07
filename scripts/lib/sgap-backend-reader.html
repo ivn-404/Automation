@@ -624,7 +624,7 @@
 
     async function tick() {
       try {
-        const res = await fetch('/api/reader', { cache: 'no-store' });
+        const res = await fetch('api/reader', { cache: 'no-store' });
         snapshot = await res.json();
         if (snapshot.sequences && snapshot.sequences.length) {
           const stillThere = snapshot.sequences.some((entry) => entry.seq === selectedSeq);

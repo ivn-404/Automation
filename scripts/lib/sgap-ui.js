@@ -107,38 +107,61 @@
   // ── Header: app navigation + access badge ───────────────────────────────────
   const servedByQa = window.SGAP_QA_API === '';
   const qaApi = window.SGAP_QA_API !== undefined ? window.SGAP_QA_API : 'http://127.0.0.1:3850';
+  // Pages served by the control panel follow one run: /runs/RUN-0007/, …/observe, …/reader.
+  let runId = window.SGAP_RUN_ID || '';
+  const page = (p) => p.replace(/^\/runs\/RUN-\d+/, '') || '/';
   const NAV = [
-    { key: 'workers', href: '/', label: 'Workers', title: 'Worker Monitor — live lanes and the test runner', match: (p) => p === '/' || p === '/index.html' },
-    { key: 'observer', href: '/observe', label: 'Observer', title: 'Monitor Worker — network, console, WebSocket, events and balance per test', match: (p) => p.startsWith('/observe') },
-    { key: 'reader', href: '/reader', label: 'Backend Reader', title: 'Backend Reader — idle/spin frames against backend grid and payload', match: (p) => p.startsWith('/reader') },
+    { key: 'workers', sub: '/', label: 'Workers', title: 'Worker Monitor — runs, live lanes and the test runner', match: (p) => page(p) === '/' || page(p) === '/index.html' },
+    { key: 'observer', sub: '/observe', label: 'Observer', title: 'Monitor Worker — network, console, WebSocket, events and balance per test', match: (p) => page(p).startsWith('/observe') },
+    { key: 'reader', sub: '/reader', label: 'Backend Reader', title: 'Backend Reader — idle/spin frames against backend grid and payload', match: (p) => page(p).startsWith('/reader') },
     { key: 'reports', href: servedByQa ? '/allure/' : 'http://127.0.0.1:5055/', label: 'Reports', title: 'Allure history — every published run', external: true, match: () => false },
   ];
+  function navHref(item) {
+    if (item.href) return item.href;
+    return servedByQa && runId ? '/runs/' + runId + (item.sub === '/' ? '/' : item.sub) : item.sub;
+  }
 
-  const access = { remote: false, role: 'control', share: null };
+  const access = { remote: false, role: 'control', share: null, user: null };
 
   function renderNav() {
     const path = location.pathname;
     document.querySelectorAll('[data-appnav]').forEach((nav) => {
       nav.innerHTML = NAV.map((item) =>
-        '<a href="' + esc(item.href) + '" title="' + esc(item.title) + '"' + (item.match(path) ? ' class="on" aria-current="page"' : '') +
+        '<a href="' + esc(navHref(item)) + '" title="' + esc(item.title + (item.sub && runId ? ' · ' + runId : '')) + '"' + (item.match(path) ? ' class="on" aria-current="page"' : '') +
         (item.external ? ' target="_blank" rel="noreferrer"' : '') + '>' + icon(item.key) + '<span>' + esc(item.label) + '</span></a>').join('');
     });
+  }
+  function setRun(id) {
+    runId = id || '';
+    renderNav();
+  }
+  async function signOut() {
+    const ok = await confirmDialog({ title: 'Sign out of the QA panel?', lines: ['Your runs keep going on the server.'], confirmLabel: 'Sign out' });
+    if (!ok) return;
+    try { await fetch(qaApi + '/api/qa/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); } catch { /* offline */ }
+    location.href = '/login';
   }
 
   function showShareDialog() {
     const urls = (access.share && access.share.urls) || [];
+    const accounts = access.share && access.share.mode === 'accounts';
     const modal = document.createElement('div');
     modal.className = 'modal open';
     modal.innerHTML =
-      '<div class="modal-card"><header><h2>Shared on the local network</h2>' +
+      '<div class="modal-card"><header><h2>' + (accounts ? 'Shared QA server' : 'Shared on the local network') + '</h2>' +
         '<button type="button" class="btn ghost sm icon" data-close aria-label="Close">' + icon('x') + '</button></header>' +
       '<div class="modal-body">' +
-        '<p>Open one of these on the other PC. The link carries the access key; after the first visit the browser keeps a session cookie.</p>' +
+        '<p>' + (accounts
+          ? 'Teammates open one of these and sign in with their own QA account (npx pnpm qa:users add &lt;name&gt; on this PC).'
+          : 'Open one of these on the other PC. The link carries the access key; after the first visit the browser keeps a session cookie.') + '</p>' +
         urls.map((url) => '<div style="display:flex;gap:8px;align-items:center;margin:8px 0">' +
           '<code style="flex:1;word-break:break-all;color:var(--accent)">' + esc(url) + '</code>' +
           '<button type="button" class="btn sm" data-copy="' + esc(url) + '">' + icon('copy') + '<span>Copy</span></button></div>').join('') +
-        '<p class="hint" style="margin-top:12px">Remote role: <b>' + esc(access.share.mode === 'view' ? 'view only' : 'control (run and stop tests)') + '</b>. ' +
-        'Remote browsers only reach the runner and monitor endpoints; tests, browsers and files stay on this PC.</p>' +
+        (accounts
+          ? '<p class="hint" style="margin-top:12px">Each run is its own execution with the owner\'s staging players. Testers stop their own runs; admins stop any. ' +
+            'Remote browsers only reach the panel endpoints; tests, browsers and files stay on this PC.</p>'
+          : '<p class="hint" style="margin-top:12px">Remote role: <b>' + esc(access.share.mode === 'view' ? 'view only' : 'control (run and stop tests)') + '</b>. ' +
+            'Remote browsers only reach the runner and monitor endpoints; tests, browsers and files stay on this PC.</p>') +
       '</div></div>';
     modal.addEventListener('click', async (ev) => {
       const copy = ev.target.closest('[data-copy]');
@@ -165,10 +188,21 @@
     if (badge) {
       badge.hidden = false;
       badge.className = 'access';
-      if (access.remote) {
+      const user = access.user;
+      if (access.remote && access.authRequired && user) {
+        badge.classList.add('remote');
+        badge.innerHTML = icon('monitor') + '<span>' + esc(user.name) + ' · ' + esc(user.role) + '</span>';
+        badge.title = 'Signed in to the shared QA server. Click to sign out.';
+        badge.onclick = signOut;
+      } else if (access.remote) {
         badge.classList.add('remote');
         badge.innerHTML = icon('monitor') + '<span>Remote · ' + (access.role === 'view' ? 'view only' : 'control') + '</span>';
         badge.title = 'You are connected from another PC. Tests run on the host PC.';
+      } else if (access.share && access.share.mode === 'accounts') {
+        badge.classList.add('shared');
+        badge.innerHTML = icon('share') + '<span>QA server · ' + esc(user ? user.name : 'host') + '</span>';
+        badge.title = 'Shared QA server — click for the address teammates open';
+        badge.onclick = showShareDialog;
       } else if (access.share) {
         badge.classList.add('shared');
         badge.innerHTML = icon('share') + '<span>Shared on LAN</span>';
@@ -176,7 +210,7 @@
         badge.onclick = showShareDialog;
       } else {
         badge.innerHTML = icon('lock') + '<span>Local only</span>';
-        badge.title = 'Only this PC can open the panel. Start with "npx pnpm qa:share" to open it from another PC.';
+        badge.title = 'Only this PC can open the panel. Start with "npx pnpm qa:server" to share it with the QA team.';
       }
     }
     return access;
@@ -190,5 +224,5 @@
     return loadAccess();
   }
 
-  window.SGAP = { icon, esc, confirm: confirmDialog, toast, access, mountChrome, qaApi };
+  window.SGAP = { icon, esc, confirm: confirmDialog, toast, access, mountChrome, qaApi, setRun };
 })();

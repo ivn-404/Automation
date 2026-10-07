@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP · Sign in</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    body { display: grid; place-items: center; min-height: 100vh; padding: var(--s6); }
+    .login { width: 100%; max-width: 380px; }
+    .login .brand { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s5); }
+    .login .brand b { font-size: 15px; letter-spacing: .02em; }
+    .login .brand span { color: var(--muted); font-size: 12px; }
+    .login form { display: grid; gap: var(--s4); }
+    .login label { display: grid; gap: var(--s2); font-size: 12px; color: var(--muted); }
+    .login input {
+      height: 38px; padding: 0 var(--s3); border-radius: var(--r-md); border: 1px solid var(--line);
+      background: var(--bg); color: var(--text); font: inherit; font-size: 14px;
+    }
+    .login input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+    .login .err { color: var(--fail); font-size: 13px; min-height: 18px; margin: 0; }
+    .login .btn { width: 100%; justify-content: center; height: 38px; }
+  </style>
+</head>
+<body>
+  <main class="card login">
+    <div class="card-body">
+      <div class="brand">
+        <div>
+          <b>SGAP</b><br />
+          <span>Slot Game Automation · QA panel</span>
+        </div>
+      </div>
+      <form id="form" autocomplete="on">
+        <label>Name<input id="name" name="username" autocomplete="username" required autofocus /></label>
+        <label>Password<input id="password" name="password" type="password" autocomplete="current-password" required /></label>
+        <p class="err" id="err" role="alert"></p>
+        <button class="btn primary" id="go" type="submit">Sign in</button>
+      </form>
+      <p class="hint" style="margin:var(--s4) 0 0">No account? Ask the QA server admin to run <code>npx pnpm qa:users add &lt;name&gt;</code>.</p>
+    </div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const go = document.getElementById('go');
+    const next = new URLSearchParams(location.search).get('next');
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      err.textContent = '';
+      go.classList.add('is-loading');
+      go.disabled = true;
+      try {
+        const res = await fetch('/api/qa/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: document.getElementById('name').value, password: document.getElementById('password').value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        location.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : '/');
+      } catch (error) {
+        err.textContent = error.message;
+        go.classList.remove('is-loading');
+        go.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

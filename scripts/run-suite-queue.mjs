@@ -40,6 +40,7 @@ import {
   suiteCases,
   writeLaneConfig,
 } from './lib/qa-suites.mjs';
+import { allureResultsRoot, isManagedRun, runId } from './lib/sgap-run-paths.mjs';
 
 const cwd = process.cwd();
 
@@ -131,10 +132,13 @@ console.log(` each       : games side by side via worker monitor${dryRun ? ' (DR
 console.log('────────────────────────────────────────');
 
 const manifests = loadManifests(cwd);
-const accumRoot = path.join('allure-results', `queue-${suite.id}${caseId ? `-${caseId.toLowerCase()}` : ''}`);
+const managed = isManagedRun();
+const accumRoot = managed
+  ? path.join(allureResultsRoot(), 'combined')
+  : path.join('allure-results', `queue-${suite.id}${caseId ? `-${caseId.toLowerCase()}` : ''}`);
 if (!dryRun) {
-  rmSync(path.join(cwd, accumRoot), { recursive: true, force: true });
-  mkdirSync(path.join(cwd, accumRoot), { recursive: true });
+  rmSync(path.resolve(cwd, accumRoot), { recursive: true, force: true });
+  mkdirSync(path.resolve(cwd, accumRoot), { recursive: true });
 }
 
 const runEnv = {
@@ -177,7 +181,7 @@ for (const [index, pkg] of queue.entries()) {
     continue;
   }
   environmentPlaced = true;
-  const lanes = JSON.parse(readFileSync(path.join(cwd, configPath), 'utf8')).lanes;
+  const lanes = JSON.parse(readFileSync(path.resolve(cwd, configPath), 'utf8')).lanes;
   console.log(`Lane config: ${configPath}`);
   for (const lane of lanes) {
     console.log(`  W${lane.id} ${lane.gameName}: ${lane.testMatch.join(' ')}`);
@@ -196,14 +200,16 @@ for (const [index, pkg] of queue.entries()) {
   });
   summary.push({ pkg, exit: run.status ?? -1, minutes: (Date.now() - packageStarted) / 60000 });
 
-  // Keep this package's results before the next package resets allure-results/w1..w4.
-  for (const id of [1, 2, 3, 4, 5]) {
-    const src = path.join(cwd, 'allure-results', `w${id}`);
-    if (existsSync(src) && hasResults(src)) {
-      const dest = path.join(cwd, accumRoot, `pkg${pkg}`, `w${id}`);
+  // Keep this package's results before the next package resets the lane folders (w1..wN).
+  const laneRoot = allureResultsRoot();
+  const laneDirs = existsSync(laneRoot) ? readdirSync(laneRoot).filter((name) => /^w\d+$/u.test(name)) : [];
+  for (const name of laneDirs) {
+    const src = path.join(laneRoot, name);
+    if (hasResults(src)) {
+      const dest = path.resolve(cwd, accumRoot, `pkg${pkg}`, name);
       mkdirSync(dest, { recursive: true });
       cpSync(src, dest, { recursive: true });
-      combinedSources.push(path.join(accumRoot, `pkg${pkg}`, `w${id}`));
+      combinedSources.push(path.join(accumRoot, `pkg${pkg}`, name));
     }
   }
 }
@@ -220,8 +226,14 @@ console.log(`  ${queue.length} packages in ${elapsedMin}m`);
 
 if (combinedSources.length > 0) {
   console.log(`\nAllure: building ONE combined report across packages ${queue.join(', ')}`);
-  delete process.env.SGAP_SKIP_ALLURE_OPEN;
-  await publishAllureReport({ sources: combinedSources });
+  if (managed) {
+    // Several runs publish concurrently: own folder per run, no shared allure-report/ shortcut,
+    // no browser popping up on the host (the control panel links to /allure/).
+    await publishAllureReport({ sources: combinedSources, runId: runId(), latestShortcut: false, owner: process.env.SGAP_RUN_OWNER, label: suite.label });
+  } else {
+    delete process.env.SGAP_SKIP_ALLURE_OPEN;
+    await publishAllureReport({ sources: combinedSources });
+  }
 } else if (!dryRun) {
   console.log('Allure: no results accumulated to publish.');
 }

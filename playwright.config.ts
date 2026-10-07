@@ -8,7 +8,10 @@ import {
   testMatchForLane,
   windowBoundsForLane,
 } from './tests/support/parallel-lanes.js';
+import path from 'node:path';
+
 import { innerViewportForWindow } from './src/platform/game-view-layout.js';
+import { resultsRoot } from './src/shared/run-paths.js';
 
 /**
  * SGAP Playwright configuration.
@@ -149,11 +152,13 @@ const reporters: ReporterDescription[] = [
     : ([
         ['html', { outputFolder: process.env.SGAP_HTML_REPORT ?? 'playwright-report', open: 'never' }],
       ] as ReporterDescription[])),
-  ['json', { outputFile: process.env.SGAP_RESULTS_JSON ?? 'test-results/results.json' }],
+  ['json', { outputFile: process.env.SGAP_RESULTS_JSON ?? path.join(resultsRoot(), 'results.json') }],
   [
     'allure-playwright',
     {
-      resultsDir: process.env.SGAP_ALLURE_DIR ?? 'allure-results',
+      resultsDir:
+        process.env.SGAP_ALLURE_DIR ??
+        (process.env.SGAP_RUN_DIR ? path.join(resultsRoot(), 'allure-results') : 'allure-results'),
       detail: true,
       suiteTitle: true,
       environmentInfo: {
@@ -167,7 +172,8 @@ const reporters: ReporterDescription[] = [
 
 export default defineConfig({
   testDir: './tests/specs',
-  outputDir: './test-results/artifacts',
+  // Playwright empties outputDir when a process starts, so each managed run needs its own.
+  outputDir: path.join(resultsRoot(), 'artifacts'),
 
   fullyParallel: parallelEnabled ? false : true,
   forbidOnly: !!process.env.CI,

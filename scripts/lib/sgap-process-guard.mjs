@@ -10,7 +10,9 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const LOCKFILE = path.join(process.cwd(), 'test-results', 'sgap-parallel.lock.json');
+import { isManagedRun, resultsRoot } from './sgap-run-paths.mjs';
+
+export const LOCKFILE = path.join(resultsRoot(), 'sgap-parallel.lock.json');
 
 function asPid(value) {
   const pid = Number(value);
@@ -140,8 +142,33 @@ export function sweepPlaywrightLeftovers(options = {}) {
   return killed;
 }
 
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
+/** Live runs of the shared control panel (runs/active.json, written by scripts/lib/execution-manager.mjs). */
+export function liveManagedRuns(cwd = process.cwd()) {
+  try {
+    const data = JSON.parse(readFileSync(path.join(cwd, 'runs', 'active.json'), 'utf8'));
+    return (data.pids ?? []).map(asPid).filter((pid) => pid !== undefined && alive(pid));
+  } catch {
+    return [];
+  }
+}
+
 export function stopSgapLeftovers(options = {}) {
   const fromLock = killLockfileProcesses();
-  const fromSweep = sweepPlaywrightLeftovers(options);
+  // The host-wide sweep matches every SGAP browser. A managed run, or any run while the
+  // control panel has runs live, only cleans up what its own lockfile lists.
+  const shared = isManagedRun() || liveManagedRuns().length > 0;
+  if (shared && !isManagedRun()) {
+    console.log('SGAP: control panel runs are live on this host; skipping the host-wide browser sweep');
+  }
+  const fromSweep = shared ? 0 : sweepPlaywrightLeftovers(options);
   return { fromLock, fromSweep, killed: fromLock + fromSweep };
 }

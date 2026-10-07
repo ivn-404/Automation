@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+import { liveManagedRuns } from './lib/sgap-process-guard.mjs';
+
 const LOCKFILE = path.join(process.cwd(), 'test-results', 'sgap-parallel.lock.json');
 
 function taskkill(args) {
@@ -61,9 +63,13 @@ if (existsSync(LOCKFILE)) {
   rmSync(LOCKFILE, { force: true });
 }
 
-for (const pid of listChromeForTestingPids()) {
-  if (killPidTree(pid)) {
-    killed += 1;
+if (liveManagedRuns().length > 0) {
+  console.error('SGAP: control panel runs are live on this host; leaving their browsers alone (stop them from the panel)');
+} else {
+  for (const pid of listChromeForTestingPids()) {
+    if (killPidTree(pid)) {
+      killed += 1;
+    }
   }
 }
 

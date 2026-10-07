@@ -9,6 +9,8 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resultsRoot } from './sgap-run-paths.mjs';
+
 const HTML_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sgap-worker-monitor.html');
 const READER_HTML_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sgap-backend-reader.html');
 const OBSERVE_HTML_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sgap-monitor-worker.html');
@@ -19,7 +21,7 @@ export const UI_ASSETS = {
 };
 const OBSERVE_KEEP_SESSIONS = 80;
 const OBSERVE_MAX_PER_SESSION = 25_000;
-const READER_ROOT = path.join(process.cwd(), 'test-results', 'tmp', 'backend-reader');
+const READER_ROOT = path.join(resultsRoot(), 'tmp', 'backend-reader');
 const DEFAULT_KEEP = 50;
 
 function emptyLane(lane) {
@@ -190,7 +192,7 @@ export function createWorkerMonitorServer(options = {}) {
         featureSpinsTarget: entry.featureSpinsTarget,
         featureSpinsSeen: entry.featureSpinsSeen,
         requestUrl: entry.requestUrl,
-        payloadUrl: entry.payloadFile ? `/reader/files/${entry.dir}/${entry.payloadFile}` : undefined,
+        payloadUrl: entry.payloadFile ? `reader/files/${entry.dir}/${entry.payloadFile}` : undefined,
         hasPayload: Boolean(entry.payloadFile),
         at: entry.at,
         boards: entry.boards,
@@ -207,12 +209,12 @@ export function createWorkerMonitorServer(options = {}) {
           shotQuality: step.shotQuality,
           sourcePath: step.sourcePath,
           payloadSnippet: step.payloadSnippet,
-          shotUrl: step.file ? `/reader/files/${entry.dir}/${step.file}` : undefined,
+          shotUrl: step.file ? `reader/files/${entry.dir}/${step.file}` : undefined,
         })),
         shots: (entry.shots ?? []).map((shot) => ({
           name: shot.name,
           title: shot.title,
-          url: `/reader/files/${entry.dir}/${shot.file}`,
+          url: `reader/files/${entry.dir}/${shot.file}`,
         })),
       })),
     };

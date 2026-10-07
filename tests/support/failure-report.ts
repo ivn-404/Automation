@@ -33,6 +33,7 @@ import {
   type OrientationState,
 } from '../../src/platform/portrait-guard.js';
 import { captureViewportRegion, HIDE_SCREENSHOT_TOAST } from '../../src/platform/stable-screenshot.js';
+import { resultsRoot } from '../../src/shared/run-paths.js';
 
 const BET_URL_FRAGMENT = '/api/v1/slots/bet';
 const TRAFFIC_LIMIT = 12;
@@ -331,7 +332,7 @@ async function attachSafe(name: string, body: Buffer, contentType: string): Prom
 }
 
 function persist(baseName: string, png: Buffer | undefined, text: string): string {
-  const dir = path.join(process.cwd(), 'test-results', 'failures');
+  const dir = path.join(resultsRoot(), 'failures');
   mkdirSync(dir, { recursive: true });
   const stem = path.join(dir, baseName);
   writeFileSync(`${stem}.txt`, text, 'utf8');

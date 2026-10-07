@@ -121,10 +121,26 @@ function listHistoryRuns(cwd) {
         rel: path.join(HISTORY_DIR, name).replace(/\\/g, '/'),
         mtime,
         summary: readRunSummary(abs),
+        meta: readRunMeta(abs),
       };
     })
     .filter((entry) => existsSync(path.join(entry.abs, 'index.html')))
     .sort((a, b) => b.mtime - a.mtime);
+}
+
+const RUN_META = 'sgap-run.json';
+
+/** Who started a run managed by the execution manager (written next to its report). */
+function readRunMeta(reportAbs) {
+  try {
+    return JSON.parse(readFileSync(path.join(reportAbs, RUN_META), 'utf8'));
+  } catch {
+    return undefined;
+  }
+}
+
+function escHtml(value) {
+  return String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 }
 
 function formatDuration(ms) {
@@ -146,7 +162,7 @@ function writeHistoryIndex(cwd) {
     .map((run, index) => {
       const s = run.summary;
       const when = run.id.replace(/^run-/, '').replace(
-        /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/,
+        /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-.+)?$/,
         '$1-$2-$3 $4:$5:$6',
       );
       const stats = s
@@ -158,8 +174,12 @@ function writeHistoryIndex(cwd) {
           ` · <span class="muted">${s.total} total</span>`
         : '<span class="muted">summary unavailable</span>';
       const latest = index === 0 ? ' <span class="tag">latest</span>' : '';
+      const meta = run.meta
+        ? `${escHtml(run.meta.runId)} · ${escHtml(run.meta.owner ?? '—')}<br><span class="muted">${escHtml(run.meta.label ?? '')}</span>`
+        : '<span class="muted">—</span>';
       return `<tr>
   <td><a href="./${run.id}/index.html">${when}</a>${latest}</td>
+  <td>${meta}</td>
   <td>${stats}</td>
   <td class="muted">${formatDuration(s?.durationMs)}</td>
   <td><a class="btn" href="./${run.id}/index.html">Open</a></td>
@@ -200,10 +220,10 @@ function writeHistoryIndex(cwd) {
   <p>${runs.length} saved report${runs.length === 1 ? '' : 's'} · each run is kept separately under <code>allure-history/</code></p>
   <table>
     <thead>
-      <tr><th>Run</th><th>Results</th><th>Duration</th><th></th></tr>
+      <tr><th>Run</th><th>Started by</th><th>Results</th><th>Duration</th><th></th></tr>
     </thead>
     <tbody>
-${rows || '<tr><td colspan="4" class="muted">No reports yet.</td></tr>'}
+${rows || '<tr><td colspan="5" class="muted">No reports yet.</td></tr>'}
     </tbody>
   </table>
 </body>
@@ -315,7 +335,7 @@ export function generateAllureReport(options = {}) {
     ensureServerCategory(path.join(cwd, source));
   }
 
-  const stamp = options.stamp ?? runStamp();
+  const stamp = options.stamp ?? (options.runId ? `${runStamp()}-${options.runId}` : runStamp());
   const historyRel = path.join(HISTORY_DIR, `run-${stamp}`);
   const historyAbs = path.join(cwd, historyRel);
   mkdirSync(path.dirname(historyAbs), { recursive: true });
@@ -334,12 +354,23 @@ export function generateAllureReport(options = {}) {
     return { ok: false, sources, status: result.status ?? 1 };
   }
 
+  if (options.runId) {
+    writeFileSync(
+      path.join(historyAbs, RUN_META),
+      `${JSON.stringify({ runId: options.runId, owner: options.owner, label: options.label }, null, 2)}
+`,
+      'utf8',
+    );
+  }
+
   // Latest shortcut for old habits / CI that expect allure-report/
-  try {
-    rmSync(path.join(cwd, REPORT_DIR), { recursive: true, force: true });
-    cpSync(historyAbs, path.join(cwd, REPORT_DIR), { recursive: true });
-  } catch (error) {
-    console.log(`Allure: could not refresh ${REPORT_DIR}: ${error.message}`);
+  if (options.latestShortcut !== false) {
+    try {
+      rmSync(path.join(cwd, REPORT_DIR), { recursive: true, force: true });
+      cpSync(historyAbs, path.join(cwd, REPORT_DIR), { recursive: true });
+    } catch (error) {
+      console.log(`Allure: could not refresh ${REPORT_DIR}: ${error.message}`);
+    }
   }
 
   const runs = writeHistoryIndex(cwd);

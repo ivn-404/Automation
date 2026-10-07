@@ -25,6 +25,7 @@ import {
   launchMonitorChrome,
 } from './lib/sgap-worker-monitor-server.mjs';
 import { resolveTester, testerPlayerId } from './lib/sgap-tester.mjs';
+import { allureResultsRoot, isManagedRun, resultsRoot } from './lib/sgap-run-paths.mjs';
 
 const require = createRequire(import.meta.url);
 const playwrightCli = require.resolve('@playwright/test/cli');
@@ -71,7 +72,7 @@ resetAllureWorkerDirs();
 
 function resetAllureWorkerDirs() {
   // Lanes can outnumber workers; clear every w<N> so a stale lane never joins this report.
-  const root = 'allure-results';
+  const root = allureResultsRoot();
   const stale = existsSync(root) ? readdirSync(root).filter((name) => /^w\d+$/u.test(name)) : [];
   for (const name of new Set([...stale, 'w1', 'w2', 'w3', 'w4'])) {
     const dir = path.join(root, name);
@@ -252,7 +253,7 @@ function loadJsonStats(filePath) {
 }
 
 function runLane(lane, env) {
-  const resultsFile = path.join('test-results', `w${lane.id}-results.json`);
+  const resultsFile = path.join(resultsRoot(), `w${lane.id}-results.json`);
   rmSync(resultsFile, { force: true });
   const args = [
     playwrightCli,
@@ -271,7 +272,7 @@ function runLane(lane, env) {
       env: {
         ...env,
         SGAP_RESULTS_JSON: resultsFile,
-        SGAP_ALLURE_DIR: path.join('allure-results', `w${lane.id}`),
+        SGAP_ALLURE_DIR: path.join(allureResultsRoot(), `w${lane.id}`),
         SGAP_WORKER_ID: String(lane.id),
         ...(lane.gameId ? { SGAP_GAME_ID: lane.gameId } : {}),
       },
@@ -498,7 +499,10 @@ const resultsPromise = shuttingDown
   ? Promise.resolve([])
   : Promise.all(parallelConfig.lanes.map((lane) => runLane(lane, env)));
 
-if (!shuttingDown && monitorEnabled && monitorUrl) {
+// Managed runs are watched through the control panel; overlay windows from several
+// concurrent runs would pile up on the host's screen.
+const overlayWindows = !isManagedRun() && process.env.SGAP_MONITOR_OVERLAY !== '0';
+if (!shuttingDown && monitorEnabled && monitorUrl && overlayWindows) {
   setTimeout(() => {
     const chromeExe = findChromiumExe(playwrightBrowsersPath);
     const monitorChrome = launchMonitorChrome({
@@ -568,7 +572,8 @@ console.log('──────────────────────�
 console.log(`  totals   passed=${passed} failed=${failed} skipped=${skipped}  (${elapsedMin}m)`);
 console.log('');
 
-if (process.env.SGAP_SKIP_ALLURE !== '1') {
+// Managed runs publish one combined report per run (scripts/run-suite-queue.mjs).
+if (process.env.SGAP_SKIP_ALLURE !== '1' && !isManagedRun()) {
   await publishAllureReport();
 }
 

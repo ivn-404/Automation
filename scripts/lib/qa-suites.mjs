@@ -5,6 +5,8 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { laneConfigDir } from './sgap-run-paths.mjs';
+
 const CATALOG_PATH = ['config', 'qa-suites.json'];
 const SPECS_DIR = ['tests', 'specs'];
 
@@ -195,9 +197,11 @@ export function suiteCases(suite, cwd = process.cwd()) {
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
-export function laneConfigPath(suite, pkg, caseId) {
+export function laneConfigPath(suite, pkg, caseId, cwd = process.cwd()) {
   const suffix = caseId ? `-${caseId.toLowerCase()}` : '';
-  return path.join('config', 'generated', `parallel-workers-${suite.id}-pkg${pkg}${suffix}.json`).replace(/\\/g, '/');
+  const file = path.join(laneConfigDir(), `parallel-workers-${suite.id}-pkg${pkg}${suffix}.json`);
+  const rel = path.relative(cwd, file);
+  return (rel.startsWith('..') || path.isAbsolute(rel) ? file : rel).replace(/\\/g, '/');
 }
 
 /** Family scope for a testMatch glob (`pen/**`) or case glob (`**\/PEN-051.spec.ts`). Defaults to game. */
@@ -289,8 +293,8 @@ export function writeLaneConfig({
     minimumBetBalance: 100,
     lanes,
   };
-  const rel = laneConfigPath(suite, pkg, caseId);
-  mkdirSync(path.dirname(path.join(cwd, rel)), { recursive: true });
-  writeFileSync(path.join(cwd, rel), `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  const rel = laneConfigPath(suite, pkg, caseId, cwd);
+  mkdirSync(path.dirname(path.resolve(cwd, rel)), { recursive: true });
+  writeFileSync(path.resolve(cwd, rel), `${JSON.stringify(config, null, 2)}\n`, 'utf8');
   return rel;
 }

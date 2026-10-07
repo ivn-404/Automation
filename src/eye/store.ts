@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { resultsRoot } from '../shared/run-paths.js';
 import { eyeRootDir } from './catalog.js';
 
 export function scenarioReferencesDir(scenarioId: string): string {
@@ -22,7 +23,7 @@ export function listGoldenPaths(scenarioId: string): string[] {
 }
 
 export function debugCapturePath(scenarioId: string, gameId: string): string {
-  const dir = path.join(process.cwd(), 'test-results', 'eye', scenarioId);
+  const dir = path.join(resultsRoot(), 'eye', scenarioId);
   mkdirSync(dir, { recursive: true });
   return path.join(dir, `${gameId}-${Date.now()}.png`);
 }

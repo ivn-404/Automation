@@ -251,7 +251,7 @@
 
     async function pullSession() {
       if (state.selected === null) return false;
-      const res = await fetch(`/api/observe/session?id=${encodeURIComponent(state.selected)}&since=${state.lastSeq}`);
+      const res = await fetch(`api/observe/session?id=${encodeURIComponent(state.selected)}&since=${state.lastSeq}`);
       if (!res.ok) return false;
       const body = await res.json();
       if (body.observations.length === 0) return false;
@@ -262,7 +262,7 @@
 
     async function tick() {
       try {
-        const res = await fetch('/api/observe');
+        const res = await fetch('api/observe');
         const index = await res.json();
         state.sessions = index.sessions;
         $('status').textContent = `${index.sessions.length} test${index.sessions.length === 1 ? '' : 's'} observed · ${new Date().toLocaleTimeString()}`;

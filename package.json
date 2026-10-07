@@ -46,6 +46,8 @@
     "qa": "node scripts/qa-testing-page.mjs",
     "qa:share": "node scripts/qa-testing-page.mjs --share",
     "qa:share:view": "node scripts/qa-testing-page.mjs --share=view",
+    "qa:server": "node scripts/qa-testing-page.mjs --server",
+    "qa:users": "node scripts/qa-users.mjs",
     "test:suite:queue": "node scripts/run-suite-queue.mjs",
     "test:probe:gate": "node scripts/run-game-probe-gate.mjs",
     "test:regression": "playwright test --project=chromium --workers=1 tests/specs/csf tests/specs/bc tests/specs/ap tests/specs/tm tests/specs/es tests/specs/at tests/specs/fs tests/specs/bf tests/specs/regression",

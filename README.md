@@ -40,10 +40,41 @@ Read before contributing:
 - Playwright (Chrome + Edge)
 - pnpm
 
+## Shared QA server (one office PC for the whole team)
+
+One always-on PC runs the panel; every QA opens it in a browser and signs in.
+Each run is an independent execution (`RUN-0001`, `RUN-0002`, …) with its own
+results folder, worker monitor and staging players (`<Game>_<suite>_<account>`).
+Runs go side by side as far as the PC's CPU/RAM allow; when it is full, new runs
+queue and show the actual reason (e.g. "needs 1.8 GB RAM, 1.2 GB free").
+There is no limit on the number of accounts or runs in the code.
+
+On the server PC (after the per-PC setup below):
+
+```bash
+npx pnpm qa:users add ivan --role admin       # prints a password once
+npx pnpm qa:users add ana                     # tester (default role)
+npx pnpm qa:server                            # listens on the network
+```
+
+Teammates open `http://<server-ip>:3850/` and sign in. Testers start runs and
+stop their own; admins stop any run; viewers only watch. Manage accounts any time
+with `npx pnpm qa:users list | passwd | role | disable | remove` (no restart needed).
+
+Capacity: `config/qa-server.json` (`maxBrowsers`, `maxConcurrentRuns`,
+`memoryPerBrowserMB`, `reserveMemoryMB`, `cpuCoresPerBrowser`, `whenFull`).
+Override per server in `.sgap/qa-server.json`; a bigger PC raises the limits
+automatically. Reports for every run are under Reports (`/allure/`) with the
+run id and who started it.
+
+Keep the server PC awake, allow Node.js through Windows Firewall (Private
+network), and start `npx pnpm qa:server` at logon (Task Scheduler) so it survives
+reboots. Accounts and limits live only on the server in `.sgap/` (git-ignored).
+
 ## Setup (each QA PC)
 
-Every tester runs SGAP on their own PC: tests, browsers and reports stay local,
-and everyone gets the same test cases from this repository.
+Every tester can also run SGAP on their own PC: tests, browsers and reports stay
+local, and everyone gets the same test cases from this repository.
 
 Install once: [Git](https://git-scm.com/download/win), [Node.js 20+](https://nodejs.org/),
 Google Chrome, Microsoft Edge and [Java 17+](https://adoptium.net/) (for Allure reports).
