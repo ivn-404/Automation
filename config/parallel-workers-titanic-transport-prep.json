@@ -1,0 +1,30 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "Second window beside the multiplier hunt. Spin, balance deduction, currency precision, and a failed-bet refund — the slot checks a pentest needs. Scratch-hub PEN is not included.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 2,
+      "category": "PREP",
+      "categories": ["CSF", "CP", "AT"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-002.spec.ts",
+        "csf/**/CSF-003.spec.ts",
+        "cp/**/CP-001.spec.ts",
+        "at/**/AT-003.spec.ts"
+      ],
+      "playerId": "Titanic Transport_REG3",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}

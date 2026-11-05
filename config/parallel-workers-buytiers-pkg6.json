@@ -1,0 +1,46 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 6 buy tiers: PROBE-005 parses the 4-tier panel and checks it against the manifest, then BF-012 buys each tier (78x/8x, 150x/16x, 288x/32x, 128x random).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": [
+        "PROBE",
+        "BF"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Zero Law_B116",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": [
+        "PROBE",
+        "BF"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Boobie Trap_B116",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

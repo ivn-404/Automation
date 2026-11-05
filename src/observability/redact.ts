@@ -9,7 +9,8 @@
 const SECRET_KEY = /token|authorization|cookie|secret|password|passwd|signature|jwt|api[-_]?key|session[-_]?key/iu;
 const JWT = /eyJ[\w-]{6,}\.[\w-]{6,}\.[\w-]{6,}/gu;
 const BEARER = /\b(Bearer|Basic)\s+[\w.~+/=-]{8,}/giu;
-const SECRET_PARAM = /([?&](?:access_token|token|refresh_token|id_token|auth|sessionToken|signature)=)[^&#\s"']+/giu;
+const SECRET_PARAM =
+  /([?&](?:access_token|token|refresh_token|id_token|auth|sessionToken|session_token|launch_token|launchToken|signature|sig|key|apikey|api_key|sid|session|session_id|sessionid|ticket|jwt)=)[^&#\s"']+/giu;
 const SECRET_JSON_FIELD =
   /("(?:[\w-]*(?:token|authorization|secret|password|signature|jwt|apiKey|api_key)[\w-]*)"\s*:\s*)"[^"]*"/giu;
 

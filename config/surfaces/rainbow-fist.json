@@ -1,0 +1,15 @@
+{
+  "id": "rainbow-fist",
+  "extends": "package-3",
+  "notes": "Attract Play is the ~2.3% green Image at (0.50, 0.80), not enter@0.72 (CSF-001 2026-10-14: 2 Phaser interactives, tap 0.72 did nothing). Package-3 splashPlayLow stops at y 0.76 so idle will not treat War Freaks' 0.80 Zone as Play; this title must search y 0.76–0.83 for that Image. Do not lower spin Phaser y0 to include 0.80 — after Play the live spin is still the hollow ring at ~0.50,0.86.",
+  "blockers": {
+    "splashPlayLow": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.76, "y1": 0.83, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Titanic Transport AT cases against docs/catalogs/RegressionTestCases.md.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "category": "AT",
+      "categories": ["AT"],
+      "packageId": "5",
+      "testMatch": ["at/**/*.spec.ts"],
+      "playerId": "Titanic Transport_AT1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Rainbow Fist (Package 3, second title) 1-worker regression. Reuses War Freaks surface/catalog/autoplay fixes. AT-002/004/005 are known product defects.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP", "TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "3",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "tm/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_REG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

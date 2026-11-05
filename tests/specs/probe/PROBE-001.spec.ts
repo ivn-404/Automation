@@ -7,6 +7,9 @@
  * not assert that field after lightning — Amplify/BF/AT amplify paths may.
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { test, expect } from '../../fixtures/index.js';
 import { settleCanvasToBaseGame } from '../../../src/platform/index.js';
 import { verifyBetSpinOutcome, verifyIsEnhancedBet } from '../../../src/verification/bet-response-verification.js';
@@ -67,6 +70,13 @@ test.describe('PROBE — control contracts', () => {
       verificationResults.push(...verifyBetSpinOutcome(baseline, { requireCompleted: true }));
       const baselineStake = Number(baseline.bet?.amount ?? '0');
       expect(baselineStake, 'baseline spin stake').toBeGreaterThan(0);
+
+      // Informational: the /bet response shape, for mapping network.fields / reelValidation paths.
+      const outDir = path.join('test-results', 'probe', MANUAL_TEST_ID, sgapSession.manifest.gameId);
+      mkdirSync(outDir, { recursive: true });
+      const shapePath = path.join(outDir, 'bet-shape.json');
+      writeFileSync(shapePath, `${JSON.stringify(payloadShape(baseline.raw), null, 2)}\n`, 'utf8');
+      await testInfo.attach('bet-shape.json', { path: shapePath, contentType: 'application/json' });
 
       await prepareBetNudge(sgapSession, sgapDriver, page);
       await sgapSession.bet.increase({ timeoutMs: 10_000 });
@@ -197,6 +207,26 @@ test.describe('PROBE — control contracts', () => {
     }
   });
 });
+
+const SECRET_KEY = /token|auth|session|secret|password|signature/iu;
+
+/** Keys, array lengths and short leaf values — never credentials. */
+function payloadShape(value: unknown, depth = 0): unknown {
+  if (depth > 8) return '…';
+  if (Array.isArray(value)) {
+    const head = value.slice(0, 6).map((item) => payloadShape(item, depth + 1));
+    return value.length > 6 ? [...head, `… ${value.length} items`] : head;
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        SECRET_KEY.test(key) ? '[redacted]' : payloadShape(item, depth + 1),
+      ]),
+    );
+  }
+  return typeof value === 'string' && value.length > 40 ? `${value.slice(0, 40)}…` : value;
+}
 
 function logBetRequest(label: string, bet: BetResponseSnapshot): void {
   const body = bet.betRequest ?? {};

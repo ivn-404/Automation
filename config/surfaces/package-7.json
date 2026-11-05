@@ -1,0 +1,23 @@
+{
+  "id": "package-7",
+  "extends": "base",
+  "notes": "Package 7 HUD from Oppals / Amazonians PROBE-002 (2026-10-27). Same layout as Package 6, about 0.01 higher: bet - / + are 28x28 images at 0.712 / 0.908, y 0.830; the buy control is hud_feature_button, a 168x104 image at 0.500, 0.821 (wider than the Package 6 hitbox, so maxW is 200); hud_bet_central_zone (75x55 at 0.810, 0.821) is the bet value, not Enhance Bet, which is the 56x55 image at 0.730, 0.917.",
+  "controls": {
+    "betPlus": {
+      "phaser": { "x0": 0.82, "x1": 0.98, "y0": 0.78, "y1": 0.88, "minW": 18, "minH": 18, "pick": "rightmost" }
+    },
+    "betMinus": {
+      "phaser": { "x0": 0.62, "x1": 0.78, "y0": 0.78, "y1": 0.88, "minW": 18, "minH": 18, "pick": "leftmost" }
+    },
+    "amplifyBet": {
+      "phaser": { "x0": 0.62, "x1": 0.82, "y0": 0.87, "y1": 0.96, "minW": 30, "minH": 30, "pick": "largest" }
+    },
+    "buyFeature": {
+      "phaser": { "x0": 0.38, "x1": 0.62, "y0": 0.77, "y1": 0.87, "minW": 70, "minH": 28, "maxW": 200, "pick": "largest" }
+    },
+    "buyFeatureConfirm": {
+      "vision": { "hue": "green", "band": { "y0": 0.88, "y1": 0.98, "x0": 0.2, "x1": 0.8 }, "minAreaRatio": 0.015, "maxAreaRatio": 0.12 },
+      "candidates": [{ "x": 0.501, "y": 0.929 }, { "x": 0.5, "y": 0.92 }, { "x": 0.48, "y": 0.929 }]
+    }
+  }
+}

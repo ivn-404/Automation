@@ -1,6 +1,7 @@
 import { defineConfig, devices, type Project, type ReporterDescription } from '@playwright/test';
 
 import {
+  gamesForLane,
   laneAssignmentLabel,
   loadParallelWorkersConfig,
   projectNameForLane,
@@ -108,11 +109,22 @@ const defaultProjects: Project[] = [
 const parallelProjects: Project[] =
   parallelConfig === undefined
     ? []
-    : parallelConfig.lanes.map((lane) => {
+    : parallelConfig.lanes.flatMap((lane) => {
         const bounds = windowBoundsForLane(lane);
         const placement = resolveLanePlacement(lane);
-        return {
-          name: projectNameForLane(lane),
+        const titles = gamesForLane(lane);
+        const games =
+          titles.length > 0
+            ? titles
+            : [
+                {
+                  gameId: lane.gameId,
+                  gameName: lane.gameName,
+                  playerId: lane.playerId,
+                },
+              ];
+        return games.map((game) => ({
+          name: projectNameForLane(lane, games.length > 1 ? game.gameId : undefined),
           testDir: './tests/specs',
           testMatch: testMatchForLane(lane),
           fullyParallel: false,
@@ -121,9 +133,9 @@ const parallelProjects: Project[] =
             sgapWorkerId: lane.id,
             sgapCategory: lane.category,
             sgapCategories: laneAssignmentLabel(lane),
-            sgapPlayerId: lane.playerId,
-            ...(lane.gameId !== undefined ? { sgapGameId: lane.gameId } : {}),
-            ...(lane.gameName !== undefined ? { sgapGameName: lane.gameName } : {}),
+            sgapPlayerId: game.playerId ?? lane.playerId,
+            ...(game.gameId !== undefined ? { sgapGameId: game.gameId } : {}),
+            ...(game.gameName !== undefined ? { sgapGameName: game.gameName } : {}),
             ...(lane.packageId !== undefined ? { sgapPackageId: lane.packageId } : {}),
             sgapDefaultBalance: parallelConfig.defaultBalance,
             sgapDefaultBetLimit: parallelConfig.defaultBetLimit ?? parallelConfig.defaultBalance,
@@ -134,15 +146,24 @@ const parallelProjects: Project[] =
           },
           use: {
             ...desktopChrome,
+            ...(lane.channel !== undefined ? { channel: lane.channel } : {}),
             viewport: innerViewportForWindow(bounds),
             launchOptions: {
               args: [
                 `--window-position=${bounds.left},${bounds.top}`,
                 `--window-size=${bounds.width},${bounds.height}`,
+                ...(process.env.SGAP_3G_CALIBRATION === '1'
+                  ? ['--disable-features=IsolateOrigins,site-per-process']
+                  : []),
+                ...(lane.browserArgs ?? []),
+                // A pasted Game URL on a LAN dev server: Chrome otherwise refuses to load it in the host page.
+                ...(process.env.SGAP_LAUNCH_URL_LAN === '1'
+                  ? ['--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights']
+                  : []),
               ],
             },
           },
-        };
+        }));
       });
 
 const reporters: ReporterDescription[] = [
@@ -164,6 +185,7 @@ const reporters: ReporterDescription[] = [
       environmentInfo: {
         launcher_mode: process.env.SGAP_LAUNCHER_MODE ?? 'local',
         game_id: process.env.SGAP_GAME_ID ?? 'sugar-wonderland',
+        test_type: process.env.SGAP_REPORT_TYPE ?? 'unspecified',
         node_version: process.version,
       },
     },

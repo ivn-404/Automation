@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "PROBE-002 for Titanic Transport (Package 5, launcher 00260326). First launch: iframe surface and Phaser HUD before any spin catalog.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Titanic Transport_PRB1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

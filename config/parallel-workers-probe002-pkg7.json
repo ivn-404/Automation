@@ -1,0 +1,32 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "PROBE-002 on the Package 7 titles (scratch-only manifests). Writes test-results/probe/PROBE-002/<gameId>/ for the slot HUD ratios.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "oppals",
+      "gameName": "Oppals",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Oppals_PRB7",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "amazonians",
+      "gameName": "Amazonians",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Amazonians_PRB7",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

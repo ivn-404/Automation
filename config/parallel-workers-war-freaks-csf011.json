@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks only: CSF-011 after tumble in/out ids + 80-spin budget. Assertions unchanged (landed multiplier, applied > 1, win > 0).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["CSF"],
+      "testMatch": ["csf/**/CSF-011.spec.ts"],
+      "playerId": "War Freaks_CSF11",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

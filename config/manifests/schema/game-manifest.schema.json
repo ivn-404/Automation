@@ -135,13 +135,14 @@
     "reelValidation": {
       "type": "object",
       "additionalProperties": false,
-      "description": "areaPath, tumblesPath, featureItemsPath, rowOrder and symbols fall back to the package catalog (config/packages/<packageId>.json) when omitted.",
+      "description": "areaPath, tumblesPath, featureItemsPath, rowOrder, areaLayout and symbols fall back to the package catalog (config/packages/<packageId>.json) when omitted.",
       "required": ["symbolTemplateDir", "reelRegion"],
       "properties": {
         "areaPath": { "type": "string", "minLength": 1 },
         "tumblesPath": { "type": "string", "minLength": 1 },
         "featureItemsPath": { "type": "string", "minLength": 1 },
         "rowOrder": { "enum": ["top-to-bottom", "bottom-to-top"] },
+        "areaLayout": { "enum": ["columns", "rows"], "description": "columns (default): area[col][row]; rows: area[row][col]." },
         "symbolTemplateDir": { "type": "string", "minLength": 1 },
         "cellInset": { "type": "number", "minimum": 0, "exclusiveMaximum": 0.45 },
         "matchThreshold": { "type": "number", "minimum": 0, "maximum": 1 },

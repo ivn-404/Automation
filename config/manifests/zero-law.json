@@ -5,6 +5,42 @@
   "iframeSelectorKey": "gameIframe",
   "controllers": [
     {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
       "id": "scratchCard",
       "enabled": true
     }
@@ -17,9 +53,141 @@
   "canvasActions": {
     "canvasSelector": "canvas",
     "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.5,
+        "y": 0.928
+      },
+      "buyFeature": {
+        "x": 0.5,
+        "y": 0.832
+      },
+      "buyFeatureConfirm": {
+        "x": 0.5,
+        "y": 0.929
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.921,
+        "y": 0.248
+      },
+      "betMinus": {
+        "x": 0.712,
+        "y": 0.841
+      },
+      "betPlus": {
+        "x": 0.908,
+        "y": 0.841
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.9,
+        "y": 0.934
+      },
+      "amplifyBet": {
+        "x": 0.73,
+        "y": 0.928
+      },
+      "menu": {
+        "x": 0.1,
+        "y": 0.934
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.27,
+        "y": 0.928
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.27,
+        "y": 0.928
+      },
+      "autoplaySpins10": {
+        "x": 0.22,
+        "y": 0.52
+      },
       "scratchCard": {
         "x": 0.189,
         "y": 0.775
+      },
+      "buyFeatureOption1": {
+        "x": 0.498,
+        "y": 0.339
+      },
+      "buyFeatureOption2": {
+        "x": 0.498,
+        "y": 0.46
+      },
+      "buyFeatureOption3": {
+        "x": 0.498,
+        "y": 0.58
+      },
+      "buyFeatureOption4": {
+        "x": 0.498,
+        "y": 0.701
       }
     }
   },
@@ -127,7 +295,9 @@
     "fields": {
       "balance": "balance",
       "totalWin": "slot.totalWin",
-      "transactionState": "transactionState"
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
     }
   },
   "metadata": {
@@ -141,8 +311,34 @@
     "portraitViewport": "390x844",
     "orientationLock": "portrait",
     "stagingStatus": "active",
-    "notes": "Scratch-only manifest (SCG). Game space 428x926; HUD SCRATCH button from Phaser discovery; scratch drawer is the shared 428x860 panel. Slot controllers (spin, bet, buy…) are not configured for this title.",
+    "notes": "Package 6 slot HUD. PROBE-002 (2026-10-23) measured spin, turbo, amplify, bet -/+, autoplay, menu and the buy hitbox (hud_feature_hitbox 0.500, 0.832) from the Phaser scene; the HUD bands are in config/surfaces/package-6.json. PROBE-005 (2026-10-23) mapped the buy panel: four rows at y 0.339 / 0.460 / 0.580 / 0.701 (F1 78x 3 scatters x8, F2 150x 4 scatters x16, F3 288x 5 scatters x32, F4 128x random 3-6), BUY FEATURE at 0.500, 0.929, close at 0.921, 0.248. Dialog and autoplay points start from the Sk8leton template. Scratch drawer stays the shared panel. Regression payloads (2026-10-23): the base tumble multiplier is slot.tumbles[].multiplier.current (1, 2, 4, 8 …) and a bought feature reports its start on the first winning free spin (tumbles[].multiplier.current per item). The start follows the scatters actually dealt on the trigger board (3→8, 4→16, 5→32), which can exceed the tier's guarantee: across 111 Package 6 buys on 2026-10-23 every start matched that table, and the one outlier was a retrigger before the first win. A bought feature's win is credited on the next bet.",
     "packageId": "package-6",
-    "normalModeMultiplier": "true"
+    "normalModeMultiplier": "true",
+    "normalModeMultiplierMode": "tumble",
+    "normalModeMultiplierPath": "slot.tumbles[].multiplier.current",
+    "normalModeTumbleMultipliers": "1,2,4,8,16,32,64,128,256,512,1024",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true",
+    "buyFeatureMultiplier": "78",
+    "maxWinMultiplier": "5000",
+    "maxWinFlagPath": "slot.hasMaxWin",
+    "buyFeatureSelections": "4",
+    "buyFeatureOption2Multiplier": "150",
+    "buyFeatureOption2StartMultiplier": "16",
+    "buyFeatureOption1StartMultiplier": "8",
+    "buyFeatureOption1Scatters": "3",
+    "buyFeatureOption3Multiplier": "288",
+    "buyFeatureOption3StartMultiplier": "32",
+    "buyFeatureOption3Scatters": "5",
+    "buyFeatureOption4Multiplier": "128",
+    "buyFeatureOption4Scatters": "3",
+    "buyFeatureStartMultiplierPath": "tumbles[].multiplier.current",
+    "buyFeatureOption2Scatters": "4",
+    "featureStartMultipliers": "3:8,4:16,5:32,6:64",
+    "featureTriggerScatterPaths": "slot.area,slot.tumbles[].symbols.in"
   }
 }

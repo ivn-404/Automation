@@ -1,0 +1,64 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "Package 3 onboarding gate: CSF-001 (spin + /bet) and CSF-011 (normal-mode multiplier from slot.tumbles.multiplier.total).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "War Freaks_CSF1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_CSF1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_CSF1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

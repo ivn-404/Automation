@@ -1,0 +1,23 @@
+{
+  "kind": "pad",
+  "workers": 1,
+  "layout": "1",
+  "notes": "FPS Phase 0 measurement validation: rAF vs Phaser postrender vs Chrome trace presented frames, collector off/on, on the local dev build (SGAP_FPS_PROBE_URL) and the staging build. One worker only. Run with SGAP_OBSERVE=0.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "PAD",
+      "categories": ["PAD"],
+      "testMatch": ["probe/**/FPS-PHASE0.spec.ts"],
+      "browserArgs": ["--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights"],
+      "playerId": "Gnome Mansland_PAD",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

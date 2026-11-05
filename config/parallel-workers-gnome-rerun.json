@@ -1,0 +1,41 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Gnome Mansland follow-up after the 2026-10-27 regression: autoplay-stop failures (AP-001/003), launcher-timeout cases (AP-004/005, ES-004/005), FS-007, SM-002, BF-008, and ES-007 with the new max-win flag check.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "RERUN",
+      "categories": ["AP", "BF"],
+      "packageId": "6",
+      "testMatch": [
+        "ap/AP-00[1345]*.spec.ts",
+        "bf/BF-008*.spec.ts"
+      ],
+      "playerId": "Gnome Mansland_RR1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "RERUN",
+      "categories": ["ES", "FS", "SM"],
+      "packageId": "6",
+      "testMatch": [
+        "es/ES-00[457]*.spec.ts",
+        "fs/FS-007*.spec.ts",
+        "sm/SM-002*.spec.ts"
+      ],
+      "playerId": "Gnome Mansland_RR2",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

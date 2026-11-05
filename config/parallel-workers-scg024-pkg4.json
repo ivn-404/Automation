@@ -1,0 +1,49 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "SCG-024 on Package 4 after config/packages/package-4.json declared scatterMode (Buy Bonus -> Bonus Mode screen). One worker per game.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "SCG",
+      "categories": ["SCG"],
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "testMatch": ["scg/**/SCG-024.spec.ts"],
+      "playerId": "That's Bait_S24",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "SCG",
+      "categories": ["SCG"],
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "testMatch": ["scg/**/SCG-024.spec.ts"],
+      "playerId": "Genghis Bao_S24",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "category": "SCG",
+      "categories": ["SCG"],
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "testMatch": ["scg/**/SCG-024.spec.ts"],
+      "playerId": "Sk8leton_S24",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    }
+  ]
+}

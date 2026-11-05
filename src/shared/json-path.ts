@@ -20,6 +20,17 @@ export function getByPath(input: unknown, path: string): unknown {
   return current;
 }
 
+/** Like getByPath, but each `[]` fans out over an array (e.g. "slot.tumbles[].multiplier.current"). */
+export function getAllByPath(input: unknown, path: string): unknown[] {
+  const [head = '', ...rest] = path.split('[]');
+  const key = head.replace(/^\./u, '');
+  const node = key === '' ? input : getByPath(input, key);
+  if (rest.length === 0) {
+    return node === undefined ? [] : [node];
+  }
+  return Array.isArray(node) ? node.flatMap((item) => getAllByPath(item, rest.join('[]'))) : [];
+}
+
 export function toAmountString(value: unknown): string | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return String(value);

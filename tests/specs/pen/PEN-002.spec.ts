@@ -1,7 +1,7 @@
 /**
  * PEN-002 — Negative bet must never credit the balance.
  *
- * Manual Test Case ID: PEN-002 (docs/PERSONALTESTING.md §2)
+ * Manual Test Case ID: PEN-002 (docs/catalogs/PERSONALTESTING.md §2)
  * Intent: StartRound with a negative stake (bet = -100) must be rejected — the
  * server must not "book" a negative bet as a credit or deal a card. Balance must
  * not rise. Needs a joined session (skips while the hub outage blocks JoinScratch).

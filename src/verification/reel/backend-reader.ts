@@ -8,8 +8,8 @@
 
 import { getByPath } from '../../shared/json-path.js';
 import { discoverFeatureSpinItems, isIntMatrix } from '../../shared/spin-payload-discovery.js';
-import type { ReelSymbolDef } from '../../core/models/index.js';
-import { buildReelGridFromMatrix, resolveReelAreaMatrix } from './parse-reel-area.js';
+import type { ReelAreaLayout, ReelSymbolDef } from '../../core/models/index.js';
+import { buildReelGridFromMatrix, resolveReelAreaMatrix, toColumnMajor } from './parse-reel-area.js';
 import type { ReelGrid } from './types.js';
 import { loadPackageCatalog, type PackageSymbolCatalog } from './package-catalog.js';
 
@@ -68,7 +68,7 @@ export interface BackendSpinRead {
   readonly rowOrder: 'top-to-bottom' | 'bottom-to-top';
   readonly catalogId?: string;
   readonly grid: ReelGrid;
-  /** slot.area as sent (before rowOrder flip). */
+  /** slot.area as column-major `[col][row]`, before the rowOrder flip. */
   readonly rawArea: number[][];
   readonly uniqueSymbolIds: readonly number[];
   readonly unknownSymbolIds: readonly number[];
@@ -86,11 +86,47 @@ export interface ReadBackendSpinOptions {
   readonly tumblesPath?: string;
   readonly featureItemsPath?: string;
   readonly rowOrder?: 'top-to-bottom' | 'bottom-to-top';
+  readonly areaLayout?: ReelAreaLayout;
   readonly symbols?: readonly ReelSymbolDef[];
 }
 
 function toIntMatrix(value: number[][]): number[][] {
   return value.map((column) => column.map((cell) => Number(cell)));
+}
+
+/** Symbol ids from a tumble `symbols.in` / `symbols.out` payload (ints or `{ symbol }`). */
+function integerSymbolIds(value: unknown): number[] {
+  const ids: number[] = [];
+  const walk = (node: unknown): void => {
+    if (typeof node === 'number' && Number.isInteger(node) && node >= 0) {
+      ids.push(node);
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        walk(item);
+      }
+      return;
+    }
+    if (node === null || typeof node !== 'object') {
+      return;
+    }
+    const record = node as Record<string, unknown>;
+    if ('symbol' in record) {
+      const parsed = Number(record.symbol);
+      if (Number.isInteger(parsed) && parsed >= 0) {
+        ids.push(parsed);
+      }
+      return;
+    }
+    for (const key of ['in', 'out', 'symbols', 'items'] as const) {
+      if (record[key] !== undefined) {
+        walk(record[key]);
+      }
+    }
+  };
+  walk(value);
+  return ids;
 }
 
 function uniqueIdsFromMatrix(matrix: number[][]): number[] {
@@ -181,6 +217,7 @@ function boardsFromAreaAndTumbles(
   rowOrder: 'top-to-bottom' | 'bottom-to-top',
   symbols: readonly ReelSymbolDef[],
   keyPrefix: string,
+  areaLayout: ReelAreaLayout | undefined,
 ): { boards: BackendBoardView[]; tumbles: BackendTumbleStep[]; symbolsOnlyTumbleCount: number } {
   const boards: BackendBoardView[] = [
     boardFromColumnMajor(columnMajor, rowOrder, symbols, `${keyPrefix}-stop`, 'Stop'),
@@ -198,7 +235,7 @@ function boardsFromAreaAndTumbles(
         if (!isIntMatrix(area)) {
           return;
         }
-        const tumbleMatrix = toIntMatrix(area);
+        const tumbleMatrix = toColumnMajor(toIntMatrix(area), areaLayout);
         const board = boardFromColumnMajor(
           tumbleMatrix,
           rowOrder,
@@ -218,13 +255,14 @@ function boardsFromAreaAndTumbles(
       }
       if ('symbols' in step) {
         symbolsOnlyTumbleCount += 1;
+        const tumbleIds = [...new Set(integerSymbolIds((step as { symbols?: unknown }).symbols))];
         boards.push({
           key: `${keyPrefix}-tumble-${index + 1}-meta`,
           title: `Tumble ${index + 1} (symbols only)`,
           columns: boards[0]!.columns,
           rows: boards[0]!.rows,
-          ids: [],
-          names: [],
+          ids: tumbleIds.length > 0 ? [tumbleIds] : [],
+          names: tumbleIds.length > 0 ? [tumbleIds.map((id) => nameForId(symbols, id))] : [],
           symbolsOnly: true,
         });
       }
@@ -260,6 +298,7 @@ export function readBackendSpin(
   const tumblesPath = options?.tumblesPath ?? catalog?.tumblesPath;
   const featureItemsPath = options?.featureItemsPath ?? catalog?.featureItemsPath;
   const rowOrder = options?.rowOrder ?? catalog?.rowOrder ?? 'top-to-bottom';
+  const areaLayout = options?.areaLayout ?? catalog?.areaLayout;
   const symbols = options?.symbols ?? catalog?.symbols ?? [];
 
   const discovered = discoverArea(body, areaPath);
@@ -269,13 +308,12 @@ export function readBackendSpin(
     areaPath: discovered.path,
     tumblesPath: resolvedTumbles,
     rowOrder,
+    areaLayout,
   });
 
   const grid = buildReelGridFromMatrix(matrix, symbols);
-  const rawArea = discovered.matrix;
-  const uniqueSymbolIds = uniqueIdsFromMatrix(rawArea);
-  const known = new Set(symbols.map((entry) => entry.id));
-  const unknownSymbolIds = uniqueSymbolIds.filter((id) => !known.has(id));
+  const rawArea = toColumnMajor(discovered.matrix, areaLayout);
+  const uniqueFromArea = uniqueIdsFromMatrix(rawArea);
 
   const spinGroups: BackendSpinGroup[] = [];
   const allTumbles: BackendTumbleStep[] = [];
@@ -287,6 +325,7 @@ export function readBackendSpin(
     rowOrder,
     symbols,
     'opener',
+    areaLayout,
   );
   allTumbles.push(...openerParsed.tumbles);
   spinGroups.push({
@@ -304,11 +343,12 @@ export function readBackendSpin(
   fsItems.forEach((item, index) => {
     const fsIndex = index + 1;
     const parsed = boardsFromAreaAndTumbles(
-      item.area,
+      toColumnMajor(item.area, areaLayout),
       item.tumbles,
       rowOrder,
       symbols,
       `fs-${fsIndex}`,
+      areaLayout,
     );
     allTumbles.push(...parsed.tumbles);
     spinGroups.push({
@@ -336,6 +376,12 @@ export function readBackendSpin(
   for (const group of spinGroups) {
     allBoards.push(...group.boards);
   }
+
+  const uniqueSymbolIds = [
+    ...new Set([...uniqueFromArea, ...allBoards.flatMap((board) => board.ids.flat())]),
+  ].sort((a, b) => a - b);
+  const known = new Set(symbols.map((entry) => entry.id));
+  const unknownSymbolIds = uniqueSymbolIds.filter((id) => !known.has(id));
 
   const totalWinRaw = getByPath(body, 'slot.totalWin') ?? getByPath(body, 'data.slot.totalWin');
   const totalWin = Number(totalWinRaw);

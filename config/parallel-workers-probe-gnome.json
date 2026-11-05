@@ -1,0 +1,29 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Gnome Mansland (Package 6, new release) gates: PROBE-002 HUD, PROBE-005 buy panel, PROBE-001 /bet mapping, CSF-001 spin.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "probe/**/PROBE-002.spec.ts",
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts",
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Gnome Mansland_PRB6",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Sk8leton recheck after the measured HUD ratios (spin, buyFeature, buyFeatureConfirm, bet, turbo, amplify, menu, autoplay, scratchCard) and the buy-confirm listener fix. Every Sk8leton case whose latest result was not a pass: buy-pill misses, stale SCG drawer misses, PROBE-001 enhanced bet, the AT-006 HTTP 422 retry and the AT-003 refund defect.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["AT", "BF", "CSF"],
+      "packageId": "4",
+      "testMatch": [
+        "**/AT-003.spec.ts",
+        "**/AT-006.spec.ts",
+        "**/AT-009.spec.ts",
+        "**/AT-010.spec.ts",
+        "**/BF-002.spec.ts",
+        "**/BF-006.spec.ts",
+        "**/BF-007.spec.ts",
+        "**/BF-008.spec.ts",
+        "**/BF-010.spec.ts",
+        "**/CSF-012.spec.ts"
+      ],
+      "playerId": "Sk8leton_RCK1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "SCG",
+      "categories": ["SCG"],
+      "testMatch": [
+        "scg/**/SCG-00[1-8].spec.ts",
+        "scg/**/SCG-024.spec.ts"
+      ],
+      "playerId": "Sk8leton_RCK2",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["ES", "SM", "UIDS"],
+      "packageId": "4",
+      "testMatch": [
+        "**/ES-004.spec.ts",
+        "**/SM-001.spec.ts",
+        "**/UIDS-004.spec.ts"
+      ],
+      "playerId": "Sk8leton_RCK3",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "id": 4,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Sk8leton_RCK4",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 1
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * PEN-061 — Illegal call sequences are refused without corrupting state.
  *
- * Manual Test Case ID: PEN-061 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-061 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: Cashout with no active round, a second StartRound while one is in play, and a
  * duplicate JoinScratch must each be handled cleanly — no crash, no stuck round, no
  * spurious balance movement, and the socket stays alive.

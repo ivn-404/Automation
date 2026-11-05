@@ -1,0 +1,35 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks related buy-entry cases after confirm moved to y~0.91. One game only.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["BF", "AT", "FS", "CSF", "SM", "UIDS"],
+      "testMatch": [
+        "bf/**/BF-006.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "bf/**/BF-010.spec.ts",
+        "at/**/AT-006.spec.ts",
+        "at/**/AT-009.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "csf/**/CSF-012.spec.ts",
+        "fs/**/FS-002.spec.ts",
+        "sm/**/SM-001.spec.ts",
+        "uids/**/UIDS-004.spec.ts"
+      ],
+      "playerId": "War Freaks_BUY1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

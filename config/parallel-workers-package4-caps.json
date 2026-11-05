@@ -1,0 +1,70 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 4 rerun after config/packages/package-4.json: the cases that were NOT CONFIGURED (freeSpins, scatterTrigger, freeSpinRetrigger, multiplierWild, maxWin, symbolCatalog). One worker per game.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "category": "REGRESSION",
+      "categories": ["AT", "AP", "FS", "ES"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "at/**/AT-006.spec.ts",
+        "ap/**/AP-008.spec.ts",
+        "ap/**/AP-010.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "fs/**/*.spec.ts"
+      ],
+      "playerId": "That's Bait_CAP4",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "category": "REGRESSION",
+      "categories": ["AT", "AP", "FS", "ES"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "at/**/AT-006.spec.ts",
+        "ap/**/AP-008.spec.ts",
+        "ap/**/AP-010.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "fs/**/*.spec.ts"
+      ],
+      "playerId": "Genghis Bao_CAP4",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["AT", "AP", "FS", "ES"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "at/**/AT-006.spec.ts",
+        "ap/**/AP-008.spec.ts",
+        "ap/**/AP-010.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "es/**/ES-008.spec.ts",
+        "fs/**/*.spec.ts"
+      ],
+      "playerId": "Sk8leton_CAP4",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

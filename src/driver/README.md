@@ -30,4 +30,4 @@ await driver.detach();
 - **DOM inside iframe** is supported in this skeleton.
 - **Canvas-only Phaser UI** needs a future strategy (not CSS locators).
 
-See `docs/GAME_DRIVER.md`.
+See `docs/architecture/layers/GAME_DRIVER.md`.

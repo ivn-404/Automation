@@ -1,7 +1,7 @@
 /**
  * PEN-039 — Identity comes from the token, not the payload.
  *
- * Manual Test Case ID: PEN-039 (docs/PERSONALTESTING.md §7)
+ * Manual Test Case ID: PEN-039 (docs/catalogs/PERSONALTESTING.md §7)
  * Intent: JoinScratch carries a playerName and gameId as arguments. Spoofing them
  * must not make the server act as a different player/game — identity must be taken
  * from the authenticated access_token. Server should reject the spoof or bind to the

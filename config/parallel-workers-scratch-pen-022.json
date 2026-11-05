@@ -1,0 +1,21 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "PEN-022 only, after the refresh-token replay was added.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": ["pen/**/PEN-022.spec.ts"],
+      "playerId": "Sugar Wonderland_PEN20",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

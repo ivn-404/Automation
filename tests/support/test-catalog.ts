@@ -1,6 +1,6 @@
 /**
  * Parses QA source-of-truth test-case markdown into structured catalog entries.
- * Docs under docs/RegressionTestCases.md and docs/SmokeTestingTestCases.md must not be edited here.
+ * Docs under docs/catalogs/RegressionTestCases.md and docs/catalogs/SmokeTestingTestCases.md must not be edited here.
  */
 
 import { readFileSync } from 'node:fs';

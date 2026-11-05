@@ -1,0 +1,83 @@
+{
+  "id": "package-3",
+  "extends": "base",
+  "notes": "Package 3 buy confirm is the wide green BUY FEATURE pill at the bottom of Heaven's Welcome Bonus (~0.50, 0.91). Base candidates at y 0.76–0.80 land on the panel's bet stepper (War Freaks BF-002 failure shot 2026-10-12: click 0.500,0.800, vision blob 0.501,0.914 area 5.16%). A ~2.3% green blob sits at (0.50, 0.80) — it is not the spin control (BF-003/TM-001: tap there, no /bet). On Rainbow Fist that blob is an Image ~140×140, so Phaser pick=largest will take it if y0 drops below 0.83. The live spin is the hollow ring Image at (0.50, 0.86) ~114x108, area ~1.26% fill ~0.58. Keep spin vision/Phaser below y 0.83 and maxW 130. HUD BUY is green at ~0.764 (not the Package 1 pink pill); idle confirm uses that signature. splashPlayLow stays y 0.68–0.76 so it does not tap 0.80 as Play. Do not copy this into base — Package 1/2 confirm sits higher and their spin blobs are smaller.",
+  "controls": {
+    "spin": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.83, "y1": 0.93, "x0": 0.44, "x1": 0.56 },
+        "minAreaRatio": 0.0065,
+        "maxAreaRatio": 0.018,
+        "accept": { "y0": 0.84, "y1": 0.9, "x0": 0.46, "x1": 0.54 }
+      },
+      "phaser": {
+        "x0": 0.38,
+        "x1": 0.62,
+        "y0": 0.83,
+        "y1": 0.95,
+        "minW": 80,
+        "minH": 80,
+        "maxW": 130,
+        "pick": "largest"
+      }
+    },
+    "buyFeature": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.74, "y1": 0.79, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.003,
+        "maxAreaRatio": 0.02,
+        "accept": { "y0": 0.75, "y1": 0.78, "x0": 0.38, "x1": 0.62 }
+      }
+    },
+    "enter": {
+      "phaser": { "x0": 0.3, "x1": 0.7, "y0": 0.68, "y1": 0.78, "minW": 80, "minH": 40, "pick": "largest" }
+    },
+    "attractPlay": {
+      "phaser": { "x0": 0.3, "x1": 0.7, "y0": 0.68, "y1": 0.78, "minW": 80, "minH": 40, "pick": "largest" }
+    },
+    "autoplayStart": {
+      "candidates": [
+        { "x": 0.5, "y": 0.91 },
+        { "x": 0.5, "y": 0.88 },
+        { "x": 0.5, "y": 0.84 },
+        { "x": 0.42, "y": 0.84 }
+      ]
+    },
+    "buyFeatureConfirm": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.89, "y1": 0.98, "x0": 0.15, "x1": 0.85 },
+        "minAreaRatio": 0.02,
+        "maxAreaRatio": 0.12
+      },
+      "candidates": [
+        { "x": 0.5, "y": 0.914 },
+        { "x": 0.5, "y": 0.91 },
+        { "x": 0.5, "y": 0.92 },
+        { "x": 0.48, "y": 0.914 },
+        { "x": 0.52, "y": 0.914 }
+      ]
+    }
+  },
+  "blockers": {
+    "splashPlayLow": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.68, "y1": 0.76, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    },
+    "winBanner": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.32, "y1": 0.62, "x0": 0.2, "x1": 0.8 },
+        "minAreaRatio": 0.04,
+        "maxAreaRatio": 0.12
+      }
+    }
+  },
+  "idleSpinClip": { "maxAreaRatio": 0.018, "solidFill": 0.75 }
+}

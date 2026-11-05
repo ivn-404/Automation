@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks only: BF-003 after spin click uses Phaser locate + idle-quiet before arming; TM-001 is the related turbo+spin control.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["BF", "TM"],
+      "testMatch": ["bf/**/BF-003.spec.ts", "tm/**/TM-001.spec.ts"],
+      "playerId": "War Freaks_BF3",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

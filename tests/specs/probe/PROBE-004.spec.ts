@@ -89,6 +89,7 @@ test.describe('PROBE — reel data contract', () => {
         tumblesPath: reel.tumblesPath,
         featureItemsPath: reel.featureItemsPath,
         rowOrder: reel.rowOrder,
+        areaLayout: reel.areaLayout,
         symbols: reel.symbols,
       });
       last = read;

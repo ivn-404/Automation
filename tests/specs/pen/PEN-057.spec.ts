@@ -1,7 +1,7 @@
 /**
  * PEN-057 — The outcome is fixed server-side at StartRound and cannot be re-rolled.
  *
- * Manual Test Case ID: PEN-057 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-057 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: after a card is dealt, a client must not be able to change it — a second
  * StartRound before settling must not replace the in-play card, and the settled card
  * must be exactly what StartRound dealt. This proves the server owns the RNG.

@@ -66,8 +66,14 @@ export async function drainLeftoverFeatureSpins(
   }
 
   for (let spin = 0; spin < maxSpins; spin += 1) {
+    // After Session Continue the HUD can still look idle while free spins remain
+    // (Shuten BF-007 2026-10-15: drain returned at 0 spins with "Remaining Free Spin: 3").
     const capture = await driver.captureCanvasForVision().catch(() => undefined);
-    if (capture !== undefined && findIdleSpinInPng(capture.png, driver.surface) !== undefined) {
+    if (
+      spin > 0 &&
+      capture !== undefined &&
+      findIdleSpinInPng(capture.png, driver.surface) !== undefined
+    ) {
       console.log(`[sgap-heal] leftover-fs: idle spin visible after ${spin} drain spin(s)`);
       return;
     }
@@ -213,12 +219,14 @@ export async function primeCanvasSession(
   // or send an unobserved /bet. Splash Play is dismissed by waitForIdleHud when
   // the green blob is actually on screen.
 
-  await page
-    .waitForResponse(
-      (response) => response.ok() && response.url().includes('/api/v1/slots/'),
-      { timeout: 8_000 },
-    )
-    .catch(() => undefined);
+  if (options.initializeBody === undefined) {
+    await page
+      .waitForResponse(
+        (response) => response.ok() && response.url().includes('/api/v1/slots/'),
+        { timeout: 8_000 },
+      )
+      .catch(() => undefined);
+  }
 
   // Game load → non-grid dismiss only (never spam the reel grid here).
   await clearNonGridOverlays(driver, manifest, options.dismissRounds ?? 2);

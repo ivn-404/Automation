@@ -9,6 +9,7 @@
 import { test } from '../fixtures/index.js';
 import {
   NOT_APPLICABLE_PREFIX,
+  assessmentSkipReason,
   notConfiguredMessage,
   unmappedCapabilities,
   unsupportedCapabilities,
@@ -16,8 +17,14 @@ import {
 } from '../../src/capabilities/index.js';
 
 export function requireCapabilities(...capabilities: readonly Capability[]): void {
+  test.beforeEach(({ sgapManifest }, testInfo) => {
+    const notReady = assessmentSkipReason(sgapManifest, capabilities);
+    if (notReady !== undefined) testInfo.skip(true, notReady);
+  });
   test.skip(
-    ({ sgapManifest }) => unsupportedCapabilities(sgapManifest, capabilities).length > 0,
+    ({ sgapManifest }) =>
+      assessmentSkipReason(sgapManifest, capabilities) === undefined &&
+      unsupportedCapabilities(sgapManifest, capabilities).length > 0,
     `${NOT_APPLICABLE_PREFIX} — game does not support ${capabilities.join(' + ')}`,
   );
   test.beforeEach(({ sgapManifest }) => {

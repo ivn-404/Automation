@@ -6,7 +6,7 @@
 import http from 'node:http';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { resultsRoot } from './sgap-run-paths.mjs';
@@ -68,6 +68,12 @@ function recount(lane) {
   } else if (lane.total > 0) {
     lane.status = 'waiting';
   }
+}
+
+function optionalNumber(value) {
+  if (value === null || value === undefined || value === '') return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
 }
 
 function readJson(req) {
@@ -510,6 +516,32 @@ export function createWorkerMonitorServer(options = {}) {
     if (lane === undefined) {
       return;
     }
+    if (event.type === 'perf' && event.perf && typeof event.perf === 'object') {
+      const p = event.perf;
+      lane.perf = {
+        fps: optionalNumber(p.fps) ?? null,
+        low1: Number(p.low1),
+        band: String(p.band ?? ''),
+        color: String(p.color ?? ''),
+        status: String(p.status ?? ''),
+        history: Array.isArray(p.history) ? p.history.slice(-60).map(Number) : [],
+        at: Number(p.at) || Date.now(),
+        source: p.source === 'rendered' || p.source === 'browser' ? p.source : undefined,
+        browserFps: optionalNumber(p.browserFps),
+        frameP95Ms: optionalNumber(p.frameP95Ms),
+        frameMaxMs: optionalNumber(p.frameMaxMs),
+        frameMsHistory: Array.isArray(p.frameMsHistory)
+          ? p.frameMsHistory.slice(-60).map((value) => optionalNumber(value) ?? null)
+          : [],
+        cpuBusyPct: optionalNumber(p.cpuBusyPct),
+        heapMb: optionalNumber(p.heapMb),
+        fpsCap:
+          p.fpsCap && typeof p.fpsCap === 'object'
+            ? { target: optionalNumber(p.fpsCap.target), limit: optionalNumber(p.fpsCap.limit) }
+            : undefined,
+      };
+      return;
+    }
     if (event.type === 'roster' && Array.isArray(event.tests)) {
       const previous = new Map(lane.tests.map((test) => [test.key, test]));
       lane.tests = event.tests.map((test) => previous.get(test.key) ?? { ...test, status: test.status ?? 'queued' });
@@ -584,7 +616,7 @@ export function createWorkerMonitorServer(options = {}) {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         observations: [],
-        counts: { network: 0, console: 0, websocket: 0, event: 0, balance: 0, errors: 0, warnings: 0 },
+        counts: { network: 0, console: 0, websocket: 0, event: 0, balance: 0, resource: 0, errors: 0, warnings: 0 },
         lastBalance: undefined,
       };
       observeSessions.set(id, session);
@@ -683,7 +715,8 @@ export function createWorkerMonitorServer(options = {}) {
       return;
     }
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-      send(res, 200, html, 'text/html; charset=utf-8');
+      const page = existsSync(HTML_PATH) ? readFileSync(HTML_PATH, 'utf8') : html;
+      send(res, 200, page, 'text/html; charset=utf-8');
       return;
     }
     if (req.method === 'GET' && UI_ASSETS[url.pathname] !== undefined) {
@@ -853,17 +886,92 @@ export function findChromiumExe(root) {
   return undefined;
 }
 
+function monitorPidAlive(pid) {
+  const n = Number(pid);
+  if (!Number.isInteger(n) || n <= 0) {
+    return false;
+  }
+  try {
+    process.kill(n, 0);
+    return true;
+  } catch (error) {
+    return error?.code === 'EPERM';
+  }
+}
+
+function chromePidUsingMonitorProfile(profile) {
+  const marker = 'sgap-monitor-profile';
+  if (process.platform === 'win32') {
+    const result = spawnSync(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        `Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*${marker}*' } | Select-Object -First 1 -ExpandProperty ProcessId`,
+      ],
+      { encoding: 'utf8', windowsHide: true, timeout: 8_000 },
+    );
+    const pid = Number((result.stdout ?? '').trim().split(/\s+/).find((token) => /^\d+$/.test(token)));
+    return Number.isInteger(pid) && pid > 0 ? pid : undefined;
+  }
+  const result = spawnSync('ps', ['-eo', 'pid,command'], { encoding: 'utf8' });
+  for (const line of (result.stdout ?? '').split('\n')) {
+    if (!line.includes(marker)) {
+      continue;
+    }
+    const pid = Number(line.trim().split(/\s+/)[0]);
+    if (Number.isInteger(pid) && pid > 0) {
+      return pid;
+    }
+  }
+  return undefined;
+}
+
+function reuseMonitorChrome(profile, pidFile) {
+  const candidates = [];
+  for (const name of ['panel.pid', 'overlay.pid', 'observe.pid']) {
+    try {
+      candidates.push(Number(readFileSync(path.join(profile, name), 'utf8').trim()));
+    } catch {
+      // missing
+    }
+  }
+  try {
+    candidates.push(Number(readFileSync(pidFile, 'utf8').trim()));
+  } catch {
+    // missing
+  }
+  const live = chromePidUsingMonitorProfile(profile);
+  if (live !== undefined) {
+    candidates.unshift(live);
+  }
+  for (const pid of candidates) {
+    if (monitorPidAlive(pid)) {
+      writeFileSync(pidFile, `${pid}\n`, 'utf8');
+      writeFileSync(path.join(profile, 'panel.pid'), `${pid}\n`, 'utf8');
+      return { pid, reused: true };
+    }
+  }
+  return undefined;
+}
+
 export function launchMonitorChrome(options) {
-  const { url, chromeExe, screens = [], offset = 0 } = options;
+  const { url, chromeExe, screens = [], offset = 0, kind = 'overlay' } = options;
   if (!chromeExe || !existsSync(chromeExe) || !url) {
     return undefined;
+  }
+  const profile = path.join(process.cwd(), 'test-results', 'sgap-monitor-profile');
+  mkdirSync(profile, { recursive: true });
+  const pidFile = path.join(profile, `${kind}.pid`);
+  const existing = reuseMonitorChrome(profile, pidFile);
+  if (existing !== undefined) {
+    return existing;
   }
   const screen = screens[0] ?? { left: 40, top: 40, width: 1920, height: 1080 };
   const width = Math.min(1180, Math.max(720, screen.width - 80));
   const height = Math.min(820, Math.max(480, Math.floor(screen.height * 0.72)));
   const left = screen.left + Math.max(20, Math.floor((screen.width - width) / 2)) + offset;
   const top = screen.top + 28 + offset;
-  const profile = path.join(process.cwd(), 'test-results', 'sgap-monitor-profile');
   const child = spawn(
     chromeExe,
     [
@@ -882,7 +990,11 @@ export function launchMonitorChrome(options) {
     },
   );
   child.unref();
-  return child;
+  if (child.pid) {
+    writeFileSync(pidFile, `${child.pid}\n`, 'utf8');
+    writeFileSync(path.join(profile, 'panel.pid'), `${child.pid}\n`, 'utf8');
+  }
+  return { pid: child.pid, reused: false };
 }
 
 export async function postMonitorEvent(url, payload) {

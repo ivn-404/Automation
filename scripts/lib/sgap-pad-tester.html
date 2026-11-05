@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP PAD Tester</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    /* PAD Tester layout (shell, palette and components come from /ui.css). */
+    body.haulix .workspace { overflow-y: auto; }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .panel-body { padding: 14px 16px 16px; }
+    .muted { color: var(--faint); }
+    .mono { font-family: var(--mono); }
+
+    .live { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+    .fps-big { font: 600 64px/1 var(--mono); letter-spacing: -0.03em; }
+    .fps-big small { font-size: 18px; color: var(--faint); margin-left: 6px; letter-spacing: 0; }
+    .band { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-weight: 600; }
+    .band i { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); }
+    .live-meta { margin-top: 10px; display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+    .live-meta b { color: var(--text); font-family: var(--mono); font-weight: 600; }
+    .src { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 999px; font: 600 11px var(--mono); background: var(--surface); color: var(--muted); }
+    .src.rendered { background: var(--pass-soft); color: var(--pass); }
+    .src.browser { background: var(--run-soft); color: var(--run); }
+    .charts { display: grid; gap: 10px; }
+    .chart-title { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+    .spark { width: 100%; height: 110px; display: block; }
+    .spark .lbl { fill: var(--faint); font: 10px var(--mono); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 14px; }
+    .metric { border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 10px; }
+    .metric span { display: block; font-size: 11px; color: var(--faint); }
+    .metric b { font: 600 16px var(--mono); }
+    .finding { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--run-soft); color: var(--run); font-size: 12px; }
+    .idle-note { padding: 28px 0; text-align: center; color: var(--faint); font-size: 13px; }
+
+    .active { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: start; }
+    .active h3 { margin: 0; font-size: 15px; }
+    .active .kv { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
+    .active .kv b { color: var(--text); font-family: var(--mono); font-weight: 600; }
+    .bar { height: 6px; border-radius: 3px; background: var(--surface); overflow: hidden; margin-top: 10px; grid-column: 1 / -1; }
+    .bar i { display: block; height: 100%; background: var(--accent); }
+    .roster { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; grid-column: 1 / -1; }
+    .roster span { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 6px; background: var(--surface); color: var(--muted); }
+    .roster .s-running { background: var(--run-soft); color: var(--run); }
+    .roster .s-passed { background: var(--pass-soft); color: var(--pass); }
+    .roster .s-failed { background: var(--fail-soft); color: var(--fail); }
+    .roster .s-warning { background: var(--run-soft); color: #f5b84b; }
+    .roster .s-skipped { color: var(--faint); text-decoration: line-through; }
+
+    .field { display: grid; gap: 6px; margin-bottom: 14px; }
+    .field > span { font-size: 12px; color: var(--faint); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .url-check { font-size: 12px; margin: -8px 0 12px; overflow-wrap: anywhere; }
+    .url-check.ok { color: var(--pass, #34d399); }
+    .url-check.bad { color: var(--fail, #f87171); }
+    .field select, .field input, .filters select, .filters input {
+      height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--surface); color: var(--text); font: 13px var(--font);
+    }
+    .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .presets .chip { padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); cursor: pointer; }
+    .cases { display: grid; gap: 2px; max-height: 360px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 12px; padding: 4px; }
+    .case { display: grid; grid-template-columns: 18px 64px minmax(0, 1fr) 26px; gap: 8px; align-items: start; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .case:hover { background: var(--surface); }
+    .case input { margin: 2px 0 0; accent-color: var(--accent); }
+    .case .id { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .case .t small { display: block; color: var(--faint); font-size: 11px; margin-top: 2px; }
+    .case .p { font: 600 10px var(--mono); color: var(--faint); text-align: right; }
+    .case .p.p0 { color: var(--accent-strong); }
+    .opt { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+    .opt input { margin-top: 3px; accent-color: var(--accent); }
+    .opt small { display: block; color: var(--faint); font-size: 11px; }
+    .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+    .actions .grow { flex: 1; }
+    .warn { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--run-soft); color: var(--run); font-size: 12px; }
+    .err { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--fail-soft); color: var(--fail); font-size: 12px; }
+
+    table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th { text-align: left; color: var(--faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .tbl th[data-sort] { cursor: pointer; }
+    .tbl th[data-sort].on { color: var(--accent); }
+    .tbl td { padding: 7px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; }
+    .tbl .num { font-family: var(--mono); white-space: nowrap; text-align: right; }
+    .tbl td.url { font-family: var(--mono); font-size: 12px; word-break: break-all; color: var(--muted); }
+    .tbl tr.sel { background: var(--accent-soft); }
+    .tbl tbody tr[data-run], .tbl tbody tr[data-key] { cursor: pointer; }
+    .tbl tbody tr[data-key]:hover td { background: var(--hover); }
+    .tbl tr.detail td { background: var(--surface); cursor: default; }
+    .tbl input[type="checkbox"] { accent-color: var(--accent); }
+    .st { font: 600 11px var(--mono); padding: 2px 8px; border-radius: 999px; background: var(--surface); color: var(--muted); white-space: nowrap; }
+    .st.passed { background: var(--pass-soft); color: var(--pass); }
+    .st.failed, .st.interrupted { background: var(--fail-soft); color: var(--fail); }
+    .st.running, .st.queued { background: var(--run-soft); color: var(--run); }
+    .st.warning { background: var(--run-soft); color: #f5b84b; }
+    .st.skipped, .st.pending { color: var(--faint); }
+    .res-pass { color: var(--pass); }
+    .res-fail { color: var(--fail); }
+    .res-warn { color: var(--run); }
+    .log { font: 12px/1.5 var(--mono); color: var(--muted); max-height: 420px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+
+    .diag-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--line-soft); }
+    .diag-head .grow { flex: 1; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .filters input[type="search"] { min-width: 240px; flex: 1; }
+    .filters input[type="number"] { width: 92px; }
+    .filters label { font-size: 12px; color: var(--faint); display: inline-flex; align-items: center; gap: 6px; }
+    .note { font-size: 12px; color: var(--faint); margin: 6px 0 10px; }
+    .dup { font: 600 11px var(--mono); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+    .dup.confirmed { background: var(--fail-soft); color: var(--fail); }
+    .dup.potential { background: var(--run-soft); color: var(--run); }
+    .dup.notconfirmed { background: var(--surface); color: #c4b5fd; }
+    .dup.unique { color: var(--faint); }
+    .dup.repeated { background: var(--run-soft); color: #f5b84b; }
+    .dl { display: grid; grid-template-columns: 160px 1fr; gap: 2px 12px; font-size: 12px; }
+    .dl dt { color: var(--faint); }
+    .dl dd { margin: 0; word-break: break-all; font-family: var(--mono); }
+    pre.box { margin: 6px 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 var(--mono); color: var(--muted); max-height: 260px; overflow: auto; background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
+    .dsub { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 10px; }
+    .group { border: 1px solid var(--line-soft); border-radius: 12px; margin-bottom: 8px; }
+    .group > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+    .group > summary::-webkit-details-marker { display: none; }
+    .group[open] > summary { border-bottom: 1px solid var(--line-soft); }
+    .group .why { font-size: 12px; color: var(--muted); flex: 1; min-width: 240px; }
+    .group .bytes { font: 600 12px var(--mono); color: var(--text); }
+    .group .inner { padding: 6px 8px 10px; }
+    .waste td { color: #f5b84b; }
+    .cmp td.diff { background: var(--run-soft); color: var(--text); }
+    .dup-sec h4 { margin: 14px 0 6px; font-size: 13px; }
+    .dup-sec h4 small { color: var(--faint); font-weight: 400; margin-left: 6px; }
+    .observer { width: 100%; height: 620px; border: 0; border-radius: 0 0 12px 12px; background: transparent; }
+
+    @media (max-width: 1100px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .live { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="haulix">
+  <aside class="rail" aria-label="Navigation">
+    <div class="rail-panel">
+      <div class="mark-row"><div class="mark" data-icon="logo" title="SGAP"></div><span class="rail-name">SGAP</span></div>
+      <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <button type="button" class="rail-pin" id="rail-pin" aria-pressed="false" title="Pin the navigation open">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="utility">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>QA Workspace</span><span>/</span><b>PAD Tester</b><span class="ctx" id="run-ctx"></span></nav>
+      <div class="spacer"></div>
+      <span class="status idle" id="status">Loading…</span>
+      <button type="button" class="access" id="access" hidden></button>
+    </header>
+
+    <div class="page-head">
+      <div>
+        <h1>PAD Tester</h1>
+        <p class="sub">Performance &amp; Asset Diagnostics — one game in one browser on its own screen, with nothing else running on this PC.</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="col">
+        <section class="panel">
+          <div class="panel-head"><h2>Active test</h2><span class="sub" id="active-sub">No PAD run in progress</span></div>
+          <div class="panel-body" id="active"><div class="idle-note">The running case, its status and what the worker is doing show here.</div></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Live performance</h2><span class="sub" id="live-sub">No PAD run in progress</span></div>
+          <div class="panel-body" id="live"><div class="idle-note">Start a PAD run; frame rate, frame time, CPU and memory show here every second.</div></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Game view</h2><span class="sub">Watch the game in its own window</span></div>
+          <div class="panel-body" id="gameview"></div>
+        </section>
+      </div>
+
+      <div class="col">
+        <section class="panel">
+          <div class="panel-head"><h2>New PAD run</h2></div>
+          <div class="panel-body">
+            <label class="field"><span>Game</span><select id="game"></select></label>
+            <label class="field"><span>Game URL (optional)</span><input id="launchUrl" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a game link — empty opens the game from the staging launcher"></label>
+            <div id="launchCheck" class="url-check muted">Empty: the game opens from the staging launcher. A pasted link (staging token URL, LAN or localhost dev server) opens that session directly. A registered game is picked from the link; any other game is discovered first and measured without bets.</div>
+            <label class="field" id="launchDeviceField" hidden><span>Device</span>
+              <select id="launchDevice">
+                <option value="preserve">Keep the link's device</option>
+                <option value="mobile">Mobile (device=mobile)</option>
+                <option value="desktop">Desktop (device=desktop)</option>
+                <option value="switch">Switch per test, like the launcher</option>
+              </select>
+            </label>
+            <label class="field"><span>Screen</span>
+              <select id="screen">
+                <option value="1">Screen 2 (recommended)</option>
+                <option value="0">Screen 1</option>
+              </select>
+            </label>
+            <label class="field"><span>Browser</span>
+              <select id="browser">
+                <option value="chromium">Chromium (bundled, default)</option>
+                <option value="chrome">Google Chrome (installed)</option>
+                <option value="edge">Microsoft Edge (installed) — PAD-040</option>
+              </select>
+            </label>
+            <label class="opt"><input type="checkbox" id="headroom"><span>Headroom: remove the 60 FPS cap<small>PAD-053 only; other FPS verdicts are not comparable</small></span></label>
+            <label class="opt"><input type="checkbox" id="quick"><span>Quick pass: fewer repeats and shorter windows<small>Smoke check, not a verdict run</small></span></label>
+            <label class="opt"><input type="checkbox" id="deep"><span>Deep asset inspection: hash every downloaded file<small>Needed to confirm duplicate content. Reads each response body in the test process; leave off for verdict runs.</small></span></label>
+            <div class="muted" style="font-size:12px;margin-bottom:8px">PAD-056 adds a second lane on the other screen that loads the GPU while it measures.</div>
+            <div class="field"><span>Cases</span>
+              <div class="presets">
+                <button type="button" class="chip" data-preset="P0">P0 calibration</button>
+                <button type="button" class="chip" data-preset="all">All automated</button>
+                <button type="button" class="chip" data-preset="none">Clear</button>
+              </div>
+              <div class="cases" id="cases"></div>
+            </div>
+            <div class="actions">
+              <span class="grow muted" id="pick-sum"></span>
+              <button type="button" class="btn danger" id="stop" hidden>Stop</button>
+              <button type="button" class="btn primary" id="run">Run</button>
+            </div>
+            <div id="notice"></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>PAD runs</h2><a class="sub" id="allure-link" href="/allure/" target="_blank" rel="noreferrer" style="margin-left:auto">Allure reports ↗</a></div>
+          <div class="panel-body" style="padding-top:4px"><table class="tbl"><tbody id="runs"><tr><td class="muted">No PAD runs yet.</td></tr></tbody></table></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="panel" style="margin-top:16px">
+      <div class="diag-head">
+        <div class="tabs" id="diag-tabs"></div>
+        <span class="grow"></span>
+        <span class="sub" id="diag-sub"></span>
+      </div>
+      <div id="diag"></div>
+    </section>
+  </div>
+
+  <script src="/ui.js"></script>
+  <script>
+    if (window.SGAP) SGAP.mountChrome();
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const servedByQa = window.SGAP_QA_API === '';
+    const base = servedByQa ? '' : (window.SGAP ? SGAP.qaApi : 'http://127.0.0.1:3850');
+    const ACTIVE = new Set(['queued', 'running']);
+    const BANDS = [
+      { min: 60, label: 'Pass', color: '#16a34a' },
+      { min: 40, label: 'Passable', color: '#65a30d' },
+      { min: 30, label: 'Investigate', color: '#ca8a04' },
+      { min: 24, label: 'Needs optimization', color: '#ea580c' },
+      { min: -Infinity, label: 'Priority', color: '#dc2626' },
+    ];
+    const DIAG_TABS = [
+      ['results', 'Results'], ['resources', 'Resources'], ['duplicates', 'Duplicate assets'],
+      ['network', 'Network & events'], ['log', 'Run log'],
+    ];
+
+    const state = {
+      catalog: null, runs: [], selected: '', pinned: false, since: 0, log: [], perf: null, lane: null,
+      busy: false, error: '', tab: localStorage.getItem('sgap.pad.tab') || 'results',
+    };
+
+    async function api(path, init) {
+      const res = await fetch(base + path, { cache: 'no-store', ...init });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      return body;
+    }
+
+    const kb = (n) => (n === undefined || n === null || !Number.isFinite(n) ? '—' : n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B');
+    const fmt = (n, d = 0) => (n === undefined || n === null || !Number.isFinite(n) ? '–' : Number(n).toFixed(d));
+    const dur = (ms) => { if (!Number.isFinite(ms) || ms < 0) return '—'; const s = Math.round(ms / 1000); return s >= 60 ? Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's' : s + 's'; };
+
+    function picked() { return [...document.querySelectorAll('#cases input:checked')].map((el) => el.value); }
+    function caseInfo(id) { return state.catalog?.cases.find((x) => x.id === id); }
+    function selectedRun() { return state.runs.find((r) => r.id === state.selected); }
+
+    /* ---------- New run form ---------- */
+
+    function renderForm() {
+      const c = state.catalog;
+      if (!c) return;
+      const saved = localStorage.getItem('sgap.pad.game') || c.defaultGame;
+      $('game').innerHTML = c.games.map((g) => '<option value="' + esc(g.gameId) + '"' + (g.gameId === saved ? ' selected' : '') + '>' + esc(g.name) + (g.package ? ' · P' + esc(g.package) : '') + '</option>').join('');
+      $('screen').value = localStorage.getItem('sgap.pad.screen') || String(c.screens.default);
+      $('deep').checked = localStorage.getItem('sgap.pad.deep') === '1';
+      const chosen = new Set(JSON.parse(localStorage.getItem('sgap.pad.cases') || 'null') || c.cases.filter((x) => x.priority === 'P0').map((x) => x.id));
+      $('cases').innerHTML = c.cases.length === 0
+        ? '<div class="idle-note">No automated PAD cases found in tests/specs/pad.</div>'
+        : c.cases.map((x) =>
+          '<label class="case" title="' + esc(x.expected ? 'Expected: ' + x.expected : '') + '">' +
+            '<input type="checkbox" value="' + esc(x.id) + '"' + (chosen.has(x.id) ? ' checked' : '') + '>' +
+            '<span class="id">' + esc(x.id) + '</span>' +
+            '<span class="t">' + esc(x.title) + (x.window ? '<small>' + esc(x.window) + (x.runs ? ' · runs: ' + esc(x.runs) : '') + '</small>' : '') + '</span>' +
+            '<span class="p ' + (x.priority === 'P0' ? 'p0' : '') + '">' + esc(x.priority || '') + '</span>' +
+          '</label>').join('');
+      updatePickSum();
+    }
+
+    function updatePickSum() {
+      const n = picked().length;
+      $('pick-sum').textContent = n === 0 ? 'No case selected' : n + ' case' + (n === 1 ? '' : 's') + ' selected';
+      localStorage.setItem('sgap.pad.cases', JSON.stringify(picked()));
+    }
+
+    /* ---------- Results parsing (shared by Active test and Results tab) ---------- */
+
+    function parseResults(lines) {
+      const rows = [];
+      let current = '';
+      for (const line of lines) {
+        const start = line.match(/\bSTART (PAD-\d{3})/);
+        if (start) { current = start[1]; continue; }
+        const done = line.match(/\b(PASSED|FAILED|TIMEDOUT|SKIPPED) (PAD-\d{3})[^(]*\((\d+)s\)/);
+        if (done) { rows.push({ id: done[2], kind: 'verdict', text: done[1].toLowerCase() + ' in ' + done[3] + ' s' }); continue; }
+        const note = line.match(/^\[pad\] ([\w-]+): (.*)$/);
+        if (note && current) rows.push({ id: current, kind: note[1], text: note[2] });
+      }
+      return rows;
+    }
+
+    /** Pending / Running / Passed / Failed / Warning / Skipped; Warning = passed with a `-warn` measurement. */
+    function caseStatus(test, warned) {
+      const s = test?.status;
+      if (s === 'running') return 'running';
+      if (s === 'passed') return warned.has(caseIdOf(test)) ? 'warning' : 'passed';
+      if (s === 'failed' || s === 'timedOut' || s === 'interrupted') return 'failed';
+      if (s === 'skipped') return 'skipped';
+      return 'pending';
+    }
+    const caseIdOf = (test) => (String(test?.title ?? '').match(/PAD-\d{3}/) || [''])[0];
+    const LABEL = { pending: 'Pending', running: 'Running', passed: 'Passed', failed: 'Failed', warning: 'Warning', skipped: 'Skipped' };
+
+    function warnedCases() {
+      const set = new Set();
+      for (const r of parseResults(state.log)) if (/-warn$/.test(r.kind)) set.add(r.id);
+      return set;
+    }
+
+    /* ---------- Active test ---------- */
+
+    function renderActive() {
+      const run = selectedRun();
+      const lane = state.lane;
+      const live = run && ACTIVE.has(run.state);
+      $('active-sub').textContent = run ? run.id + ' · ' + run.state : 'No PAD run in progress';
+      if (!run) { $('active').innerHTML = '<div class="idle-note">The running case, its status and what the worker is doing show here.</div>'; return; }
+      if (!lane || !lane.tests || lane.tests.length === 0) {
+        $('active').innerHTML = '<div class="idle-note">' + (live ? 'Starting the browser and loading the game…' : 'Live worker details are only available while a run is active. Results and resources below stay available.') + '</div>';
+        return;
+      }
+      const warned = warnedCases();
+      const tests = lane.tests;
+      const current = lane.current || tests.find((t) => t.status === 'running') || tests[tests.length - 1];
+      const id = caseIdOf(current);
+      const info = caseInfo(id);
+      const status = caseStatus(current, warned);
+      const done = tests.filter((t) => !['queued', 'running'].includes(t.status)).length;
+      const elapsed = current?.startedAt ? (current.durationMs ?? (Date.now() - current.startedAt)) : undefined;
+      $('active').innerHTML = '<div class="active">' +
+        '<div><h3>' + esc(id || current?.title || '—') + ' · ' + esc(info?.title || current?.title || '') + '</h3>' +
+          '<div class="kv" style="margin-top:6px">' +
+            '<span>Game <b>' + esc(lane.gameName || lane.gameId) + '</b></span>' +
+            '<span>Category <b>PAD</b></span>' +
+            (info?.window ? '<span>Scenario <b>' + esc(info.window) + '</b></span>' : '') +
+            '<span>Elapsed <b>' + dur(elapsed) + '</b></span>' +
+            (current?.retry ? '<span>Retry <b>' + esc(current.retry) + '</b></span>' : '') +
+          '</div>' +
+          '<div class="kv" style="margin-top:6px"><span>Now <b>' + esc((state.perf && live ? state.perf.status : '') || (live ? '—' : 'run finished')) + '</b></span></div>' +
+          (current?.error ? '<div class="err" style="margin-top:8px">' + esc(String(current.error).split('\n')[0].slice(0, 300)) + '</div>' : '') +
+        '</div>' +
+        '<div style="text-align:right"><span class="st ' + status + '">' + LABEL[status] + '</span>' +
+          '<div class="muted mono" style="font-size:12px;margin-top:8px">' + done + ' / ' + tests.length + ' cases</div>' +
+          '<div class="muted mono" style="font-size:11px;margin-top:2px">' + (lane.passed || 0) + ' pass · ' + ((lane.failed || 0) + (lane.timedOut || 0)) + ' fail · ' + (lane.skipped || 0) + ' skip</div></div>' +
+        '<div class="bar"><i style="width:' + (tests.length ? Math.round((done / tests.length) * 100) : 0) + '%"></i></div>' +
+        '<div class="roster">' + tests.map((t) => { const s = caseStatus(t, warned); return '<span class="s-' + s + '" title="' + esc(LABEL[s] + ' · ' + t.title) + '">' + esc(caseIdOf(t) || t.title) + '</span>'; }).join('') + '</div>' +
+      '</div>';
+    }
+
+    /* ---------- Live performance ---------- */
+
+    function bandOf(fps) { return BANDS.find((b) => (Number.isFinite(fps) ? fps + 0.5 : -Infinity) >= b.min); }
+
+    function lineChart(values, opts) {
+      const w = 600, h = 110, top = opts.top;
+      const y = (v) => (h - (Math.min(top, Math.max(0, v)) / top) * h).toFixed(1);
+      let path = '', pen = false;
+      values.forEach((v, i) => {
+        const x = ((values.length > 1 ? i / (values.length - 1) : 1) * w).toFixed(1);
+        if (v === null || v === undefined || !Number.isFinite(v)) { pen = false; return; }
+        path += (pen ? 'L' : 'M') + x + ',' + y(v); pen = true;
+      });
+      const guide = (v, color) => '<line x1="0" x2="' + w + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + color + '" stroke-opacity=".45" stroke-dasharray="3 3"/>' +
+        '<text class="lbl" x="' + (w - 4) + '" y="' + (Number(y(v)) - 3) + '" text-anchor="end">' + opts.fmt(v) + '</text>';
+      return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-label="' + esc(opts.label) + '">' +
+        opts.guides.map(([v, c]) => guide(v, c)).join('') +
+        (path ? '<path fill="none" stroke="' + opts.color + '" stroke-width="2" vector-effect="non-scaling-stroke" d="' + path + '"/>' : '') + '</svg>';
+    }
+
+    function renderLive() {
+      const run = selectedRun();
+      const p = state.perf;
+      const live = run && ACTIVE.has(run.state);
+      $('live-sub').textContent = live ? run.id + ' · ' + run.label : 'No PAD run in progress';
+      if (!live || !p || !Number.isFinite(p.at)) {
+        $('live').innerHTML = '<div class="idle-note">' + (live ? 'Waiting for the game to load — FPS appears once the first case starts measuring.' : 'Start a PAD run; frame rate, frame time, CPU and memory show here every second.') + '</div>';
+        return;
+      }
+      if (!Number.isFinite(p.fps)) {
+        $('live').innerHTML = '<div class="idle-note">No frames sampled in the last second — the collector is paused (e.g. the "tools off" arm of PAD-042), the tab is hidden or the game is reloading. Now: ' + esc(p.status || '—') + '</div>';
+        return;
+      }
+      const stale = Date.now() - (p.at || 0) > 5000;
+      const b = bandOf(p.fps);
+      const source = p.source === 'rendered'
+        ? '<span class="src rendered" title="Frames the game actually rendered: Phaser postrender events, stamped with the game loop time. Validated against Chrome trace frames on staging (Phase 0).">Rendered frames · Phaser</span>'
+        : p.source === 'browser'
+          ? '<span class="src browser" title="requestAnimationFrame ticks: how often the browser offered a frame, not proof the game drew one. Used until the Phaser hook fires.">Browser frames · rAF</span>'
+          : '<span class="src">Source not reported</span>';
+      const cap = p.fpsCap && Number.isFinite(p.fpsCap.limit) && p.fpsCap.limit < 60
+        ? '<div class="finding">Finding: the game caps rendering at ' + p.fpsCap.limit + ' FPS (fps.limit), below the 60 FPS target.</div>' : '';
+      const metric = (label, value, title) => '<div class="metric" title="' + esc(title) + '"><span>' + esc(label) + '</span><b>' + value + '</b></div>';
+      $('live').innerHTML = '<div style="' + (stale ? 'opacity:.55' : '') + '"><div class="live">' +
+        '<div><div class="fps-big">' + Math.round(p.fps) + '<small>FPS</small></div>' +
+          '<div class="band"><i style="background:' + b.color + '"></i>' + esc(b.label) + '</div><div>' + source + '</div>' +
+          '<div class="live-meta"><div>1% low (10 s) <b>' + fmt(p.low1) + '</b></div>' +
+          (stale ? '<div>No update for ' + Math.round((Date.now() - p.at) / 1000) + ' s (between cases or reloading)</div>' : '') + '</div></div>' +
+        '<div class="charts">' +
+          '<div><div class="chart-title">FPS · last 60 s</div>' + lineChart((p.history || []).map(Number), { top: 75, color: 'var(--accent-strong)', label: 'FPS over the last 60 seconds', fmt: (v) => v, guides: [[60, '#16a34a'], [40, '#ca8a04'], [30, '#dc2626']] }) + '</div>' +
+          '<div><div class="chart-title">Slowest frame per second (ms) · last 60 s</div>' + lineChart((p.frameMsHistory || []), { top: 120, color: '#f5b84b', label: 'Longest frame time each second', fmt: (v) => v + ' ms', guides: [[16.7, '#16a34a'], [33.3, '#ca8a04'], [100, '#dc2626']] }) + '</div>' +
+        '</div></div>' +
+        '<div class="metrics">' +
+          metric('Frame time p95 (1 s)', fmt(p.frameP95Ms, 1) + ' ms', '95th percentile frame interval over the last second, same source as the FPS') +
+          metric('Slowest frame (1 s)', fmt(p.frameMaxMs, 1) + ' ms', 'Longest frame interval over the last second') +
+          metric('Browser rAF', fmt(p.browserFps) + ' /s', 'requestAnimationFrame ticks per second — page responsiveness, independent of the game\'s render cap') +
+          metric('CPU (game main thread)', Number.isFinite(p.cpuBusyPct) ? fmt(p.cpuBusyPct) + ' %' : '—', 'Busy share of the game renderer main thread from CDP Performance.getMetrics TaskDuration, sampled once a second. Not whole-machine CPU.') +
+          metric('JS heap (game frame)', Number.isFinite(p.heapMb) ? fmt(p.heapMb, 1) + ' MB' : '—', 'performance.memory.usedJSHeapSize in the game frame. GPU / texture memory is not included.') +
+          metric('Game FPS target', p.fpsCap && Number.isFinite(p.fpsCap.target) ? fmt(p.fpsCap.target) + (Number.isFinite(p.fpsCap.limit) ? ' (limit ' + p.fpsCap.limit + ')' : '') : '—', 'Phaser loop target / fps.limit as configured by the game') +
+        '</div>' + cap + '</div>';
+    }
+
+    function renderGameView() {
+      const run = selectedRun();
+      const live = run && ACTIVE.has(run.state);
+      const screen = run && Number.isFinite(run.monitor) ? run.monitor + 1 : Number($('screen').value) + 1;
+      $('gameview').innerHTML = '<div style="font-size:13px;line-height:1.6">' +
+        (live
+          ? 'The game is playing in its own <b>' + esc(run.browser || 'chromium') + '</b> window on <b>screen ' + screen + '</b>. Watch it there — the worker\'s actions are the ones under <b>Now</b> above.'
+          : 'When a run starts, the game opens in its own browser window on <b>screen ' + screen + '</b>; watch it there while this page shows the numbers.') +
+        '<div class="muted" style="font-size:12px;margin-top:6px">PAD does not mirror the game into this page: a screenshot or screencast loop costs frames in the browser being measured. ' +
+        'Nothing is drawn inside the game window either (in-page overlays, click markers and screenshot toasts are off for PAD runs).</div></div>';
+    }
+
+    /* ---------- Runs list / notices ---------- */
+
+    function renderRuns() {
+      const runs = state.runs;
+      $('runs').innerHTML = runs.length === 0 ? '<tr><td class="muted">No PAD runs yet.</td></tr>' : runs.slice(0, 30).map((r) => {
+        const when = r.startedAt ? new Date(r.startedAt).toLocaleString() : '';
+        const d = r.startedAt ? Math.round(((r.endedAt || Date.now()) - r.startedAt) / 60000) + ' min' : '';
+        return '<tr data-run="' + esc(r.id) + '"' + (r.id === state.selected ? ' class="sel"' : '') + '>' +
+          '<td class="num" style="text-align:left">' + esc(r.id) + '</td>' +
+          '<td>' + esc(r.label) + '<div class="muted" style="font-size:11px">' + esc(when) + (d ? ' · ' + d : '') + (Number.isFinite(r.monitor) ? ' · screen ' + (r.monitor + 1) : '') + (r.deepAssets ? ' · deep assets' : '') + '</div></td>' +
+          '<td><span class="st ' + esc(r.state) + '">' + esc(r.state) + '</span></td></tr>';
+      }).join('');
+      const run = selectedRun();
+      const live = run && ACTIVE.has(run.state);
+      $('stop').hidden = !live;
+      $('run').disabled = state.busy || runs.some((r) => ACTIVE.has(r.state));
+      $('run-ctx').textContent = state.selected ? state.selected : '';
+      $('status').textContent = live ? 'Measuring' : 'Idle';
+      $('status').className = 'status' + (live ? '' : ' idle');
+    }
+
+    function renderNotice(others) {
+      const parts = [];
+      if (others.length) parts.push('<div class="warn">' + esc(others.map((r) => r.id).join(', ')) + ' is running on this PC. Wait for it to finish — a second game shares the GPU and lowers the FPS you measure.</div>');
+      if (state.error) parts.push('<div class="err">' + esc(state.error) + '</div>');
+      $('notice').innerHTML = parts.join('');
+    }
+
+    /* ---------- Diagnostics tabs ---------- */
+
+    function renderDiagTabs() {
+      const rows = inventory();
+      const groups = duplicateGroups(rows);
+      const counts = {
+        results: parseResults(state.log).filter((r) => r.kind === 'verdict').length,
+        resources: rows.length,
+        duplicates: groups.confirmed.length + groups.potential.length + groups.notConfirmed.length + groups.repeated.length,
+        network: '', log: '',
+      };
+      $('diag-tabs').innerHTML = DIAG_TABS.map(([key, label]) =>
+        '<button type="button" class="tab' + (state.tab === key ? ' on' : '') + '" data-tab="' + key + '">' + label + (counts[key] !== '' ? '<span class="n">' + counts[key] + '</span>' : '') + '</button>').join('');
+    }
+
+    function renderDiag(force) {
+      renderDiagTabs();
+      const tab = state.tab;
+      if (tab !== 'network') dropObserver();
+      if (tab === 'results') renderResults();
+      else if (tab === 'log') renderLog();
+      else if (tab === 'resources') { if (force || res.dirty) renderResources(); }
+      else if (tab === 'duplicates') { if (force || res.dirty) renderDuplicates(); }
+      else if (tab === 'network') renderNetwork();
+      if (tab === 'resources' || tab === 'duplicates') res.dirty = false;
+    }
+
+    function renderResults() {
+      const rows = parseResults(state.log);
+      $('diag-sub').textContent = state.selected ? 'Verdicts and measurement lines from ' + state.selected : '';
+      if (rows.length === 0) {
+        $('diag').innerHTML = '<div class="panel-body"><div class="idle-note">' + (state.selected ? 'No measurements in this run yet.' : 'No results yet.') + '</div></div>';
+        return;
+      }
+      const cls = (r) => r.kind === 'verdict' ? (r.text.startsWith('passed') ? 'res-pass' : r.text.startsWith('skipped') ? '' : 'res-fail') : /-(fail)$/.test(r.kind) ? 'res-fail' : /-(warn)$/.test(r.kind) ? 'res-warn' : '';
+      $('diag').innerHTML = '<div class="panel-body"><table class="tbl"><thead><tr><th>Case</th><th>What</th><th>Result</th></tr></thead><tbody>' +
+        rows.map((r) => '<tr><td class="mono">' + esc(r.id) + '</td><td class="muted">' + esc(r.kind) + '</td><td class="' + cls(r) + '">' + esc(r.text) + '</td></tr>').join('') +
+        '</tbody></table><div class="note">Full evidence per case (frame JSON, hitch list, monitor timeline, screenshots) is in the Allure report for this run.</div></div>';
+    }
+
+    function renderLog() {
+      $('diag-sub').textContent = 'Case progress, measurement lines and errors';
+      const keep = state.log.filter((l) => /\[pad\]|\b(START|PASSED|FAILED|TIMEDOUT|SKIPPED) PAD-|ms frame at|^\S.*avg\s+\d|Error|Allure: (history|opening)|monitor\s*:/.test(l));
+      let el = $('log');
+      if (!el) { $('diag').innerHTML = '<div class="panel-body"><div class="log" id="log"></div></div>'; el = $('log'); }
+      const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+      el.textContent = keep.length ? keep.slice(-400).join('\n') : '—';
+      if (atEnd) el.scrollTop = el.scrollHeight;
+    }
+
+    /* Network & events: the Observer page for this run, embedded; only loaded while this tab is open. */
+    function renderNetwork() {
+      const run = selectedRun();
+      const live = run && ACTIVE.has(run.state);
+      $('diag-sub').textContent = 'Same Observer as the Test runner: requests, payloads, console, WebSocket, events (tokens redacted)';
+      if (!run) { dropObserver(); $('diag').innerHTML = '<div class="panel-body"><div class="idle-note">Select a PAD run.</div></div>'; return; }
+      if (!live) {
+        dropObserver();
+        $('diag').innerHTML = '<div class="panel-body"><div class="idle-note">Live network inspection is available while the run is active. For a finished run, each case\'s network timeline and payloads are in its Allure test (monitor-worker.json, monitor-summary.txt).</div></div>';
+        return;
+      }
+      const src = '/runs/' + encodeURIComponent(run.id) + '/observe?embed=1';
+      const frame = $('observer');
+      if (frame && frame.dataset.src === src) return;
+      $('diag').innerHTML = '<iframe class="observer" id="observer" title="Observer" data-src="' + esc(src) + '" src="' + esc(src) + '"></iframe>';
+    }
+    function dropObserver() { const f = $('observer'); if (f) f.remove(); }
+
+    /* ---------- Resource inventory ---------- */
+
+    const res = {
+      runId: '', mode: '', sessions: new Map(), scope: 'current', currentSession: '', dirty: true, lastPull: 0,
+      filter: { q: '', type: '', dup: '', minKb: '', minReq: '', cache: '' }, sort: { key: 'bytes', dir: -1 },
+      open: new Set(), picked: new Set(), compare: false,
+    };
+
+    function resetResources(runId) {
+      res.runId = runId; res.mode = ''; res.sessions = new Map(); res.currentSession = ''; res.dirty = true;
+      res.open.clear(); res.picked.clear(); res.compare = false;
+    }
+
+    async function pullResources(force) {
+      const run = selectedRun();
+      if (!run) return;
+      if (res.runId !== run.id) resetResources(run.id);
+      if (!force && Date.now() - res.lastPull < 3000) return;
+      res.lastPull = Date.now();
+      const live = ACTIVE.has(run.state);
+      if (live) {
+        const index = await api('/runs/' + encodeURIComponent(run.id) + '/api/observe').catch(() => null);
+        if (index && !index.offline) {
+          if (res.mode !== 'live') { res.sessions = new Map(); res.mode = 'live'; }
+          for (const s of index.sessions) {
+            const known = res.sessions.get(s.id) ?? { id: s.id, items: [], lastSeq: 0, size: 0 };
+            Object.assign(known, { testCode: s.testCode, title: s.title, status: s.status, total: s.size });
+            res.sessions.set(s.id, known);
+          }
+          const running = index.sessions.find((s) => s.status === 'running') ?? index.sessions[0];
+          if (running) res.currentSession = running.id;
+          const wanted = res.scope === 'all' ? [...res.sessions.values()] : [res.sessions.get(res.scope === 'current' ? res.currentSession : res.scope)].filter(Boolean);
+          for (const s of wanted) {
+            if (s.total <= s.size) continue;
+            const page = await api('/runs/' + encodeURIComponent(run.id) + '/api/observe/session?id=' + encodeURIComponent(s.id) + '&since=' + s.lastSeq).catch(() => null);
+            if (!page || !Array.isArray(page.observations) || page.observations.length === 0) continue;
+            s.items.push(...page.observations.filter((o) => o.kind === 'resource').map((o) => ({ ...o, testCode: s.testCode })));
+            s.lastSeq = page.observations[page.observations.length - 1].seq;
+            s.size += page.observations.length;
+            res.dirty = true;
+          }
+          return;
+        }
+      }
+      if (res.mode === 'saved' && !live) return;
+      const saved = await api('/api/qa/runs/' + encodeURIComponent(run.id) + '/resources').catch(() => null);
+      if (!saved) return;
+      res.mode = 'saved';
+      res.sessions = new Map(saved.sessions.map((s) => [s.id, { ...s, items: s.resources.map((o) => ({ ...o, testCode: s.testCode })) }]));
+      res.currentSession = saved.sessions[saved.sessions.length - 1]?.id ?? '';
+      res.dirty = true;
+    }
+
+    /** Tags each record with the page load it belongs to; a launcher document request starts a new load. */
+    function tagLoads(session) {
+      let load = session.loadCount ?? 0;
+      for (let i = session.tagged ?? 0; i < session.items.length; i += 1) {
+        const r = session.items[i];
+        if (r.resourceType === 'document' && r.origin === 'launcher') load += 1;
+        r.load = session.id + '#' + load;
+      }
+      session.tagged = session.items.length;
+      session.loadCount = load;
+    }
+
+    function scopedRecords() {
+      const ids = res.scope === 'all' ? [...res.sessions.keys()] : [res.scope === 'current' ? res.currentSession : res.scope];
+      return ids.flatMap((id) => {
+        const session = res.sessions.get(id);
+        if (!session) return [];
+        tagLoads(session);
+        return session.items;
+      });
+    }
+
+    const pathOf = (url) => { try { const u = new URL(url); return u.pathname; } catch { return String(url).split('?')[0]; } };
+    const fileOf = (url) => decodeURIComponent(pathOf(url).split('/').pop() || pathOf(url));
+    const stem = (file) => file.replace(/\.[^.]+$/, '').toLowerCase();
+
+    function category(r, imageStems) {
+      const p = pathOf(r.url).toLowerCase();
+      const ext = p.includes('.') ? p.split('.').pop() : '';
+      if (ext === 'skel' || /\/spine\//.test(p)) return 'Spine';
+      if (ext === 'atlas' || (r.assetKind === 'json' && imageStems.has(stem(fileOf(r.url))))) return 'Atlas / spritesheet';
+      return { script: 'JavaScript', image: 'Image / texture', audio: 'Audio', json: 'JSON', font: 'Font' }[r.assetKind] || 'Other';
+    }
+
+    const BODY_TEXT = {
+      hashed: 'Body read and hashed (SHA-256). The body itself is not stored.',
+      'not-hashed': 'Body not read — deep asset inspection was off for this run, so content cannot be compared.',
+      'too-large': 'Body over 40 MB — not read or hashed.',
+      'not-200': 'No body to compare: the response was a redirect, a 304 revalidation or an error.',
+      unavailable: 'The browser did not hand over the body (served from cache without a body, opaque, aborted or evicted).',
+      empty: 'Empty body.',
+    };
+
+    let invCache = { key: '', rows: [] };
+    /** One row per sanitized URL, with every request for it. */
+    function inventory() {
+      const records = scopedRecords();
+      const key = res.runId + '|' + res.scope + '|' + res.currentSession + '|' + records.length;
+      if (invCache.key === key) return invCache.rows;
+      const imageStems = new Set(records.filter((r) => r.assetKind === 'image').map((r) => stem(fileOf(r.url))));
+      const byUrl = new Map();
+      for (const r of records) {
+        const row = byUrl.get(r.url) ?? { key: r.url, url: r.url, path: pathOf(r.url), file: fileOf(r.url), category: category(r, imageStems), records: [] };
+        row.records.push(r);
+        byUrl.set(r.url, row);
+      }
+      const rows = [...byUrl.values()].map((row) => {
+        const rs = row.records;
+        const net = rs.filter((r) => !r.fromCache);
+        const transfers = net.map((r) => r.transferBytes).filter((n) => Number.isFinite(n) && n >= 0);
+        const hashes = [...new Set(rs.map((r) => r.sha256).filter(Boolean))];
+        const durations = rs.map((r) => r.durationMs).filter(Number.isFinite).sort((a, b) => a - b);
+        const statuses = [...new Set(rs.map((r) => r.status))];
+        const perLoad = new Map();
+        for (const r of net) perLoad.set(r.load, (perLoad.get(r.load) ?? 0) + 1);
+        return Object.assign(row, {
+          requests: rs.length,
+          networkRequests: net.length,
+          extraInLoad: [...perLoad.values()].reduce((n, c) => n + c - 1, 0),
+          maxInLoad: Math.max(0, ...perLoad.values()),
+          loadsRepeating: [...perLoad.values()].filter((c) => c > 1).length,
+          bytes: Math.max(...rs.map((r) => r.bytes || 0)),
+          transfer: transfers.length === net.length && net.length > 0 ? transfers.reduce((a, b) => a + b, 0) : undefined,
+          status: statuses.join(', '),
+          failed: statuses.some((s) => s >= 400),
+          durationMs: durations.length ? durations[Math.floor((durations.length - 1) / 2)] : undefined,
+          cache: net.length === 0 ? 'cache' : net.length === rs.length ? 'network' : 'mixed',
+          hash: hashes.length === 1 ? hashes[0] : undefined,
+          hashChanged: hashes.length > 1,
+          bodyStatus: hashes.length ? 'hashed' : (rs.find((r) => r.bodyStatus && r.bodyStatus !== 'hashed')?.bodyStatus ?? 'unavailable'),
+          mime: rs[0].mime,
+          tests: [...new Set(rs.map((r) => r.testCode))],
+        });
+      });
+      const groups = duplicateGroups(rows, true);
+      for (const row of rows) row.dup = groups.statusOf.get(row.key) ?? (row.extraInLoad > 0 ? 'repeated' : 'unique');
+      invCache = { key, rows };
+      return rows;
+    }
+
+    let dupCache = { rows: null, value: null };
+    /**
+     * Confirmed: same SHA-256 under two or more URLs.
+     * Potential: same file name on different paths, or same size and type, where hashes are missing
+     *   because hashing was off.
+     * Not confirmed: the same hints, but at least one body could not be read even with hashing on.
+     * Repeated: the same file downloaded more than once from the network within one page load (same URL,
+     *   or the same bytes under different query strings). Fetching it again after a reload is "reloaded".
+     */
+    function duplicateGroups(rows, fresh) {
+      if (!fresh && dupCache.rows === rows) return dupCache.value;
+      const confirmed = [], potential = [], notConfirmed = [], repeated = [], reused = [], reloaded = new Set();
+      const statusOf = new Map();
+      let verifiedDifferent = 0;
+      const byHash = new Map();
+      for (const row of rows) if (row.hash) byHash.set(row.hash, [...(byHash.get(row.hash) ?? []), row]);
+      for (const [hash, members] of byHash) {
+        if (members.length < 2) continue;
+        const netCopies = members.filter((m) => m.networkRequests > 0);
+        const known = netCopies.every((m) => Number.isFinite(m.transfer));
+        const sorted = [...netCopies].sort((a, b) => (b.transfer ?? 0) - (a.transfer ?? 0));
+        const redundant = known && netCopies.length > 1 ? sorted.slice(1).reduce((n, m) => n + m.transfer, 0) : undefined;
+        // Same as PAD-022: one file under several query strings (cache-buster, version) is a repeat fetch, not duplicate content.
+        const files = new Set(members.map((m) => m.url.split('?')[0]));
+        if (files.size < 2) {
+          const fetches = members.flatMap((m) => m.records.filter((r) => !r.fromCache));
+          const perLoad = new Map();
+          for (const r of fetches) perLoad.set(r.load, [...(perLoad.get(r.load) ?? []), r]);
+          const extra = [...perLoad.values()].flatMap((list) => list.slice(1));
+          if (extra.length === 0) { for (const m of members) reloaded.add(m); continue; }
+          const extraKnown = extra.every((r) => Number.isFinite(r.transferBytes) && r.transferBytes >= 0);
+          repeated.push({ id: 'q:' + hash, members, bytes: members[0].bytes, evidence: 'hash',
+            redundant: extraKnown ? extra.reduce((n, r) => n + r.transferBytes, 0) : undefined,
+            why: 'Same file fetched under ' + members.length + ' query strings within one page load — identical bytes (SHA-256 ' + hash.slice(0, 12) + '…)' });
+          for (const m of members) statusOf.set(m.key, 'repeated');
+          continue;
+        }
+        confirmed.push({ id: 'h:' + hash, why: 'Identical content (SHA-256 ' + hash.slice(0, 12) + '…) in ' + files.size + ' files', members, bytes: members[0].bytes, redundant, evidence: 'hash' });
+        for (const m of members) statusOf.set(m.key, 'confirmed');
+      }
+      const unconfirmed = rows.filter((r) => !statusOf.has(r.key));
+      const hint = (members, why) => {
+        const hashed = members.filter((m) => m.hash);
+        if (hashed.length === members.length) { verifiedDifferent += 1; return; }
+        const hashingOff = members.filter((m) => !m.hash).every((m) => m.bodyStatus === 'not-hashed');
+        const group = { id: 'p:' + why + members.map((m) => m.key).join('|'), why, members, bytes: Math.max(...members.map((m) => m.bytes)), evidence: hashingOff ? 'hashing off' : 'body unavailable' };
+        (hashingOff ? potential : notConfirmed).push(group);
+        for (const m of members) if (!statusOf.has(m.key)) statusOf.set(m.key, hashingOff ? 'potential' : 'notconfirmed');
+      };
+      const byName = new Map();
+      for (const row of unconfirmed) byName.set(row.file.toLowerCase(), [...(byName.get(row.file.toLowerCase()) ?? []), row]);
+      for (const [name, members] of byName) {
+        if (new Set(members.map((m) => m.path)).size > 1) hint(members, 'Same file name "' + name + '" on ' + members.length + ' paths');
+      }
+      const bySize = new Map();
+      for (const row of unconfirmed) {
+        if (row.bytes < 2048 || statusOf.has(row.key)) continue;
+        const k = row.category + '|' + row.bytes;
+        bySize.set(k, [...(bySize.get(k) ?? []), row]);
+      }
+      for (const [k, members] of bySize) {
+        if (members.length > 1) hint(members, 'Same type and exact size (' + kb(members[0].bytes) + ', ' + k.split('|')[0] + ') with different names');
+      }
+      for (const row of rows) {
+        if (row.extraInLoad > 0) {
+          const net = row.records.filter((r) => !r.fromCache);
+          const hashes = new Set(net.map((r) => r.sha256).filter(Boolean));
+          const seen = new Set();
+          const extra = net.filter((r) => seen.has(r.load) || !seen.add(r.load));
+          const known = extra.every((r) => Number.isFinite(r.transferBytes) && r.transferBytes >= 0);
+          repeated.push({
+            id: 'r:' + row.key, members: [row], bytes: row.bytes,
+            why: 'Downloaded ' + row.maxInLoad + '× from the network within one page load (not from cache)' + (row.loadsRepeating > 1 ? ', in ' + row.loadsRepeating + ' page loads' : '') + (hashes.size === 1 ? ' — same bytes each time (hash)' : hashes.size > 1 ? ' — content changed between downloads' : ''),
+            redundant: known ? extra.reduce((a, r) => a + r.transferBytes, 0) : undefined, evidence: 'request log',
+          });
+        } else if (row.networkRequests > 1) {
+          if (!statusOf.has(row.key)) reloaded.add(row);
+        } else if (row.requests > 1) {
+          reused.push(row);
+        }
+      }
+      const value = { confirmed, potential, notConfirmed, repeated, reused, reloaded: [...reloaded], verifiedDifferent, statusOf };
+      dupCache = { rows, value };
+      return value;
+    }
+
+    const DUP_LABEL = { confirmed: 'Confirmed', potential: 'Potential', notconfirmed: 'Not confirmed', repeated: 'Repeated', unique: 'Unique' };
+    const dupBadge = (s) => '<span class="dup ' + s + '">' + DUP_LABEL[s] + '</span>';
+
+    function filteredRows() {
+      const f = res.filter;
+      const q = f.q.toLowerCase();
+      let rows = inventory().filter((r) =>
+        (!q || r.url.toLowerCase().includes(q) || (r.hash || '').includes(q) || (r.mime || '').includes(q)) &&
+        (!f.type || r.category === f.type) && (!f.dup || r.dup === f.dup) && (!f.cache || r.cache === f.cache) &&
+        (!f.minKb || r.bytes >= Number(f.minKb) * 1024) && (!f.minReq || r.requests >= Number(f.minReq)));
+      const k = res.sort.key, d = res.sort.dir;
+      rows = rows.sort((a, b) => {
+        const x = a[k], y = b[k];
+        if (typeof x === 'number' || typeof y === 'number') return ((x ?? -1) - (y ?? -1)) * d;
+        return String(x ?? '').localeCompare(String(y ?? '')) * d;
+      });
+      return rows;
+    }
+
+    function scopeSelect() {
+      const opts = [['current', 'Current / last test'], ['all', 'Whole run']].concat([...res.sessions.values()].map((s) => [s.id, (s.testCode || s.id) + ' · ' + (s.status || '')]));
+      return '<select id="res-scope">' + opts.map(([v, l]) => '<option value="' + esc(v) + '"' + (res.scope === v ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>';
+    }
+
+    function resourceHeader() {
+      const run = selectedRun();
+      const hashingOn = run?.deepAssets === true;
+      const source = res.mode === 'live' ? 'live from the worker' : res.mode === 'saved' ? 'saved with the run' : 'no data yet';
+      $('diag-sub').textContent = (run ? run.id + ' · ' : '') + source + ' · hashing ' + (hashingOn ? 'on (deep asset inspection)' : 'off');
+    }
+
+    function exportFile(name, type, text) {
+      const url = URL.createObjectURL(new Blob([text], { type }));
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    const csvCell = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const plainRow = (r) => ({ file: r.file, url: r.url, type: r.category, bytes: r.bytes, transferBytes: r.transfer ?? null, requests: r.requests, networkRequests: r.networkRequests, status: r.status, medianMs: r.durationMs ?? null, cache: r.cache, duplicate: DUP_LABEL[r.dup], sha256: r.hash ?? null, body: r.bodyStatus, tests: r.tests.join(' ') });
+    function exportRows(rows, name, format) {
+      const plain = rows.map(plainRow);
+      if (format === 'json') { exportFile(name + '.json', 'application/json', JSON.stringify({ run: res.runId, scope: res.scope, exportedAt: new Date().toISOString(), resources: plain }, null, 2)); return; }
+      const cols = Object.keys(plainRow({ file: '', url: '', category: '', tests: [], dup: 'unique' }));
+      exportFile(name + '.csv', 'text/csv', [cols.join(','), ...plain.map((p) => cols.map((c) => csvCell(p[c])).join(','))].join('\n'));
+    }
+
+    function detailHtml(row) {
+      const dl = (pairs) => '<dl class="dl">' + pairs.filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>').join('') + '</dl>';
+      const parts = [dl([['URL (sanitized)', row.url], ['type', row.category + (row.mime ? ' · ' + row.mime : '')], ['size', kb(row.bytes) + ' (' + row.bytes + ' bytes)'],
+        ['transferred', row.transfer === undefined ? 'not reported' : kb(row.transfer)], ['requests', row.requests + ' (' + row.networkRequests + ' from network)'],
+        ['SHA-256', row.hash || (row.hashChanged ? 'content changed between requests' : '—')], ['body', BODY_TEXT[row.bodyStatus] || row.bodyStatus], ['tests', row.tests.join(', ')]])];
+      parts.push('<div class="dsub">Requests</div><table class="tbl"><thead><tr><th>time</th><th>test</th><th>method</th><th>status</th><th>cache</th><th class="num">bytes</th><th class="num">transfer</th><th class="num">ms</th></tr></thead><tbody>' +
+        row.records.map((r) => '<tr><td class="mono">' + new Date(r.at).toISOString().slice(11, 23) + '</td><td class="mono">' + esc(r.testCode) + '</td><td class="mono">' + esc(r.method || 'GET') + '</td><td class="mono">' + esc(r.status) + '</td><td>' + (r.fromCache ? 'hit' : 'network') + ' <span class="muted">(' + esc(r.cacheSource || '?') + ')</span></td><td class="num">' + esc(r.bytes) + '</td><td class="num">' + esc(r.transferBytes ?? '—') + '</td><td class="num">' + esc(r.durationMs ?? '—') + '</td></tr>').join('') + '</tbody></table>');
+      const last = row.records[row.records.length - 1];
+      if (last.requestHeaders) parts.push('<div class="dsub">Request headers (allow-listed, redacted)</div><pre class="box">' + esc(JSON.stringify(last.requestHeaders, null, 2)) + '</pre>');
+      if (last.responseHeaders) parts.push('<div class="dsub">Response headers (allow-listed, redacted)</div><pre class="box">' + esc(JSON.stringify(last.responseHeaders, null, 2)) + '</pre>');
+      parts.push('<div class="note">Static asset bodies are never stored or shown. API request and response payloads are in Network &amp; events.</div>');
+      return parts.join('');
+    }
+
+    function compareHtml(rows) {
+      if (rows.length < 2) return '<div class="note">Tick two or more files to compare them.</div>';
+      const fields = [
+        ['File', (r) => r.file], ['URL', (r) => r.url], ['Type', (r) => r.category], ['Size (bytes)', (r) => r.bytes], ['Transferred', (r) => r.transfer ?? '—'],
+        ['Requests', (r) => r.requests + ' (' + r.networkRequests + ' network)'], ['Status', (r) => r.status], ['Cache', (r) => r.cache], ['Median ms', (r) => r.durationMs ?? '—'],
+        ['SHA-256', (r) => r.hash || '— (' + r.bodyStatus + ')'], ['ETag', (r) => r.records.at(-1).responseHeaders?.etag ?? '—'],
+        ['Content-Type', (r) => r.mime ?? '—'], ['Cache-Control', (r) => r.records.at(-1).responseHeaders?.['cache-control'] ?? '—'], ['Duplicate', (r) => DUP_LABEL[r.dup]],
+      ];
+      return '<div class="dsub">Comparison (cells that differ from the first file are highlighted)</div><div style="overflow-x:auto"><table class="tbl cmp"><tbody>' +
+        fields.map(([label, get]) => { const first = String(get(rows[0])); return '<tr><th>' + esc(label) + '</th>' + rows.map((r) => { const v = String(get(r)); return '<td class="mono' + (v !== first ? ' diff' : '') + '" style="font-size:12px;word-break:break-all">' + esc(v) + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '</tbody></table></div>';
+    }
+
+    function renderResources() {
+      resourceHeader();
+      const all = inventory();
+      const rows = filteredRows();
+      const types = [...new Set(all.map((r) => r.category))].sort();
+      const f = res.filter;
+      const shown = rows.slice(0, 500);
+      const totalBytes = rows.reduce((n, r) => n + r.bytes, 0);
+      const picked = all.filter((r) => res.picked.has(r.key));
+      const th = (key, label, cls) => '<th data-sort="' + key + '" class="' + (cls || '') + (res.sort.key === key ? ' on' : '') + '">' + label + (res.sort.key === key ? (res.sort.dir < 0 ? ' ↓' : ' ↑') : '') + '</th>';
+      const focus = document.activeElement?.id;
+      $('diag').innerHTML = '<div class="panel-body">' +
+        '<div class="filters">' + scopeSelect() +
+          '<input type="search" id="res-q" placeholder="Search URL, hash or MIME" value="' + esc(f.q) + '">' +
+          '<select id="res-type"><option value="">All types</option>' + types.map((t) => '<option' + (f.type === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>' +
+          '<select id="res-dup"><option value="">Any duplicate status</option>' + Object.entries(DUP_LABEL).map(([k, l]) => '<option value="' + k + '"' + (f.dup === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' +
+          '<select id="res-cache"><option value="">Any cache</option>' + ['network', 'cache', 'mixed'].map((c) => '<option' + (f.cache === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>' +
+          '<label>≥ KB <input type="number" min="0" id="res-kb" value="' + esc(f.minKb) + '"></label>' +
+          '<label>≥ requests <input type="number" min="1" id="res-req" value="' + esc(f.minReq) + '"></label>' +
+        '</div>' +
+        '<div class="filters"><span class="muted" style="font-size:12px;flex:1">' + rows.length + ' of ' + all.length + ' files · ' + kb(totalBytes) + (rows.length > shown.length ? ' · showing the first 500' : '') + ' · ' + res.picked.size + ' selected</span>' +
+          '<button type="button" class="btn sm" data-act="compare"' + (picked.length < 2 ? ' disabled' : '') + '>Compare selected</button>' +
+          '<button type="button" class="btn sm ghost" data-act="clear-pick"' + (res.picked.size ? '' : ' disabled') + '>Clear selection</button>' +
+          '<button type="button" class="btn sm" data-act="export-csv">Export CSV</button><button type="button" class="btn sm" data-act="export-json">Export JSON</button>' +
+          (picked.length ? '<button type="button" class="btn sm" data-act="export-picked">Export selected</button>' : '') + '</div>' +
+        (res.compare ? compareHtml(picked) : '') +
+        (all.length === 0 ? '<div class="idle-note">' + (res.mode ? 'No static assets recorded for this scope yet.' : 'Resources appear once a PAD run loads the game. Runs before Phase 2 did not record them.') + '</div>' :
+        '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th></th>' + th('file', 'File') + '<th>URL (sanitized)</th>' + th('category', 'Type') + th('bytes', 'Size', 'num') + th('requests', 'Req', 'num') + th('status', 'Status') + th('durationMs', 'Load ms', 'num') + th('cache', 'Cache') + th('dup', 'Duplicate') + '<th>Hash</th></tr></thead><tbody>' +
+        shown.map((r) => '<tr data-key="' + esc(r.key) + '"' + (r.failed ? ' class="res-fail"' : '') + '><td><input type="checkbox" data-pick="' + esc(r.key) + '"' + (res.picked.has(r.key) ? ' checked' : '') + '></td>' +
+          '<td class="mono" style="font-size:12px">' + esc(r.file) + '</td><td class="url">' + esc(r.path) + '</td><td>' + esc(r.category) + '</td><td class="num">' + kb(r.bytes) + '</td><td class="num">' + r.requests + '</td>' +
+          '<td class="mono">' + esc(r.status) + '</td><td class="num">' + fmt(r.durationMs) + '</td><td>' + esc(r.cache) + '</td><td>' + dupBadge(r.dup) + '</td>' +
+          '<td class="mono" style="font-size:11px" title="' + esc(BODY_TEXT[r.bodyStatus] || '') + '">' + (r.hash ? esc(r.hash.slice(0, 10)) + '…' : '<span class="muted">' + esc(r.hashChanged ? 'changed' : r.bodyStatus) + '</span>') + '</td></tr>' +
+          (res.open.has(r.key) ? '<tr class="detail"><td colspan="11">' + detailHtml(r) + '</td></tr>' : '')).join('') +
+        '</tbody></table></div>') +
+        '<div class="note">Load ms is the median request time. "Hash" needs deep asset inspection; without it a file shows "not-hashed" and duplicates can only be Potential.</div></div>';
+      if (focus && $(focus)) { const el = $(focus); el.focus(); if (el.type === 'search') el.setSelectionRange(el.value.length, el.value.length); }
+    }
+
+    function groupHtml(g, kind) {
+      const evidence = g.redundant !== undefined
+        ? '<span class="bytes" title="Bytes that crossed the network for the extra copies, from Chrome\'s reported transfer sizes">' + kb(g.redundant) + ' redundant transfer</span>'
+        : kind === 'confirmed' || kind === 'repeated' ? '<span class="muted" style="font-size:12px">redundant bytes not shown: transfer size not reported for every copy</span>' : '<span class="muted" style="font-size:12px">no redundant-byte figure: content not verified</span>';
+      return '<details class="group" data-group="' + esc(g.id) + '"' + (res.open.has(g.id) ? ' open' : '') + '><summary>' + dupBadge(kind) + '<span class="why">' + esc(g.why) + '</span><span class="bytes">' + kb(g.bytes) + ' each</span>' + evidence + '</summary>' +
+        '<div class="inner"><table class="tbl"><thead><tr><th></th><th>File</th><th>URL (sanitized)</th><th class="num">Size</th><th class="num">Req (net)</th><th class="num">Transfer</th><th>Hash</th><th>Tests</th></tr></thead><tbody>' +
+        g.members.map((m, i) => '<tr class="' + ((kind === 'confirmed' && i > 0 && m.networkRequests > 0) || (kind === 'repeated' && (g.members.length === 1 || i > 0)) ? 'waste' : '') + '"><td><input type="checkbox" data-pick="' + esc(m.key) + '"' + (res.picked.has(m.key) ? ' checked' : '') + '></td><td class="mono" style="font-size:12px">' + esc(m.file) + '</td><td class="url">' + esc(m.url) + '</td><td class="num">' + kb(m.bytes) + '</td><td class="num">' + m.requests + ' (' + m.networkRequests + ')</td><td class="num">' + kb(m.transfer) + '</td><td class="mono" style="font-size:11px">' + (m.hash ? esc(m.hash.slice(0, 12)) + '…' : '<span class="muted">' + esc(m.bodyStatus) + '</span>') + '</td><td class="mono" style="font-size:11px">' + esc(m.tests.join(' ')) + '</td></tr>').join('') +
+        '</tbody></table></div></details>';
+    }
+
+    function renderDuplicates() {
+      resourceHeader();
+      const rows = inventory();
+      const g = duplicateGroups(rows);
+      const picked = rows.filter((r) => res.picked.has(r.key));
+      const run = selectedRun();
+      const section = (title, hint, list, kind) => '<div class="dup-sec"><h4>' + title + ' (' + list.length + ')<small>' + hint + '</small></h4>' + (list.length ? list.map((x) => groupHtml(x, kind)).join('') : '<div class="note">None.</div>') + '</div>';
+      const confirmedBytes = g.confirmed.reduce((n, x) => n + (x.redundant ?? 0), 0);
+      const loadCount = new Set(scopedRecords().map((r) => r.load)).size;
+      $('diag').innerHTML = '<div class="panel-body">' +
+        '<div class="filters">' + scopeSelect() + '<span class="muted" style="font-size:12px;flex:1">' + res.picked.size + ' selected — selecting a file only marks it here; nothing is deleted or changed.</span>' +
+          '<button type="button" class="btn sm" data-act="compare"' + (picked.length < 2 ? ' disabled' : '') + '>Compare selected</button>' +
+          '<button type="button" class="btn sm ghost" data-act="clear-pick"' + (res.picked.size ? '' : ' disabled') + '>Clear selection</button>' +
+          '<button type="button" class="btn sm" data-act="export-dups">Export duplicates</button>' +
+          (picked.length ? '<button type="button" class="btn sm" data-act="export-picked">Export selected</button>' : '') + '</div>' +
+        (res.compare ? compareHtml(picked) : '') +
+        (run && run.deepAssets !== true ? '<div class="warn" style="margin:0 0 10px">Hashing was off for this run, so no duplicate can be confirmed. Tick "Deep asset inspection" for a run that confirms duplicates by content.</div>' : '') +
+        (rows.length === 0 ? '<div class="idle-note">No resources recorded for this scope yet.</div>' :
+          section('Confirmed duplicates', 'same SHA-256 content under different URLs' + (confirmedBytes ? ' · ' + kb(confirmedBytes) + ' redundant transfer with evidence, summed over ' + loadCount + ' page load' + (loadCount === 1 ? '' : 's') : ''), g.confirmed, 'confirmed') +
+          section('Repeated downloads', 'same file fetched from the network more than once within one page load (same URL, or only the query string differs) — an unnecessary transfer, not duplicate content', g.repeated, 'repeated') +
+          section('Potential duplicates', 'same file name on different paths, or same type and exact size — hashing was off, so content is not verified', g.potential, 'potential') +
+          section('Not confirmed', 'same hints, but at least one body could not be read, so the files could not be compared', g.notConfirmed, 'notconfirmed') +
+          '<div class="dup-sec"><h4>Reused from cache (' + g.reused.length + ')<small>same URL requested again and served from the browser cache — intentional reuse, no extra transfer</small></h4>' +
+            (g.reused.length ? '<div class="note mono">' + g.reused.slice(0, 50).map((r) => esc(r.file) + ' ×' + r.requests).join(' · ') + '</div>' : '<div class="note">None.</div>') + '</div>' +
+          '<div class="dup-sec"><h4>Fetched again after a reload (' + g.reloaded.length + ')<small>downloaded once per page load; the test reloaded the page (or cleared the cache), so this is expected, not a finding</small></h4>' +
+            (g.reloaded.length ? '<div class="note mono">' + g.reloaded.slice(0, 50).map((r) => esc(r.file) + ' ×' + r.networkRequests).join(' · ') + (g.reloaded.length > 50 ? ' · …' : '') + '</div>' : '<div class="note">None.</div>') + '</div>' +
+          (g.verifiedDifferent ? '<div class="note">' + g.verifiedDifferent + ' same-name or same-size group(s) were hashed and contain different content, so they are not listed.</div>' : '')) +
+        '</div>';
+    }
+
+    /* ---------- Polling ---------- */
+
+    function selectRun(id, pin) {
+      if (id !== state.selected) { state.selected = id; state.since = 0; state.log = []; state.perf = null; state.lane = null; resetResources(id); invCache = { key: '', rows: [] }; }
+      if (pin) state.pinned = true;
+    }
+
+    async function poll() {
+      try {
+        const list = await api('/api/qa/runs');
+        const all = list.runs || [];
+        state.runs = all.filter((r) => r.kind === 'pad');
+        const others = all.filter((r) => r.kind !== 'pad' && ACTIVE.has(r.state));
+        if (!state.pinned || !selectedRun()) {
+          const pick = state.runs.find((r) => ACTIVE.has(r.state)) || state.runs[0];
+          if (pick) selectRun(pick.id, false);
+        }
+        const run = selectedRun();
+        if (run) {
+          const data = await api('/api/qa/runs/' + encodeURIComponent(run.id) + '?since=' + state.since);
+          if (data.log.from < state.since) state.log = [];
+          state.log = state.log.concat(data.log.lines).slice(-4000);
+          state.since = data.log.next;
+          if (ACTIVE.has(run.state)) {
+            const status = await api('/runs/' + encodeURIComponent(run.id) + '/api/status').catch(() => null);
+            const lane = status && status.workers && status.workers[0];
+            state.perf = lane ? lane.perf || null : null;
+            state.lane = lane || state.lane;
+          } else {
+            state.perf = null;
+          }
+          if (state.tab === 'resources' || state.tab === 'duplicates') await pullResources(false);
+        }
+        renderRuns();
+        renderNotice(others);
+        renderActive();
+        renderLive();
+        renderGameView();
+        renderDiag(false);
+      } catch (error) {
+        $('status').textContent = 'Control panel offline';
+        $('status').className = 'status idle';
+      }
+    }
+
+    function setFilter(key, value) { res.filter[key] = value; res.dirty = true; renderDiag(true); }
+
+    $('cases').addEventListener('change', updatePickSum);
+    $('game').addEventListener('change', () => localStorage.setItem('sgap.pad.game', $('game').value));
+    $('screen').addEventListener('change', () => { localStorage.setItem('sgap.pad.screen', $('screen').value); renderGameView(); });
+    $('deep').addEventListener('change', () => localStorage.setItem('sgap.pad.deep', $('deep').checked ? '1' : '0'));
+    const launchHint = $('launchCheck').textContent;
+    let launchTimer = 0;
+    $('launchUrl').addEventListener('input', () => {
+      clearTimeout(launchTimer);
+      launchTimer = setTimeout(async () => {
+        const raw = $('launchUrl').value.trim();
+        const box = $('launchCheck');
+        $('launchDeviceField').hidden = true;
+        if (!raw) { box.className = 'url-check muted'; box.textContent = launchHint; return; }
+        const r = await api('/api/qa/launch-url/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: raw }) }).catch((e) => ({ ok: false, reasons: [e.message] }));
+        const linked = r.ok && r.gameId && [...$('game').options].some((o) => o.value === r.gameId);
+        if (linked) {
+          $('game').value = r.gameId;
+          $('game').dispatchEvent(new Event('change'));
+        }
+        const game = linked ? ' · game: ' + $('game').selectedOptions[0].textContent + ' (from the link)'
+          : r.gameId ? ' · game: ' + (r.gameName || r.gameId) + ' (registered manifest)'
+          : r.lan ? ' · game: the one selected above'
+          : ' · unregistered game "' + r.gameKey + '": discovered first (DISC-001 — load, idle frame timing, resources, network, JS errors; no bets). Gameplay PAD cases run only once spin is verified; otherwise they report CALIBRATION REQUIRED';
+        if (r.ok) {
+          $('launchDeviceField').hidden = false;
+          $('launchDevice').options[0].textContent = r.device ? "Keep the link's device=" + r.device : "Keep the link's device (none set)";
+        }
+        box.className = 'url-check ' + (r.ok ? 'ok' : 'bad');
+        box.textContent = r.ok
+          ? 'Opens ' + r.redacted + game + (r.lan ? ' · LAN/localhost dev server' : '') + (r.hasToken ? ' · session token kept out of logs and reports' : '') + '. No launcher: wallet top-up and bet-limit steps are skipped.'
+          : r.reasons.join(' ');
+      }, 300);
+    });
+    document.querySelector('.presets').addEventListener('click', (event) => {
+      const preset = event.target.closest('[data-preset]')?.dataset.preset;
+      if (!preset || !state.catalog) return;
+      for (const el of document.querySelectorAll('#cases input')) {
+        const c = state.catalog.cases.find((x) => x.id === el.value);
+        el.checked = preset === 'all' || (preset === 'P0' && c && c.priority === 'P0');
+      }
+      updatePickSum();
+    });
+    $('runs').addEventListener('click', (event) => {
+      const id = event.target.closest('[data-run]')?.dataset.run;
+      if (id) { selectRun(id, true); poll(); }
+    });
+    $('diag-tabs').addEventListener('click', async (event) => {
+      const tab = event.target.closest('.tab')?.dataset.tab;
+      if (!tab) return;
+      state.tab = tab; localStorage.setItem('sgap.pad.tab', tab);
+      res.compare = false;
+      if (tab === 'resources' || tab === 'duplicates') await pullResources(true);
+      renderDiag(true);
+    });
+    $('diag').addEventListener('input', (event) => {
+      const id = event.target.id;
+      if (id === 'res-q') setFilter('q', event.target.value.trim());
+      else if (id === 'res-kb') setFilter('minKb', event.target.value);
+      else if (id === 'res-req') setFilter('minReq', event.target.value);
+    });
+    $('diag').addEventListener('change', async (event) => {
+      const t = event.target;
+      if (t.dataset.pick !== undefined) {
+        if (t.checked) res.picked.add(t.dataset.pick); else res.picked.delete(t.dataset.pick);
+        res.dirty = true; renderDiag(true); return;
+      }
+      if (t.id === 'res-type') setFilter('type', t.value);
+      else if (t.id === 'res-dup') setFilter('dup', t.value);
+      else if (t.id === 'res-cache') setFilter('cache', t.value);
+      else if (t.id === 'res-scope') { res.scope = t.value; res.lastPull = 0; await pullResources(true); res.dirty = true; renderDiag(true); }
+    });
+    $('diag').addEventListener('toggle', (event) => {
+      const id = event.target.dataset?.group;
+      if (!id) return;
+      if (event.target.open) res.open.add(id); else res.open.delete(id);
+    }, true);
+    $('diag').addEventListener('click', (event) => {
+      if (event.target.closest('input')) return;
+      const act = event.target.closest('[data-act]')?.dataset.act;
+      const stamp = (res.runId || 'pad') + '-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '');
+      if (act === 'compare') { res.compare = !res.compare; renderDiag(true); return; }
+      if (act === 'clear-pick') { res.picked.clear(); res.compare = false; renderDiag(true); return; }
+      if (act === 'export-csv') { exportRows(filteredRows(), 'resources-' + stamp, 'csv'); return; }
+      if (act === 'export-json') { exportRows(filteredRows(), 'resources-' + stamp, 'json'); return; }
+      if (act === 'export-picked') { exportRows(inventory().filter((r) => res.picked.has(r.key)), 'selected-' + stamp, 'json'); return; }
+      if (act === 'export-dups') {
+        const g = duplicateGroups(inventory());
+        const out = (list) => list.map((x) => ({ why: x.why, evidence: x.evidence, bytesEach: x.bytes, redundantTransferBytes: x.redundant ?? null, files: x.members.map(plainRow) }));
+        exportFile('duplicates-' + stamp + '.json', 'application/json', JSON.stringify({ run: res.runId, scope: res.scope, exportedAt: new Date().toISOString(),
+          confirmed: out(g.confirmed), repeatedDownloads: out(g.repeated), potential: out(g.potential), notConfirmed: out(g.notConfirmed),
+          reusedFromCache: g.reused.map(plainRow), fetchedAgainAfterReload: g.reloaded.map(plainRow) }, null, 2));
+        return;
+      }
+      const sort = event.target.closest('th[data-sort]')?.dataset.sort;
+      if (sort) { res.sort = { key: sort, dir: res.sort.key === sort ? -res.sort.dir : -1 }; renderDiag(true); return; }
+      const row = event.target.closest('tr[data-key]');
+      if (row) { const k = row.dataset.key; if (res.open.has(k)) res.open.delete(k); else res.open.add(k); renderDiag(true); }
+    });
+    $('run').addEventListener('click', async () => {
+      state.error = '';
+      state.busy = true;
+      renderRuns();
+      try {
+        const body = {
+          gameId: $('game').value,
+          cases: picked(),
+          monitor: Number($('screen').value),
+          browser: $('browser').value,
+          headroom: $('headroom').checked,
+          quick: $('quick').checked,
+          deepAssets: $('deep').checked,
+          ...($('launchUrl').value.trim() ? { launchUrl: $('launchUrl').value.trim(), launchDevice: $('launchDevice').value } : {}),
+        };
+        const result = await api('/api/qa/pad/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        selectRun(result.run.id, false);
+        state.pinned = false;
+        if (window.SGAP) SGAP.toast({ kind: 'info', title: result.run.id + ' started', text: result.run.label });
+      } catch (error) {
+        state.error = error.message;
+      } finally {
+        state.busy = false;
+        poll();
+      }
+    });
+    $('stop').addEventListener('click', async () => {
+      const run = selectedRun();
+      if (!run) return;
+      try {
+        await api('/api/qa/runs/' + encodeURIComponent(run.id) + '/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      } catch (error) {
+        state.error = error.message;
+      }
+      poll();
+    });
+
+    (async () => {
+      try {
+        state.catalog = await api('/api/qa/pad/catalog');
+        renderForm();
+      } catch (error) {
+        state.error = 'Could not load PAD cases: ' + error.message;
+      }
+      renderGameView();
+      await poll();
+      setInterval(poll, 1500);
+    })();
+  </script>
+</body>
+</html>

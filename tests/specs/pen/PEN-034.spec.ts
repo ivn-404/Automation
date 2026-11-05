@@ -1,7 +1,7 @@
 /**
  * PEN-034 — Unknown / admin-sounding hub targets are absent.
  *
- * Manual Test Case ID: PEN-034 (docs/PERSONALTESTING.md §7)
+ * Manual Test Case ID: PEN-034 (docs/catalogs/PERSONALTESTING.md §7)
  * Intent: invoking methods that should not exist (SetBalance, AdminStart, Debug*)
  * must be rejected as unknown, never executed, and must not drop the socket/auth.
  * Runs without a joined session — it only probes the hub's method surface.

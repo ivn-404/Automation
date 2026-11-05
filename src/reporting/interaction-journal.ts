@@ -91,6 +91,11 @@ export function recordInteraction(
   }
 }
 
+/** What this page has recorded so far. Does not clear the journal. */
+export function readInteractions(page: Page): readonly InteractionEntry[] {
+  return journals.get(page) ?? [];
+}
+
 /** Return and clear everything recorded on this page. */
 export function takeInteractions(page: Page): InteractionEntry[] {
   const list = journals.get(page) ?? [];

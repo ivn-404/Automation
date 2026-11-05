@@ -1,7 +1,7 @@
 /**
  * PEN-011 — Cashout with no active round is a no-op.
  *
- * Manual Test Case ID: PEN-011 (docs/PERSONALTESTING.md §3)
+ * Manual Test Case ID: PEN-011 (docs/catalogs/PERSONALTESTING.md §3)
  * Intent: calling Cashout when no card is in play must be rejected ("No active
  * round.") and must not credit the balance. Needs a joined session.
  */

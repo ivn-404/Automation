@@ -1,0 +1,42 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 6 BF-011 (second buy option, 150x, starts at 16x) after the HUD balance is read once it stops counting up.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": [
+        "BF"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "bf/**/BF-011.spec.ts"
+      ],
+      "playerId": "Zero Law_B116",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": [
+        "BF"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "bf/**/BF-011.spec.ts"
+      ],
+      "playerId": "Boobie Trap_B116",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

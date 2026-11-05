@@ -14,6 +14,10 @@
     "rows": 3
   },
   "winPattern": "paylines-20",
+  "multiplierValues": [2, 3],
+  "areaPath": "slot.area",
+  "areaLayout": "rows",
+  "featureItemsPath": "slot.freeSpin.items",
   "capabilities": {
     "freeSpins": true,
     "scatterTrigger": true,
@@ -22,7 +26,7 @@
     "tumble": false,
     "freeSpinRetrigger": false
   },
-  "notes": "From docs/PackageFiles/Package Specs/Package2.pdf: 5x3, 20 paylines, max win 6,750x, bet 0.20-150.00. Symbol 0 triggers Free Spins (spec text also says '3 Wild symbols' — open question for QA); a wheel reveals the spin count; wild multipliers 2x/3x only on reels 2-4 and add together on a line; Bonus Mode cannot be retriggered and has no scatter. tumble=false: paylines with no cascade in the spec — confirm with PROBE-004. areaPath / rowOrder / featureItemsPath are intentionally absent until a staging /bet is captured, so reelValidation stays NOT CONFIGURED instead of guessed.",
+  "notes": "From docs/packages/Package2.pdf: 5x3, 20 paylines, max win 6,750x, bet 0.20-150.00. Symbol 0 triggers Free Spins (spec text also says '3 Wild symbols' — open question for QA); a wheel reveals the spin count; wild multipliers 2x/3x only on reels 2-4 and add together on a line; Bonus Mode cannot be retriggered and has no scatter. tumble=false: paylines with no cascade in the spec — confirm with PROBE-004. Payload paths from staging /bet on all four titles (PROBE-001 bet-shape.json, 2026-10-09): slot.area is row-major (3 arrays of 5 — area[row][col], hence areaLayout rows; a Kobo Ass 9×4 payline only lines up that way), slot.freeSpin.items, slot.base.win / slot.bonus.win, no slot.tumbles. rowOrder is left at the default (payload row 0 = top) until PROBE-004's overlay confirms it on screen. Manifests still carry no reelValidation block (needs reelRegion + symbol templates), so reel-vision cases stay NOT CONFIGURED.",
   "symbols": [
     { "id": 0, "name": "Symbol 0", "kind": "scatter" },
     { "id": 1, "name": "Symbol 1", "kind": "high" },

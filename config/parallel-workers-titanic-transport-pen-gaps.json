@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "PEN-071 stake ladder plus PEN-073 twenty-bet rate ceiling. Stops on HTTP 429 or 5xx. Scratch-hub PEN is not included.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["pen/**/PEN-071.spec.ts", "pen/**/PEN-073.spec.ts"],
+      "playerId": "Titanic Transport_PEN83",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

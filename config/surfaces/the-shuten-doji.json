@@ -1,0 +1,15 @@
+{
+  "id": "the-shuten-doji",
+  "extends": "package-3",
+  "notes": "Attract Play matches Rainbow Fist: ~2.3% green Image at (0.50, 0.80). Enter@0.72 did not dismiss it (AP-001–005 2026-10-14). Inherit package-3 spin band (y0 0.83) so idle locate keeps the hollow ring at ~0.86.",
+  "blockers": {
+    "splashPlayLow": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.76, "y1": 0.83, "x0": 0.35, "x1": 0.65 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.03
+      }
+    }
+  }
+}

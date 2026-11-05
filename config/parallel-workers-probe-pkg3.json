@@ -1,0 +1,61 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "PROBE-002 on Package 3: iframe surface + Phaser inventory used to map the slot HUD into the Package 3 manifests.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-002.spec.ts"
+      ],
+      "playerId": "War Freaks_PRB1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-002.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_PRB1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-002.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_PRB1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

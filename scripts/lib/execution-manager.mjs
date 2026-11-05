@@ -1,18 +1,12 @@
 /**
- * Execution manager for the shared QA control panel.
+ * Execution manager for the local QA control panel.
  *
  * Every test run gets an id (RUN-0001, RUN-0002, …), its own folder under runs/,
- * its own worker monitor on a free port and its owner's staging players
- * (SGAP_TESTER = account name). Any number of runs execute side by side; a run
- * waits only when this host lacks the CPU/RAM for its browsers
- * (scripts/lib/host-resources.mjs) — never because of who or how many people
- * are using the panel.
+ * its own worker monitor on a free port and the tester's staging players
+ * (SGAP_TESTER). Runs execute side by side; a run waits only when this PC lacks
+ * the CPU/RAM for its browsers (scripts/lib/host-resources.mjs).
  *
  * Runs execute scripts/run-suite-queue.mjs, the same driver the CLI uses.
- *
- * A run can also go to its owner's own PC: the SGAP agent there (scripts/qa-agent.mjs)
- * polls this server, receives only the test selection, plans and runs it locally and
- * streams the log back. Those runs never use this host's browsers.
  */
 import { spawn } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -20,19 +14,27 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { admit, hostCapacity } from './host-resources.mjs';
-import { findSuite, loadCatalog, packageOfGame, selectionSuite, suiteCases } from './qa-suites.mjs';
+import { checkLaunchUrl, createLaunchUrlVault, gameForLaunchUrl, launchUrlFacts } from './launch-url.mjs';
+import {
+  familyCases,
+  familyPanel,
+  findSuite,
+  loadCatalog,
+  loadManifests,
+  packageOfGame,
+  selectionSuite,
+  suiteCases,
+  UNREGISTERED_GAME,
+  URL_PACKAGE,
+} from './qa-suites.mjs';
 import { killPidTree } from './sgap-process-guard.mjs';
 import { sanitizeTester } from './sgap-tester.mjs';
 
 const MAX_LOG_LINES = 3000;
 const ACTIVE = new Set(['queued', 'running']);
 export const RUNS_DIR = 'runs';
-/** An agent that has not polled for this long is offline. */
-const AGENT_ONLINE_MS = 15_000;
-/** A running agent run whose agent stays silent this long is given up. */
-const AGENT_LOST_MS = 120_000;
 
-export function runEnvBase() {
+function runEnvBase() {
   const env = { ...process.env, SGAP_LAUNCHER_MODE: process.env.SGAP_LAUNCHER_MODE ?? 'staging' };
   const defaultBrowsers = path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local'), 'ms-playwright');
   if (env.PLAYWRIGHT_BROWSERS_PATH === undefined && existsSync(defaultBrowsers)) {
@@ -41,51 +43,60 @@ export function runEnvBase() {
   return env;
 }
 
-/** Public view of a run (no process handles, log buffers or live agent status). */
+/** Public view of a run (no process handles or log buffers). */
 function view(run) {
-  const { child, lines, logBase, logStream, liveStatus, ...rest } = run;
+  const { child, lines, logBase, logStream, laneConfig, launchRef, launchRaw, ...rest } = run;
   return rest;
 }
 
-/** The parts of a run request that select tests; all an agent ever receives. */
-export function selectionOf(body) {
-  const pick = {};
-  if (Array.isArray(body.families)) pick.families = body.families.map(String);
-  else pick.suite = String(body.suite ?? '');
-  pick.games = (Array.isArray(body.games) ? body.games : []).map(String);
-  if (typeof body.caseId === 'string' && body.caseId.length > 0) pick.caseId = body.caseId;
-  for (const key of ['trace', 'screenshots', 'hideBrowser', 'dryRun']) {
-    if (typeof body[key] === 'boolean') pick[key] = body[key];
-  }
-  return pick;
+/** Optional pasted game URL from a run request: undefined when none, `{ error }` when refused. */
+function planLaunchUrl(body, cwd) {
+  if (typeof body.launchUrl !== 'string' || body.launchUrl.trim().length === 0) return undefined;
+  const checked = checkLaunchUrl(body.launchUrl, cwd);
+  if (!checked.ok) return { error: `Game URL refused: ${checked.reasons.join(' ')}` };
+  const device = ['mobile', 'desktop', 'switch'].includes(body.launchDevice) ? body.launchDevice : 'preserve';
+  const { gameKey } = launchUrlFacts(body.launchUrl);
+  return { raw: body.launchUrl.trim(), redacted: checked.redacted, host: checked.host, lan: checked.lan, device, gameKey };
 }
 
 /** Validates a selection against this checkout's catalog and turns it into run-suite-queue arguments. */
-export function planRun(body, cwd = process.cwd()) {
+function planRun(body, cwd = process.cwd()) {
   const catalog = loadCatalog(cwd);
   const families = Array.isArray(body.families) ? body.families.map(String) : undefined;
+  const owned = (families ?? []).filter((id) => familyPanel(catalog, id) !== undefined);
+  if (owned.length > 0) {
+    return { error: `${owned.join(', ')} runs from its own page (PAD Tester), not the Test runner.` };
+  }
   let suite;
   try {
     suite = families !== undefined ? selectionSuite(catalog, families, cwd) : findSuite(catalog, String(body.suite ?? ''), cwd);
   } catch (error) {
     return { error: String(error?.message ?? error) };
   }
-  const games = (Array.isArray(body.games) ? body.games : []).map(String).filter((gameId) => packageOfGame(catalog, gameId) !== undefined);
+  let games = (Array.isArray(body.games) ? body.games : []).map(String).filter((gameId) => packageOfGame(catalog, gameId) !== undefined);
+  const launch = planLaunchUrl(body, cwd);
+  if (launch?.error) return { error: launch.error };
+  if (launch !== undefined) {
+    const linked = gameForLaunchUrl(launch.raw, loadManifests(cwd));
+    if (linked) games = [linked.gameId];
+    else if (!launch.lan || games.length !== 1) games = [UNREGISTERED_GAME];
+  }
   if (games.length === 0) return { error: 'Select at least one game.' };
-  const packages = Object.keys(catalog.packages).filter((pkg) => games.some((gameId) => packageOfGame(catalog, gameId) === pkg));
+  const packages = [...new Set(games.map((gameId) => packageOfGame(catalog, gameId) ?? URL_PACKAGE))];
   const caseId = typeof body.caseId === 'string' && body.caseId.length > 0 ? body.caseId : undefined;
   if (caseId !== undefined && !suiteCases(suite, cwd).includes(caseId)) {
     return { error: `${caseId} is not part of ${suite.label}.` };
   }
   // Packages run one after another; the widest package sets the browsers held at once.
-  const browsers = Math.max(...packages.map((pkg) => games.filter((gameId) => packageOfGame(catalog, gameId) === pkg).length));
+  const browsers = Math.max(...packages.map((pkg) => games.filter((gameId) => (packageOfGame(catalog, gameId) ?? URL_PACKAGE) === pkg).length));
 
   const args = ['scripts/run-suite-queue.mjs'];
   if (families !== undefined) args.push('--families', suite.familyIds.join(','));
   else args.push('--suite', suite.id);
   args.push('--packages', packages.join(','), '--games', games.join(','));
   if (caseId) args.push('--case', caseId);
-  if (body.trace === true) args.push('--trace');
+  // A Playwright trace records every URL the page opened, session token included.
+  if (body.trace === true && launch === undefined) args.push('--trace');
   if (body.screenshots === false) args.push('--no-screenshots');
   if (body.hideBrowser === true) args.push('--hide-browser');
   if (body.dryRun) args.push('--dry-run');
@@ -96,14 +107,130 @@ export function planRun(body, cwd = process.cwd()) {
     packages,
     caseId,
     browsers,
-    label: suite.label + (caseId ? ` · ${caseId}` : ''),
+    launch,
+    label: suite.label + (caseId ? ` · ${caseId}` : '') + (launch ? ` · URL ${launch.gameKey}${games[0] === UNREGISTERED_GAME ? ' (unregistered)' : ''}` : ''),
     families: suite.familyIds ?? suite.categories ?? [],
     gameNames: games,
   };
 }
 
+/**
+ * Env for PAD runs: the observer runs passive (traffic, console, events and the resource
+ * inventory, no HUD scene walks), and no click dots or screenshot toasts inside the measurements.
+ */
+const PAD_ENV = {
+  SGAP_OBSERVE: '1',
+  SGAP_OBSERVE_PASSIVE: '1',
+  SGAP_OBSERVE_BALANCE_MS: '0',
+  SGAP_RESOURCES: '1',
+  SGAP_PAD_LIVE_CPU: '1',
+  SGAP_CLICK_TRACKER: '0',
+  SGAP_SCREENSHOT_TOAST: '0',
+};
+/** Installed browser channel per PAD Tester choice; `chromium` is Playwright's bundled build. */
+const PAD_BROWSERS = { chromium: undefined, chrome: 'chrome', edge: 'msedge' };
+/** PAD-053: let the game draw as fast as it can instead of at the display refresh. */
+const HEADROOM_ARGS = ['--disable-gpu-vsync', '--disable-frame-rate-limit'];
+/** PAD-056 needs a second lane that loads the GPU on the other screen. */
+const BUSY_CASE = 'PAD-056';
+
+/**
+ * Validates a PAD Tester request: one game, some PAD cases, the screen to play on, browser,
+ * headroom and quick options.
+ */
+function planPadRun(body, cwd = process.cwd()) {
+  const catalog = loadCatalog(cwd);
+  const manifests = loadManifests(cwd);
+  const launch = planLaunchUrl(body, cwd);
+  if (launch?.error) return { error: launch.error };
+  let gameId = String(body.gameId ?? '');
+  if (launch !== undefined) {
+    const linked = gameForLaunchUrl(launch.raw, manifests);
+    if (linked) gameId = linked.gameId;
+    else if (!launch.lan || !manifests.has(gameId)) gameId = UNREGISTERED_GAME;
+  }
+  const manifest = manifests.get(gameId);
+  if (manifest === undefined) return { error: 'Select a game.' };
+  if (gameId === UNREGISTERED_GAME && launch === undefined) return { error: 'An unregistered game needs a Game URL.' };
+  const discover = gameId === UNREGISTERED_GAME;
+  const available = familyCases(catalog, cwd).PAD ?? [];
+  const cases = (Array.isArray(body.cases) ? body.cases.map(String) : []).filter((id) => available.includes(id));
+  if (cases.length === 0) return { error: 'Select at least one PAD case.' };
+  const monitor = Number(body.monitor) === 0 ? 0 : 1;
+  const browser = Object.hasOwn(PAD_BROWSERS, body.browser) ? body.browser : 'chromium';
+  const channel = PAD_BROWSERS[browser];
+  const headroom = body.headroom === true;
+  const quick = body.quick === true;
+  const deepAssets = body.deepAssets === true;
+  if (launch !== undefined && cases.includes(BUSY_CASE)) {
+    return { error: `${BUSY_CASE} opens a second game browser; one Game URL session cannot run in two browsers.` };
+  }
+  const name = manifest.displayName ?? gameId;
+  const browserFields = {
+    ...(channel !== undefined ? { channel } : {}),
+    ...(headroom ? { browserArgs: HEADROOM_ARGS } : {}),
+  };
+  const lanes = [
+    {
+      id: 1,
+      gameId,
+      gameName: name,
+      category: 'PAD',
+      categories: ['PAD'],
+      testMatch: [...(discover ? ['discovery/DISC-001*.spec.ts'] : []), ...cases.map((id) => `pad/${id}*.spec.ts`)],
+      playerId: `${name}_PAD`,
+      monitor,
+      slot: 0,
+      ...browserFields,
+    },
+  ];
+  if (cases.includes(BUSY_CASE)) {
+    lanes.push({
+      id: 2,
+      gameId,
+      gameName: name,
+      category: 'PAD-LOAD',
+      categories: ['PAD-LOAD'],
+      testMatch: ['pad-load/BUSY-056*.spec.ts'],
+      playerId: `${name}_PADBUSY`,
+      monitor: monitor === 0 ? 1 : 0,
+      slot: 0,
+      ...(channel !== undefined ? { channel } : {}),
+    });
+  }
+  const options = [
+    browser !== 'chromium' ? browser : '',
+    headroom ? 'headroom' : '',
+    quick ? 'quick' : '',
+    deepAssets ? 'deep asset inspection' : '',
+    launch ? `Game URL on ${launch.host}` : '',
+    discover ? `unregistered ${launch.gameKey ?? 'game'}: discovery first` : '',
+  ].filter(Boolean);
+  return {
+    gameId,
+    gameName: name,
+    cases,
+    monitor,
+    browser,
+    headroom,
+    quick,
+    deepAssets,
+    launch,
+    laneConfig: {
+      kind: 'pad',
+      workers: lanes.length,
+      layout: String(lanes.length),
+      notes: `PAD Tester run: ${cases.join(', ')} on ${name}, screen ${monitor + 1}${options.length > 0 ? ` (${options.join(', ')})` : ''}.`,
+      defaultBalance: 15000,
+      defaultBetLimit: 15000,
+      minimumBetBalance: 100,
+      lanes,
+    },
+  };
+}
+
 /** Folds one line of run-suite-queue output into a run's progress fields. */
-export function trackProgress(run, line) {
+function trackProgress(run, line) {
   const progress = line.match(/^#+ \[(\d+)\/(\d+)\] Package (\S+)/u);
   if (progress) {
     run.packageIndex = Number(progress[1]);
@@ -123,20 +250,16 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
 
   /** @type {Map<string, any>} insertion order = submission order */
   const runs = new Map();
-  /** Agents seen recently, by `${owner}@${machine}`. In memory: agents re-announce every poll. */
-  const agents = new Map();
+  const vault = createLaunchUrlVault();
   let nextNumber = 1;
 
-  // Restore history; runs this host was executing are gone now. Runs on an agent PC
-  // carry on there and resume reporting at the agent's next poll.
+  // Restore history; runs this PC was executing are gone now.
   if (existsSync(indexFile)) {
     try {
       const saved = JSON.parse(readFileSync(indexFile, 'utf8'));
       nextNumber = Number(saved.next) || 1;
       for (const entry of saved.runs ?? []) {
-        if (entry.where === 'agent' && ACTIVE.has(entry.state)) {
-          entry.lastContact = Date.now();
-        } else if (ACTIVE.has(entry.state)) {
+        if (ACTIVE.has(entry.state)) {
           entry.state = 'interrupted';
           entry.note = 'The control panel restarted while this run was active.';
           entry.endedAt ??= Date.now();
@@ -163,8 +286,21 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
     writeFileSync(activeFile, `${JSON.stringify({ panelPid: process.pid, pids }, null, 2)}\n`, 'utf8');
   }
 
+  /** Run fields for a pasted Game URL: the redacted form is public, the vault reference is not. */
+  function launchFields(runId, launch) {
+    if (launch === undefined) return {};
+    return {
+      launchUrl: launch.redacted,
+      launchHost: launch.host,
+      launchLan: launch.lan,
+      launchDevice: launch.device,
+      launchGameKey: launch.gameKey,
+      launchRef: vault.put(runId, launch.raw),
+    };
+  }
+
   function inUse() {
-    const running = [...runs.values()].filter((run) => run.state === 'running' && run.where !== 'agent');
+    const running = [...runs.values()].filter((run) => run.state === 'running');
     return { runs: running.length, browsers: running.reduce((sum, run) => sum + run.browsers, 0) };
   }
 
@@ -176,48 +312,6 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       run.logBase += drop;
     }
     trackProgress(run, line);
-  }
-
-  const agentKey = (owner, machine) => `${owner}@${machine}`;
-  const agentOnline = (agent) => Boolean(agent) && Date.now() - agent.lastSeen < AGENT_ONLINE_MS;
-
-  /** The caller's agent for a run on "my PC": the one polling from the browser's address first, else the latest seen. */
-  function agentFor(user, ip) {
-    const mine = [...agents.values()].filter((agent) => agent.owner === user.name && agentOnline(agent));
-    return mine.find((agent) => ip && agent.ip === ip) ?? mine.sort((a, b) => b.lastSeen - a.lastSeen)[0];
-  }
-
-  function finishAgentRun(run, state, note) {
-    if (ACTIVE.has(run.state)) run.state = state;
-    if (note && !run.note) run.note = note;
-    run.agentDone = true;
-    run.endedAt ??= Date.now();
-    run.liveStatus = undefined;
-    run.logStream?.end();
-    run.logStream = undefined;
-    persist();
-  }
-
-  /** Agent runs whose PC went quiet: queued ones say so, running ones are given up after a while. */
-  function sweepAgents() {
-    let changed = false;
-    for (const run of runs.values()) {
-      if (run.where !== 'agent' || run.agentDone || !(ACTIVE.has(run.state) || run.state === 'stopped')) continue;
-      const agent = agents.get(agentKey(run.owner, run.machine));
-      if (run.state === 'queued') {
-        run.queueReason = agentOnline(agent)
-          ? `Waiting for ${run.machine} to start it.`
-          : `${run.machine} is offline. It starts when the SGAP agent on that PC is running again.`;
-        continue;
-      }
-      const last = Math.max(run.lastContact ?? 0, agent?.lastSeen ?? 0);
-      if (Date.now() - last > AGENT_LOST_MS) {
-        pushLog(run, `■ Lost contact with ${run.machine} for ${Math.round(AGENT_LOST_MS / 1000)} s; marking ${run.id} interrupted. Its own log stays on that PC.`);
-        finishAgentRun(run, 'interrupted', `Lost contact with ${run.machine}.`);
-        changed = true;
-      }
-    }
-    if (changed) persist();
   }
 
   function openRunLog(run) {
@@ -243,7 +337,22 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       SGAP_MONITOR_PORT: '0',
       SGAP_MONITOR_OVERLAY: '0',
       SGAP_SKIP_ALLURE_OPEN: '1',
+      ...(run.kind === 'pad' ? { ...PAD_ENV, SGAP_PARALLEL_CONFIG: path.join(dir, 'pad-lanes.json') } : {}),
+      ...(run.kind === 'pad' && run.quick ? { SGAP_PAD_QUICK: '1' } : {}),
+      ...(run.kind === 'pad' && run.deepAssets ? { SGAP_RESOURCES_HASH: '1' } : {}),
+      ...(run.launchRef
+        ? {
+            SGAP_LAUNCH_URL_REF: run.launchRef,
+            SGAP_LAUNCH_URL_LAN: run.launchLan ? '1' : '0',
+            SGAP_LAUNCH_DEVICE: run.launchDevice ?? 'preserve',
+            SGAP_DISCOVERY_DIR: path.join(dir, 'discovery'),
+            ...(run.launchGameKey ? { SGAP_LAUNCH_GAME_KEY: run.launchGameKey } : {}),
+          }
+        : {}),
     };
+    if (run.kind === 'pad') {
+      writeFileSync(path.join(dir, 'pad-lanes.json'), `${JSON.stringify(run.laneConfig, null, 2)}\n`, 'utf8');
+    }
     pushLog(run, `$ node ${run.args.join(' ')}   [${run.id} · ${run.owner} · players *_${run.tester}]`);
     const child = spawn(process.execPath, run.args, { cwd, env, windowsHide: true });
     run.child = child;
@@ -266,7 +375,10 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       run.monitorUrl = undefined;
       run.endedAt = Date.now();
       run.exitCode = code;
-      if (run.state === 'running') run.state = code === 0 ? 'passed' : 'failed';
+      const urlRun = Boolean(run.launchRef);
+      vault.release(run.id);
+      run.launchRef = undefined;
+      if (run.state === 'running') run.state = code === 0 ? 'passed' : code === 3 && urlRun ? 'calibration' : 'failed';
       persist();
       schedule();
     });
@@ -276,7 +388,7 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
   /** Starts every queued run that fits, oldest first; smaller runs may pass a run that is still waiting for room. */
   function schedule() {
     for (const run of runs.values()) {
-      if (run.state !== 'queued' || run.where === 'agent') continue;
+      if (run.state !== 'queued') continue;
       const decision = admit(config, run.browsers, inUse());
       if (decision.ok) {
         start(run);
@@ -287,8 +399,7 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
   }
 
   const timer = setInterval(() => {
-    if ([...runs.values()].some((run) => run.state === 'queued' && run.where !== 'agent')) schedule();
-    sweepAgents();
+    if ([...runs.values()].some((run) => run.state === 'queued')) schedule();
   }, 10_000);
   timer.unref();
 
@@ -304,17 +415,11 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       return run ? view(run) : undefined;
     },
     monitorUrl(id) {
-      const run = runs.get(id);
-      return run?.where === 'agent' ? undefined : run?.monitorUrl;
+      return runs.get(id)?.monitorUrl;
     },
-    /** Latest worker-monitor snapshot an agent sent for its run (agent runs have no monitor reachable from here). */
-    liveStatus(id) {
-      return runs.get(id)?.liveStatus;
-    },
-    /** The caller's agent as the dashboard shows it, or null. */
-    myAgent(user, ip) {
-      const agent = agentFor(user, ip);
-      return agent ? { machine: agent.machine, sameAddress: Boolean(ip) && agent.ip === ip, version: agent.version } : null;
+    /** Raw Game URL for a worker of an active run; undefined once the run has ended. */
+    launchUrl(ref) {
+      return vault.take(ref);
     },
     log(id, since = 0) {
       const run = runs.get(id);
@@ -323,22 +428,17 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       return { from: run.logBase + startAt, next: run.logBase + run.lines.length, lines: run.lines.slice(startAt) };
     },
     /**
-     * @param {{ name: string, role: string }} user
+     * @param {{ name: string }} user
      * @returns {{ status: number, body: object }}
      */
-    submit(user, body, { ip } = {}) {
+    submit(user, body) {
       const planned = planRun(body, cwd);
       if (planned.error) return { status: 400, body: { ok: false, error: planned.error } };
-      const onAgent = body.where === 'mine';
-      const agent = onAgent ? agentFor(user, ip) : undefined;
-      if (onAgent && agent === undefined) {
+      const measuring = [...runs.values()].find((run) => run.kind === 'pad' && ACTIVE.has(run.state));
+      if (measuring && !planned.args.includes('--dry-run')) {
         return {
           status: 409,
-          body: {
-            ok: false,
-            needsAgent: true,
-            error: 'No SGAP agent is running on your PC. Use "Set up my PC" once (or start "SGAP Agent"), or choose "Server PC".',
-          },
+          body: { ok: false, error: `${measuring.id} (PAD Tester) is measuring FPS and needs this PC to itself. Start after it finishes.` },
         };
       }
       const tester = sanitizeTester(user.name) || 'host';
@@ -355,12 +455,8 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
           },
         };
       }
-      const decision = onAgent
-        ? { ok: false, reason: `Waiting for ${agent.machine} to start it.` }
-        : planned.args.includes('--dry-run')
-          ? { ok: true }
-          : admit(config, planned.browsers, inUse());
-      if (!onAgent && !decision.ok && (decision.permanent || config.whenFull === 'reject')) {
+      const decision = planned.args.includes('--dry-run') ? { ok: true } : admit(config, planned.browsers, inUse());
+      if (!decision.ok && (decision.permanent || config.whenFull === 'reject')) {
         return { status: 503, body: { ok: false, error: decision.reason } };
       }
       const id = `RUN-${String(nextNumber).padStart(4, '0')}`;
@@ -378,8 +474,7 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
         browsers: planned.browsers,
         dryRun: planned.args.includes('--dry-run'),
         args: planned.args,
-        where: onAgent ? 'agent' : 'server',
-        ...(onAgent ? { machine: agent.machine, request: selectionOf(body) } : {}),
+        ...launchFields(id, planned.launch),
         state: 'queued',
         queuedAt: Date.now(),
         lines: [],
@@ -393,30 +488,69 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       }
       return { status: 200, body: { ok: true, run: view(run) } };
     },
-    /** Owners stop their own runs; admins stop any. */
+    /**
+     * PAD Tester run: one game in one browser through the worker monitor. Never queued
+     * behind or beside other runs — a second game shares the GPU and skews the FPS.
+     */
+    submitPad(user, body) {
+      const planned = planPadRun(body, cwd);
+      if (planned.error) return { status: 400, body: { ok: false, error: planned.error } };
+      const busy = [...runs.values()].filter((run) => ACTIVE.has(run.state));
+      if (busy.length > 0) {
+        return {
+          status: 409,
+          body: {
+            ok: false,
+            error: `${busy.map((run) => run.id).join(', ')} still running. FPS is only trustworthy with nothing else on this PC — wait for it or stop it first.`,
+          },
+        };
+      }
+      const id = `RUN-${String(nextNumber).padStart(4, '0')}`;
+      nextNumber += 1;
+      const run = {
+        id,
+        kind: 'pad',
+        owner: user.name,
+        tester: sanitizeTester(user.name) || 'host',
+        label: `PAD · ${planned.cases.length === 1 ? planned.cases[0] : `${planned.cases.length} cases`} · ${planned.gameName}${planned.launch ? ` · URL ${planned.launch.host}` : ''}`,
+        suite: 'pad',
+        families: ['PAD'],
+        games: [planned.gameId],
+        packages: [],
+        cases: planned.cases,
+        monitor: planned.monitor,
+        browser: planned.browser,
+        headroom: planned.headroom,
+        quick: planned.quick,
+        deepAssets: planned.deepAssets,
+        ...launchFields(id, planned.launch),
+        laneConfig: planned.laneConfig,
+        browsers: planned.laneConfig.lanes.length,
+        args: ['scripts/run-parallel-workers.mjs'],
+        state: 'queued',
+        queuedAt: Date.now(),
+        lines: [],
+        logBase: 0,
+      };
+      runs.set(id, run);
+      start(run);
+      return { status: 200, body: { ok: true, run: view(run) } };
+    },
     stop(user, id) {
       const run = runs.get(id);
       if (!run) return { status: 404, body: { ok: false, error: `${id} not found.` } };
-      if (run.owner !== user.name && user.role !== 'admin') {
-        return { status: 403, body: { ok: false, error: `${id} belongs to ${run.owner}; only they or an admin can stop it.` } };
-      }
       if (run.state === 'queued') {
-        run.state = 'stopped';
-        run.endedAt = Date.now();
-        run.note = `Removed from the queue by ${user.name}.`;
-        if (run.where === 'agent') run.agentDone = true;
+      run.state = 'stopped';
+      run.endedAt = Date.now();
+      vault.release(run.id);
+      run.launchRef = undefined;
+      run.note = `Removed from the queue by ${user.name}.`;
         persist();
         return { status: 200, body: { ok: true } };
       }
       if (run.state !== 'running') return { status: 409, body: { ok: false, error: `${id} is not running.` } };
       run.state = 'stopped';
       run.note = `Stopped by ${user.name}.`;
-      if (run.where === 'agent') {
-        // The agent sees the stop on its next poll (about 2 s) and closes the run on its PC.
-        pushLog(run, `■ Stop requested by ${user.name} — asking ${run.machine} to end ${id} and close its browsers…`);
-        persist();
-        return { status: 200, body: { ok: true } };
-      }
       pushLog(run, `■ Stop requested by ${user.name} — ending ${id} and closing its browsers…`);
       if (run.pid) killPidTree(run.pid);
       return { status: 200, body: { ok: true } };
@@ -425,72 +559,6 @@ export function createExecutionManager({ cwd = process.cwd(), config }) {
       for (const run of runs.values()) {
         if (run.state === 'running' && run.pid) killPidTree(run.pid);
       }
-    },
-
-    // ── Agent side (scripts/qa-agent.mjs). `owner` comes from the agent's token, never from the request body. ──
-
-    /** An agent checks in: returns runs waiting for it and runs it must stop. */
-    agentPoll(owner, machine, ip, info = {}) {
-      agents.set(agentKey(owner, machine), {
-        owner,
-        machine,
-        ip,
-        lastSeen: Date.now(),
-        version: typeof info.version === 'string' ? info.version.slice(0, 40) : undefined,
-      });
-      const running = new Set(Array.isArray(info.running) ? info.running.map(String) : []);
-      const jobs = [];
-      const stop = [];
-      for (const run of runs.values()) {
-        if (run.where !== 'agent' || run.owner !== owner || run.machine !== machine || run.agentDone) continue;
-        if (running.has(run.id)) run.lastContact = Date.now();
-        if (run.state === 'queued') {
-          run.queueReason = `Waiting for ${machine} to start it.`;
-          jobs.push({ id: run.id, tester: run.tester, label: run.label, selection: run.request });
-        } else if (run.state === 'stopped') {
-          stop.push(run.id);
-        }
-      }
-      return { jobs, stop };
-    },
-    /** The agent takes a queued run; only the run's own owner and PC can. */
-    agentClaim(owner, machine, id) {
-      const run = runs.get(id);
-      if (!run || run.where !== 'agent' || run.owner !== owner || run.machine !== machine) {
-        return { status: 404, body: { ok: false, error: `${id} is not assigned to ${machine}.` } };
-      }
-      if (run.state !== 'queued') return { status: 409, body: { ok: false, error: `${id} is ${run.state}.` } };
-      openRunLog(run);
-      run.state = 'running';
-      run.startedAt = Date.now();
-      run.lastContact = Date.now();
-      run.queueReason = undefined;
-      pushLog(run, `▶ ${id} started on ${machine} · ${owner} · players *_${run.tester}`);
-      persist();
-      return { status: 200, body: { ok: true } };
-    },
-    /** Log lines, a monitor snapshot and/or the final result from the agent running `id`. */
-    agentReport(owner, machine, id, body = {}) {
-      const run = runs.get(id);
-      if (!run || run.where !== 'agent' || run.owner !== owner || run.machine !== machine) {
-        return { status: 404, body: { ok: false, error: `${id} is not assigned to ${machine}.` } };
-      }
-      if (run.agentDone) return { status: 200, body: { ok: true, stop: true } };
-      run.lastContact = Date.now();
-      if (run.logStream === undefined) openRunLog(run);
-      for (const raw of Array.isArray(body.lines) ? body.lines.slice(0, 2000) : []) {
-        const line = String(raw).slice(0, 4000);
-        run.logStream?.write(`${line}\n`);
-        pushLog(run, line);
-      }
-      if (body.status && typeof body.status === 'object') run.liveStatus = body.status;
-      if (body.done && typeof body.done === 'object') {
-        const exitCode = Number.isInteger(body.done.exitCode) ? body.done.exitCode : null;
-        run.exitCode = exitCode;
-        if (typeof body.done.error === 'string') pushLog(run, `■ ${body.done.error.slice(0, 1000)}`);
-        finishAgentRun(run, exitCode === 0 ? 'passed' : 'failed');
-      }
-      return { status: 200, body: { ok: true, stop: run.state === 'stopped' } };
     },
   };
 }

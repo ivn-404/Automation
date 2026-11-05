@@ -1,0 +1,58 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "PROBE-005 (buy panel map) and PROBE-001 (spin/bet/turbo/amplify on /bet) on Pastry Cub, Aztec Empire and Grave Threats after their slot manifests were filled from PROBE-002.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Pastry Cub_PB15",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Empire",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Aztec Empire_PB15",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "grave-threat",
+      "gameName": "Grave Threats",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Grave Threats_PB15",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

@@ -46,4 +46,4 @@ SGAP_LAUNCHER_MODE=staging pnpm test:chrome
 
 Requires valid launcher session (auth as your org requires). Do not commit tokens.
 
-See `docs/FIXTURES.md`.
+See `docs/architecture/layers/FIXTURES.md`.

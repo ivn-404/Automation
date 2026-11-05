@@ -1,7 +1,7 @@
 /**
  * PEN-054 — Concurrent StartRound must not double-spend the balance.
  *
- * Manual Test Case ID: PEN-054 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-054 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: fire several StartRound calls in parallel (all frames leave before any
  * completes) to probe a check-then-debit race. Whatever the hub deals, the ledger must
  * balance — every dealt bet debited exactly once, no negative balance, no free credit.

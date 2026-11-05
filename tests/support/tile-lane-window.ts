@@ -21,6 +21,8 @@ import type { Page } from 'playwright';
 import { innerViewportForWindow } from '../../src/platform/game-view-layout.js';
 import { windowBoundsForLane, workerTag, type ParallelLaneRuntime } from './parallel-lanes.js';
 
+const tiledPages = new WeakSet<Page>();
+
 export async function tileLaneWindow(
   page: Page,
   lane: Pick<ParallelLaneRuntime, 'col' | 'row' | 'id' | 'category' | 'playerId'>,
@@ -30,6 +32,10 @@ export async function tileLaneWindow(
   const title = workerTag(lane);
   const inner = innerViewportForWindow(bounds);
   const syncViewport = options?.syncViewport !== false;
+  if (tiledPages.has(page)) {
+    await page.evaluate(`document.title = ${JSON.stringify(title)}`).catch(() => undefined);
+    return;
+  }
 
   try {
     const session = await page.context().newCDPSession(page);
@@ -59,4 +65,5 @@ export async function tileLaneWindow(
   }
 
   await page.evaluate(`document.title = ${JSON.stringify(title)}`).catch(() => undefined);
+  tiledPages.add(page);
 }

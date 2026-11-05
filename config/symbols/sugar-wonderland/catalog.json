@@ -1,7 +1,7 @@
 {
   "gameId": "sugar-wonderland",
   "packageId": "package-1",
-  "source": "docs/PackageFiles/Package Specs/Package1.pdf — Symbols & Payouts + Graphics (23 total)",
+  "source": "docs/packages/Package1.pdf — Symbols & Payouts + Graphics (23 total)",
   "reelHint": "6 columns × 5 rows (always read from slot.area, never hardcode)",
   "rowOrder": "bottom-to-top",
   "symbols": [

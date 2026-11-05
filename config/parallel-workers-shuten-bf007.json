@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Retest Shuten BF-007 after leftover free-spin drain must click at least once.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "REGRESSION",
+      "categories": ["BF"],
+      "packageId": "3",
+      "testMatch": ["bf/**/BF-007.spec.ts"],
+      "playerId": "The Shuten Doji_BF7",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

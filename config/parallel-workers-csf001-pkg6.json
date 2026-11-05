@@ -1,0 +1,34 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 6 gate: CSF-001 smoke on both titles, plus a PROBE-001 recheck on Zero Law after the first run flaked during long tumble chains.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": ["CSF", "PROBE"],
+      "packageId": "6",
+      "testMatch": ["probe/**/PROBE-001.spec.ts", "csf/**/CSF-001.spec.ts"],
+      "playerId": "Zero Law_SMK6",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": ["CSF"],
+      "packageId": "6",
+      "testMatch": ["csf/**/CSF-001.spec.ts"],
+      "playerId": "Boobie Trap_SMK6",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

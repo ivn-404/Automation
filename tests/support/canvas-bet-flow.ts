@@ -25,6 +25,7 @@ import {
   waitForBetQuiet,
   waitForIdleHud,
 } from './canvas-healing.js';
+import { failureKind } from '../../src/controllers/strategy/failure-class.js';
 import { matchesBetUrl } from '../../src/network/bet-url.js';
 import type { LocatorStrategy } from '../../src/reporting/interaction-journal.js';
 
@@ -116,6 +117,13 @@ export async function spinWithMidSpinBuyAttempt(
       const ready = await prepareCanvasSpin(sgapSession, sgapDriver, page);
       if (!ready) {
         throw new Error('spin control not visible after splash/idle wait');
+      }
+      // Same as healer.prepare: a /bet during locate (turbo mis-tap, leftover
+      // tumble) must finish before we arm waiters on a still button.
+      await waitForBetQuiet(page, 1_000, 5_000);
+      const idle = await waitForIdleHud(page, sgapDriver, sgapSession.manifest, 12_000);
+      if (!idle.healed) {
+        throw new Error(`HUD not idle before mid-spin buy: ${idle.detail}`);
       }
 
       sgapSession.betWatcher!.reset();
@@ -403,7 +411,7 @@ export async function buyFeatureForBet(
   sgapSession: SgapSession,
   sgapDriver: PlaywrightGameDriver,
   page: Page,
-  options?: { readonly settleAfter?: boolean },
+  options?: { readonly settleAfter?: boolean; readonly selectAction?: string },
 ): Promise<BuyFeatureBetResult> {
   const fields = sgapSession.manifest.network!.fields;
 
@@ -445,121 +453,179 @@ export async function buyFeatureForBet(
   };
 
   let lastError: unknown;
-  const openRounds = 4;
-  const buyTimeoutMs = getLauncherMode() === 'staging' ? 14_000 : 10_000;
+  // One relocate, then one retry. A real buy response is returned as-is so a
+  // wrong feature payload stays a game failure in the spec.
+  const openRounds = 2;
+  const buyTimeoutMs = getLauncherMode() === 'staging' ? 8_000 : 6_000;
 
   for (let round = 0; round < openRounds; round += 1) {
     if (!(await sgapDriver.isAttached())) {
       await sgapDriver.attach();
     }
 
+    let straySpin = false;
+    const watchStray = (response: Response): void => {
+      if (response.ok() && matchesBetUrl(response.url()) && !isBuyPurchaseResponse(response)) {
+        straySpin = true;
+      }
+    };
+    page.on('response', watchStray);
+
     // Arm before open — Sugar's pink BUY pill can purchase on the open tap
-    // (buyFeat=1) before a YES panel appears.
+    // (buyFeat=1) before a YES panel appears. A listener, not a timed
+    // waitForResponse: opening the panel and locating confirm can outlast any
+    // fixed window, and a purchase that lands after it is still the purchase.
     let purchase: Response | undefined;
-    const buyPromise = page
-      .waitForResponse(isBuyPurchaseResponse, { timeout: buyTimeoutMs })
-      .then((response) => {
+    let onPurchase: (() => void) | undefined;
+    const watchPurchase = (response: Response): void => {
+      if (purchase === undefined && isBuyPurchaseResponse(response)) {
         purchase = response;
-        return response;
-      });
+        onPurchase?.();
+      }
+    };
+    page.on('response', watchPurchase);
+    const purchaseWithin = (ms: number): Promise<void> =>
+      purchase !== undefined
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, ms);
+            onPurchase = () => {
+              clearTimeout(timer);
+              resolve();
+            };
+          });
 
-    const opened = await openBuyFeaturePanel(sgapSession, sgapDriver, page, round);
+    try {
+      const opened = await openBuyFeaturePanel(sgapSession, sgapDriver, page, round);
 
-    // Give a short window for open-tap purchase before hunting YES.
-    await Promise.race([
-      buyPromise.catch(() => undefined),
-      page.waitForTimeout(2_000),
-    ]);
-    if (purchase !== undefined) {
-      console.log('[sgap-heal] buyFeature: purchase fired on open tap');
-      return settle(purchase);
+      await purchaseWithin(2_000);
+      if (purchase !== undefined) {
+        console.log('[sgap-heal] buyFeature: purchase fired on open tap');
+        return settle(purchase);
+      }
+
+      const pillVisible =
+        opened || (await buyConfirmVisible(page, sgapDriver, sgapSession.manifest));
+      if (!pillVisible) {
+        lastError = new Error('buyFeature automation miss: BUY FEATURE pill not visible');
+        console.log('[sgap-heal] buyFeature: panel did not open — not tapping confirm');
+      } else {
+        if (options?.selectAction !== undefined && purchase === undefined) {
+          await sgapDriver.clickCanvas(options.selectAction, { timeoutMs: 8_000, singleInput: true });
+          await page.waitForTimeout(500);
+        }
+        const spinHit = await locateControlByPhaser(
+          page,
+          sgapSession.manifest,
+          sgapDriver.iframeSelector,
+          'spin',
+          { remember: false },
+        );
+        const spinPoint =
+          spinHit.hit === undefined
+            ? undefined
+            : { x: spinHit.hit.xRatio, y: spinHit.hit.yRatio };
+        const visionConfirm = await locateControlByVision(
+          page,
+          sgapDriver,
+          sgapSession.manifest,
+          'buyFeatureConfirm',
+          { remember: true },
+        );
+        const healed = recallHealedRatio(sgapSession.manifest.gameId, 'buyFeatureConfirm');
+        const tryPoints: ReadonlyArray<{ x: number; y: number }> =
+          visionConfirm.healed && healed !== undefined
+            ? [healed, ...confirmPoints]
+            : confirmPoints;
+        // Some layouts keep the HUD spin interactive under the panel at the pill's spot;
+        // a point on the pill vision just saw is the confirm, not the spin.
+        const pillPoint = visionConfirm.healed ? healed : undefined;
+        const safePoints = tryPoints.filter(
+          (point) =>
+            spinPoint === undefined ||
+            !sameControl(point, spinPoint) ||
+            (pillPoint !== undefined && sameControl(point, pillPoint)),
+        );
+
+        if (safePoints.length === 0) {
+          lastError = new Error('buyFeatureConfirm automation miss: confirm ratio is the spin button');
+          console.log('[sgap-heal] buy confirm point is the spin button — relocating');
+        } else {
+        for (const point of safePoints) {
+          if (purchase !== undefined) {
+            return settle(purchase);
+          }
+          if (straySpin) {
+            break;
+          }
+          if (!(await buyConfirmVisible(page, sgapDriver, sgapSession.manifest))) {
+            console.log('[sgap-heal] buyFeatureConfirm: panel closed mid-confirm — re-open');
+            break;
+          }
+          await sgapDriver.clickCanvasAt(point, {
+            timeoutMs: 10_000,
+            singleInput: true,
+            label: 'buyFeatureConfirm',
+            strategy:
+              point === healed
+                ? 'vision'
+                : ladderStrategy(sgapSession.manifest, 'buyFeatureConfirm', point),
+          });
+          await purchaseWithin(1_200);
+          if (purchase !== undefined) {
+            return settle(purchase);
+          }
+        }
+        }
+
+        if (safePoints.length === 0) {
+          // The saved confirm point is the spin button. Relocate; do not wait out a buy.
+        } else if (straySpin) {
+          lastError = new Error(
+            'buyFeatureConfirm automation miss: click sent a normal spin',
+          );
+          console.log('[sgap-heal] buy confirm hit spin — relocating, not a game defect');
+        } else {
+          await purchaseWithin(buyTimeoutMs);
+          if (purchase !== undefined) {
+            return settle(purchase);
+          }
+          lastError = new Error(
+            `buyFeatureConfirm automation miss: no buy /bet response within ${buyTimeoutMs / 1000}s after the confirm tap`,
+          );
+        }
+      }
+    } finally {
+      page.off('response', watchStray);
+      page.off('response', watchPurchase);
     }
 
-    if (opened || (await buyConfirmVisible(page, sgapDriver, sgapSession.manifest))) {
-      const visionConfirm = await locateControlByVision(
+    if (failureKind(lastError) === 'defect') {
+      throw lastError;
+    }
+    if (round + 1 < openRounds) {
+      await recoverMissedCanvasClick(
         page,
         sgapDriver,
         sgapSession.manifest,
-        'buyFeatureConfirm',
-        { remember: true },
+        'buyFeature',
+        lastError,
+        sgapSession.platform,
       );
-      const healed = recallHealedRatio(sgapSession.manifest.gameId, 'buyFeatureConfirm');
-      const tryPoints: ReadonlyArray<{ x: number; y: number }> =
-        visionConfirm.healed && healed !== undefined
-          ? [healed, ...confirmPoints]
-          : confirmPoints;
-
-      for (const point of tryPoints) {
-        if (purchase !== undefined) {
-          return settle(purchase);
-        }
-        if (!(await buyConfirmVisible(page, sgapDriver, sgapSession.manifest))) {
-          console.log('[sgap-heal] buyFeatureConfirm: panel closed mid-confirm — re-open');
-          break;
-        }
-        await sgapDriver.clickCanvasAt(point, {
-          timeoutMs: 10_000,
-          singleInput: true,
-          label: 'buyFeatureConfirm',
-          strategy:
-            point === healed
-              ? 'vision'
-              : ladderStrategy(sgapSession.manifest, 'buyFeatureConfirm', point),
-        });
-        await Promise.race([
-          buyPromise.catch(() => undefined),
-          page.waitForTimeout(1_200),
-        ]);
-        if (purchase !== undefined) {
-          return settle(purchase);
-        }
-      }
-    } else {
-      // No BUY FEATURE blob — still try the best-known confirm point once (colour drift).
-      const fallback = confirmPoints[0];
-      if (fallback === undefined) {
-        console.log(
-          `[sgap-heal] buyFeatureConfirm: no candidate point for "${sgapDriver.surface.id}"`,
-        );
-        break;
-      }
-      await sgapDriver.clickCanvasAt(fallback, {
-        timeoutMs: 8_000,
-        singleInput: true,
-        label: 'buyFeatureConfirm',
-        strategy: ladderStrategy(sgapSession.manifest, 'buyFeatureConfirm', fallback),
-        fallback: true,
-        detail: 'BUY FEATURE pill not seen by vision — best-known confirm point',
-      });
-      await Promise.race([
-        buyPromise.catch(() => undefined),
-        page.waitForTimeout(2_000),
-      ]);
-      if (purchase !== undefined) {
-        return settle(purchase);
-      }
-      console.log('[sgap-heal] buyFeature: BUY FEATURE pill not visible after open — will re-open');
+      await closeBuyPanel(sgapDriver).catch(() => false);
+      await waitForBetQuiet(page, 800, 2_000);
     }
-
-    try {
-      return settle(await buyPromise);
-    } catch (error: unknown) {
-      lastError = error;
-    }
-
-    await recoverMissedCanvasClick(
-      page,
-      sgapDriver,
-      sgapSession.manifest,
-      'buyFeatureConfirm',
-      lastError,
-      sgapSession.platform,
-    );
-    await closeBuyPanel(sgapDriver).catch(() => false);
-    await waitForBetQuiet(page, 1_200, 3_500);
   }
 
   throw lastError;
+}
+
+/** Confirm and spin sit on top of each other when the saved confirm ratio is the spin button. */
+function sameControl(
+  a: { readonly x: number; readonly y: number },
+  b: { readonly x: number; readonly y: number },
+): boolean {
+  return Math.hypot(a.x - b.x, a.y - b.y) < 0.03;
 }
 
 /**
@@ -625,7 +691,7 @@ export async function buyFeatureForBetWithRetry(
   page: Page,
   options?: { readonly maxAttempts?: number; readonly settleAfter?: boolean },
 ): Promise<BuyFeatureBetResult> {
-  const maxAttempts = options?.maxAttempts ?? 3;
+  const maxAttempts = options?.maxAttempts ?? 2;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -644,6 +710,9 @@ export async function buyFeatureForBetWithRetry(
       return await buyFeatureForBet(sgapSession, sgapDriver, page, options);
     } catch (error: unknown) {
       lastError = error;
+      if (failureKind(error) === 'defect') {
+        throw error;
+      }
       await dismissBuyFeaturePanel(sgapSession, sgapDriver, page).catch(() => undefined);
     }
   }

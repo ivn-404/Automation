@@ -3,9 +3,9 @@
  *
  * Manual Test Case ID: AT-005
  * Intent: Buy Feature is unavailable during multiple sessions — once a second session is
- * opened for the same account, a Buy Feature attempt from the first session must not
- * complete: the server refuses it (or the client never sends it) and no feature is bought.
- * A HUD balance left short by the refused buy is attached as a finding.
+ * opened for the same account, Buy Feature must not complete on that older session.
+ * The documented notice is "This game was opened in another window. This session
+ * has been disconnected". A completed buy on the retired session still fails.
  */
 
 import { test, expect } from '../../fixtures/index.js';

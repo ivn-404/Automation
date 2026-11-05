@@ -1,0 +1,34 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "FS-008 retrigger hunt on Package 6: buys until a mid-feature retrigger lands (no buy cap, wallet and bet limit refilled between buys).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": ["FS"],
+      "packageId": "6",
+      "testMatch": ["fs/**/FS-008.spec.ts"],
+      "playerId": "Zero Law_FIX6",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": ["FS"],
+      "packageId": "6",
+      "testMatch": ["fs/**/FS-008.spec.ts"],
+      "playerId": "Boobie Trap_FIX6",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

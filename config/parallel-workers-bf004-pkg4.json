@@ -1,0 +1,46 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 4 follow-up to the 2026-10-22 full regression: BF-004 with the balance set below the real buy cost (stake x buyFeatureMultiplier) on all three games, plus Genghis Bao CSF-005 / TM-004 that skipped on no winning spin.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "category": "REGRESSION",
+      "categories": ["BF"],
+      "packageId": "4",
+      "testMatch": ["bf/**/BF-004.spec.ts"],
+      "playerId": "That's Bait_B04",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "category": "REGRESSION",
+      "categories": ["BF", "CSF", "TM"],
+      "packageId": "4",
+      "testMatch": ["bf/**/BF-004.spec.ts", "csf/**/CSF-005.spec.ts", "tm/**/TM-004.spec.ts"],
+      "playerId": "Genghis Bao_B04",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["BF"],
+      "packageId": "4",
+      "testMatch": ["bf/**/BF-004.spec.ts"],
+      "playerId": "Sk8leton_B04",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

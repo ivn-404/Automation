@@ -34,6 +34,12 @@ export function findSuite(catalog, suiteId, cwd = process.cwd()) {
   };
 }
 
+/** Panel page that owns a family (e.g. 'pad'), or undefined for Test runner families. */
+export function familyPanel(catalog, familyId) {
+  const group = catalog.families?.[familyId]?.group;
+  return group === undefined ? undefined : catalog.familyGroups?.[group]?.panel;
+}
+
 /** Spec globs (relative to tests/specs) for one family. */
 export function familyGlobs(catalog, familyId) {
   const family = catalog.families[familyId];
@@ -120,8 +126,21 @@ export function selectionSuite(catalog, tokens, cwd = process.cwd()) {
   };
 }
 
+/**
+ * Game URL runs outside the catalog use the synthetic `url` package: a manifest-backed game
+ * no package lists, or `unregistered`, whose manifest discovery learns per run
+ * (config/manifests/unregistered.json).
+ */
+export const URL_PACKAGE = 'url';
+export const UNREGISTERED_GAME = 'unregistered';
+
+function packageGamesOf(catalog, pkg, games) {
+  return pkg === URL_PACKAGE ? (games ?? [UNREGISTERED_GAME]) : catalog.packages[pkg];
+}
+
 /** Package id of a game, from catalog.packages. */
 export function packageOfGame(catalog, gameId) {
+  if (gameId === UNREGISTERED_GAME) return URL_PACKAGE;
   return Object.keys(catalog.packages).find((pkg) => catalog.packages[pkg].includes(gameId));
 }
 
@@ -246,7 +265,7 @@ export function writeLaneConfig({
   cwd = process.cwd(),
   manifests = loadManifests(cwd),
 }) {
-  const packageGames = catalog.packages[pkg];
+  const packageGames = packageGamesOf(catalog, pkg, games);
   if (packageGames === undefined) {
     throw new Error(`Unknown package "${pkg}". Known: ${Object.keys(catalog.packages).join(', ')}`);
   }

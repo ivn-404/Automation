@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "PROBE-006: spin Titanic Transport until a paid tumble or multiplier field appears. Does not set the manifest path.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["probe/**/PROBE-006.spec.ts"],
+      "playerId": "Titanic Transport_PRB6",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

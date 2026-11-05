@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import type { ReelSymbolDef, ReelSymbolKind } from '../../core/models/index.js';
+import type { ReelAreaLayout, ReelSymbolDef, ReelSymbolKind } from '../../core/models/index.js';
 
 export interface PackageReelsHint {
   readonly columns: number;
@@ -19,6 +19,7 @@ export interface PackageSymbolCatalog {
   readonly displayName?: string;
   readonly reelsHint?: PackageReelsHint;
   readonly rowOrder?: 'top-to-bottom' | 'bottom-to-top';
+  readonly areaLayout?: ReelAreaLayout;
   readonly areaPath?: string;
   readonly tumblesPath?: string;
   /** Hint for nested feature-spin item arrays (e.g. slot.freeSpin.items). */
@@ -33,6 +34,7 @@ interface RawCatalog {
   readonly displayName?: string;
   readonly reelsHint?: { columns?: number; rows?: number };
   readonly rowOrder?: string;
+  readonly areaLayout?: string;
   readonly areaPath?: string;
   readonly tumblesPath?: string;
   readonly featureItemsPath?: string;
@@ -87,6 +89,7 @@ function parseCatalog(raw: RawCatalog, fallbackId: string): PackageSymbolCatalog
     displayName: raw.displayName,
     reelsHint: hint,
     rowOrder,
+    ...(raw.areaLayout === 'columns' || raw.areaLayout === 'rows' ? { areaLayout: raw.areaLayout } : {}),
     areaPath: raw.areaPath,
     tumblesPath: raw.tumblesPath,
     featureItemsPath: raw.featureItemsPath,

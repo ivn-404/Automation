@@ -26,10 +26,11 @@
  *   node scripts/run-suite-queue.mjs --suite regression --packages 1
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { publishAllureReport } from './generate-allure-report.mjs';
+import { assessCases, caseRequirements } from './lib/case-requirements.mjs';
 import {
   findSuite,
   launcherModeFor,
@@ -38,6 +39,7 @@ import {
   packageOfGame,
   selectionSuite,
   suiteCases,
+  URL_PACKAGE,
   writeLaneConfig,
 } from './lib/qa-suites.mjs';
 import { allureResultsRoot, isManagedRun, runId } from './lib/sgap-run-paths.mjs';
@@ -73,9 +75,11 @@ try {
   process.exit(2);
 }
 
+const launchUrlRun = Boolean(process.env.SGAP_LAUNCH_URL_REF);
 const games = listArg(argValue('--games')) ?? listArg(selection.games);
 for (const gameId of games ?? []) {
-  if (packageOfGame(catalog, gameId) === undefined) {
+  const urlOnly = launchUrlRun && loadManifests(cwd).has(gameId);
+  if (packageOfGame(catalog, gameId) === undefined && !urlOnly) {
     console.error(`SGAP: game "${gameId}" is not in any package of config/qa-suites.json.`);
     process.exit(2);
   }
@@ -83,7 +87,7 @@ for (const gameId of games ?? []) {
 const packagesArg = listArg(argValue('--packages')) ?? listArg(selection.packages);
 const queue = packagesArg
   ?? (games !== undefined
-    ? Object.keys(catalog.packages).filter((pkg) => games.some((gameId) => packageOfGame(catalog, gameId) === pkg))
+    ? [...new Set(games.map((gameId) => packageOfGame(catalog, gameId) ?? URL_PACKAGE))]
     : suite.defaultPackages);
 const caseId = argValue('--case')?.trim() || undefined;
 if (caseId !== undefined && !suiteCases(suite, cwd).includes(caseId)) {
@@ -141,8 +145,10 @@ if (!dryRun) {
   mkdirSync(path.resolve(cwd, accumRoot), { recursive: true });
 }
 
+const discoveryDir = path.resolve(cwd, process.env.SGAP_RUN_DIR || '.sgap', 'discovery');
 const runEnv = {
   ...process.env,
+  ...(launchUrlRun ? { SGAP_DISCOVERY_DIR: discoveryDir } : {}),
   ...(launcherMode ? { SGAP_LAUNCHER_MODE: launcherMode } : {}),
   SGAP_BROWSER_VIEW: hideBrowser ? 'hidden' : 'visible',
   SGAP_SCREENSHOT: screenshots ? 'only-on-failure' : 'off',
@@ -154,6 +160,61 @@ const combinedSources = [];
 const summary = [];
 const startedAt = Date.now();
 let environmentPlaced = false;
+
+function keepLaneResults(tag) {
+  const laneRoot = allureResultsRoot();
+  const laneDirs = existsSync(laneRoot) ? readdirSync(laneRoot).filter((name) => /^w\d+$/u.test(name)) : [];
+  for (const name of laneDirs) {
+    const src = path.join(laneRoot, name);
+    if (hasResults(src)) {
+      const dest = path.resolve(cwd, accumRoot, tag, name);
+      mkdirSync(dest, { recursive: true });
+      cpSync(src, dest, { recursive: true });
+      combinedSources.push(path.join(accumRoot, tag, name));
+    }
+  }
+}
+
+// A Game URL run learns the unknown game (safe panels + a few normal spins) before
+// the selected cases; those cases then read the learned profile.
+/** Exit code for a Game URL run whose selected cases all await calibration (none ran). */
+const EXIT_CALIBRATION = 3;
+let noReadyCases = false;
+if (launchUrlRun && !dryRun) {
+  rmSync(discoveryDir, { recursive: true, force: true });
+  mkdirSync(discoveryDir, { recursive: true });
+  const discoverySuite = { ...suite, id: 'discovery', label: 'Game discovery', testMatch: ['discovery/DISC-001*.spec.ts'] };
+  const configPath = writeLaneConfig({ catalog, suite: discoverySuite, pkg: queue[0], games, includeEnvironment: false, cwd, manifests });
+  console.log(`\n######## Game discovery (${configPath}) ########`);
+  const started = Date.now();
+  const run = spawnSync(process.execPath, ['scripts/run-parallel-workers.mjs'], {
+    cwd,
+    stdio: 'inherit',
+    env: { ...runEnv, SGAP_PARALLEL_CONFIG: configPath, SGAP_OBSERVE_PASSIVE: '1', SGAP_RESOURCES: '1' },
+  });
+  const discoveryRow = { pkg: 'discovery', exit: run.status ?? -1, minutes: (Date.now() - started) / 60000 };
+  summary.push(discoveryRow);
+  keepLaneResults('discovery');
+  const reportFile = path.join(discoveryDir, 'discovery.json');
+  if (!existsSync(reportFile)) Object.assign(discoveryRow, { exit: discoveryRow.exit || 1, note: 'no discovery report' });
+  if (existsSync(reportFile)) {
+    const report = JSON.parse(readFileSync(reportFile, 'utf8'));
+    const cases = assessCases(caseId ? [caseId] : suiteCases(suite, cwd), caseRequirements(catalog, cwd), report.capabilities ?? []);
+    writeFileSync(path.join(discoveryDir, 'case-assessment.json'), `${JSON.stringify(cases, null, 2)}\n`, 'utf8');
+    const count = (status) => cases.filter((entry) => entry.status === status).length;
+    const panels = (report.panelChecks ?? []).map((check) => `${check.target}${check.verified ? '+' : '-'}`).join(', ') || 'none';
+    console.log(`\nDiscovery: ${report.game?.gameKey} → ${String(report.game?.classification).toUpperCase()}`);
+    console.log(`  learned: ${report.payload?.spinsLearned ?? 0} spin(s) · panels ${panels}`);
+    console.log(`  cases: ${count('ready')} will run · ${count('calibration')} need calibration · ${count('unsupported')} N/A · ${count('blocked')} blocked`);
+    for (const entry of cases) console.log(`  ${entry.caseId.padEnd(10)} ${entry.status.padEnd(11)} ${entry.reason}`);
+    if (count('ready') === 0) {
+      noReadyCases = true;
+      console.log('\nDiscovery: learning finished, but none of the selected cases can run yet — each is skipped with its reason above. Confirm or mark Absent in the discovery panel for anything still unknown, then run again.');
+    }
+  } else {
+    console.log('\nDiscovery: no report written — every case on this game reports BLOCKED.');
+  }
+}
 
 for (const [index, pkg] of queue.entries()) {
   console.log(`\n######## [${index + 1}/${queue.length}] Package ${pkg} ########`);
@@ -201,17 +262,7 @@ for (const [index, pkg] of queue.entries()) {
   summary.push({ pkg, exit: run.status ?? -1, minutes: (Date.now() - packageStarted) / 60000 });
 
   // Keep this package's results before the next package resets the lane folders (w1..wN).
-  const laneRoot = allureResultsRoot();
-  const laneDirs = existsSync(laneRoot) ? readdirSync(laneRoot).filter((name) => /^w\d+$/u.test(name)) : [];
-  for (const name of laneDirs) {
-    const src = path.join(laneRoot, name);
-    if (hasResults(src)) {
-      const dest = path.resolve(cwd, accumRoot, `pkg${pkg}`, name);
-      mkdirSync(dest, { recursive: true });
-      cpSync(src, dest, { recursive: true });
-      combinedSources.push(path.join(accumRoot, `pkg${pkg}`, name));
-    }
-  }
+  keepLaneResults(`pkg${pkg}`);
 }
 
 const elapsedMin = ((Date.now() - startedAt) / 60000).toFixed(1);
@@ -238,4 +289,4 @@ if (combinedSources.length > 0) {
   console.log('Allure: no results accumulated to publish.');
 }
 
-process.exit(summary.some((row) => row.exit !== 0) ? 1 : 0);
+process.exit(summary.some((row) => row.exit !== 0) ? 1 : noReadyCases ? EXIT_CALIBRATION : 0);

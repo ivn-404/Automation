@@ -360,11 +360,20 @@ function parseReelValidation(value: unknown, path: string): ReelValidationConfig
     rowOrder = value.rowOrder;
   }
 
+  let areaLayout: ReelValidationConfig['areaLayout'];
+  if (value.areaLayout !== undefined) {
+    if (value.areaLayout !== 'columns' && value.areaLayout !== 'rows') {
+      throw new GameManifestValidationError(`${path}.areaLayout`, 'expected "columns" or "rows"');
+    }
+    areaLayout = value.areaLayout;
+  }
+
   return {
     areaPath: value.areaPath,
     ...(tumblesPath !== undefined ? { tumblesPath } : {}),
     ...(featureItemsPath !== undefined ? { featureItemsPath } : {}),
     ...(rowOrder !== undefined ? { rowOrder } : {}),
+    ...(areaLayout !== undefined ? { areaLayout } : {}),
     symbols,
     symbolTemplateDir: value.symbolTemplateDir,
     reelRegion: parseNormalizedRect(value.reelRegion, `${path}.reelRegion`),

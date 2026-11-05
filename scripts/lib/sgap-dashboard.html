@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SGAP Dashboard</title>
+  <link rel="stylesheet" href="/ui.css" />
+  <style>
+    /* Dashboard layout (shell, palette and components come from /ui.css). */
+    body.haulix .workspace { overflow-y: auto; }
+    .head-row { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .head-row .page-head { flex: 1; min-width: 240px; }
+    .period { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .range-nav { display: inline-flex; align-items: center; gap: 4px; }
+    .range-label { min-width: 168px; text-align: center; font-size: 13px; font-weight: 600; }
+    .period input[type="date"] {
+      height: 32px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--sidebar); color: var(--text); font: 12px var(--font); color-scheme: dark;
+    }
+    .period select {
+      height: 32px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--sidebar); color: var(--text); font: 12px var(--font); max-width: 200px;
+    }
+
+    .kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+    .kpi-card { background: var(--sidebar); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-height: 104px; }
+    .kpi-card .k { color: var(--faint); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+    .kpi-card .k .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+    .kpi-card .v { font: 600 26px/1.15 var(--mono); letter-spacing: -0.02em; margin-top: 8px; }
+    .kpi-card .d { font-size: 12px; margin-top: 6px; color: var(--faint); }
+    .kpi-card .d.up { color: var(--pass); }
+    .kpi-card .d.down { color: var(--fail); }
+    .kpi-card.hero { background: linear-gradient(160deg, rgba(139, 92, 246, 0.2), var(--sidebar) 60%); border-color: var(--accent-line); }
+    .kpi-card.p .v { color: var(--pass); }
+    .kpi-card.p .k .dot { background: var(--pass); }
+    .kpi-card.hero .k .dot { background: var(--accent); }
+    .kpi-card.f .v { color: var(--fail); }
+    .kpi-card.f .k .dot { background: var(--fail); }
+
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 16px; }
+    .grid-even { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .panel-body { padding: 14px 16px 16px; }
+    .legend-row { display: flex; gap: 14px; margin-left: auto; font-size: 12px; color: var(--muted); }
+    .legend-row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .legend-row .lp { background: var(--pass); }
+    .legend-row .lf { background: var(--fail); }
+    .legend-row .ls { background: var(--elevated); }
+    .legend-row .lr { background: var(--accent); height: 2px; width: 12px; border-radius: 1px; }
+
+    .chart { position: relative; height: 260px; }
+    .chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .chart .axis { fill: var(--faint); font: 11px var(--font); }
+    .chart .gridline { stroke: var(--line-soft); }
+    .chart .hit { fill: transparent; cursor: default; }
+    .chart .hit:hover, .chart .hit.on { fill: rgba(255, 255, 255, 0.04); }
+    .chart-tip {
+      position: absolute; pointer-events: none; z-index: 5; min-width: 150px;
+      background: var(--elevated); border: 1px solid var(--line-strong); border-radius: 10px;
+      padding: 8px 10px; font-size: 12px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .chart-tip b { display: block; margin-bottom: 4px; font-size: 12px; }
+    .chart-tip div { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+    .chart-tip span:last-child { color: var(--text); font-family: var(--mono); }
+
+    .donut-wrap { display: flex; align-items: center; gap: 20px; }
+    .donut { position: relative; width: 160px; height: 160px; flex: none; }
+    .donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .donut .c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+    .donut .c b { font: 600 24px var(--mono); }
+    .donut .c span { color: var(--faint); font-size: 11px; }
+    .dist { flex: 1; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+    .dist div { display: flex; align-items: center; gap: 8px; }
+    .dist i { width: 8px; height: 8px; border-radius: 2px; }
+    .dist b { margin-left: auto; font-family: var(--mono); font-weight: 600; }
+    .dist small { color: var(--faint); font-family: var(--mono); width: 48px; text-align: right; }
+    .cats { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+    .cats h4 { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .cats div { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 3px 0; }
+    .cats b { color: var(--fail); font-family: var(--mono); }
+
+    .bars { display: flex; flex-direction: column; gap: 2px; }
+    .bar-row {
+      display: grid; grid-template-columns: minmax(110px, 170px) minmax(0, 1fr) 52px 70px; gap: 12px; align-items: center;
+      padding: 7px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 0; background: none; color: inherit; text-align: left; width: 100%;
+      transition: background 0.14s var(--ease);
+    }
+    .bar-row:hover { background: var(--surface); }
+    .bar-row.on { background: var(--accent-soft); }
+    .bar-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-row .nm small { color: var(--faint); margin-left: 6px; font-family: var(--mono); }
+    .stack { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--elevated); }
+    .stack .p { background: var(--pass); }
+    .stack .f { background: var(--fail); }
+    .bar-row .pr { font-family: var(--mono); text-align: right; }
+    .bar-row .ct { font-family: var(--mono); text-align: right; color: var(--faint); font-size: 12px; }
+    .pr.good { color: var(--pass); }
+    .pr.mid { color: var(--run); }
+    .pr.bad { color: var(--fail); }
+
+    table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th { text-align: left; color: var(--faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 8px; border-bottom: 1px solid var(--line); }
+    .tbl td { padding: 9px 8px; border-top: 1px solid var(--line-soft); vertical-align: middle; }
+    .tbl tbody tr { transition: background 0.14s var(--ease); }
+    .tbl tbody tr:hover { background: var(--surface); }
+    .tbl .num { text-align: right; font-family: var(--mono); white-space: nowrap; }
+    .tbl .msg { color: var(--faint); font-size: 12px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tbl .id { font-family: var(--mono); color: var(--fail); white-space: nowrap; }
+    .tbl a.open { color: var(--accent-strong); font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .tbl a.open:hover { text-decoration: underline; }
+    .tbl .when { color: var(--faint); font-size: 12px; white-space: nowrap; }
+    .rate-pill { display: inline-block; min-width: 46px; padding: 2px 8px; border-radius: 999px; font: 600 11px var(--mono); text-align: center; }
+    .rate-pill.good { background: var(--pass-soft); color: var(--pass); }
+    .rate-pill.mid { background: var(--run-soft); color: var(--run); }
+    .rate-pill.bad { background: var(--fail-soft); color: var(--fail); }
+
+    .state { padding: 48px 16px; text-align: center; color: var(--faint); font-size: 13px; }
+    .state b { display: block; color: var(--text); font-size: 15px; margin-bottom: 6px; }
+    .state .btn { margin-top: 12px; }
+    .muted { color: var(--faint); }
+
+    @media (max-width: 1439px) {
+      .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 1100px) {
+      .grid-2, .grid-even { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .bar-row { grid-template-columns: minmax(90px, 1fr) minmax(0, 1fr) 46px; }
+      .bar-row .ct { display: none; }
+      .tbl .msg, .tbl .hide-sm { display: none; }
+      .range-label { min-width: 0; }
+    }
+  </style>
+</head>
+<body class="haulix">
+  <aside class="rail" aria-label="Navigation">
+    <div class="rail-panel">
+      <div class="mark-row"><div class="mark" data-icon="logo" title="SGAP"></div><span class="rail-name">SGAP</span></div>
+      <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <button type="button" class="rail-pin" id="rail-pin" aria-pressed="false" title="Pin the navigation open">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="utility">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>QA Workspace</span><span>/</span><b>Dashboard</b><span class="ctx" id="range-ctx"></span></nav>
+      <div class="spacer"></div>
+      <span class="status idle" id="status">Loading…</span>
+      <button type="button" class="access" id="access" hidden></button>
+    </header>
+
+    <div class="head-row">
+      <div class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="sub" id="sub">Pass and fail analytics from every published Allure report</p>
+        </div>
+      </div>
+      <div class="period">
+        <div class="tabs" id="period-tabs" role="tablist" aria-label="Report period">
+          <button type="button" class="tab" data-period="day">Day</button>
+          <button type="button" class="tab" data-period="week">Week</button>
+          <button type="button" class="tab" data-period="month">Month</button>
+          <button type="button" class="tab" data-period="year">Year</button>
+          <button type="button" class="tab" data-period="all">All time</button>
+        </div>
+        <div class="range-nav">
+          <button type="button" class="btn ghost sm icon" id="prev" data-icon="left" title="Previous period" aria-label="Previous period"></button>
+          <span class="range-label" id="range-label">—</span>
+          <button type="button" class="btn ghost sm icon" id="next" data-icon="right" title="Next period" aria-label="Next period"></button>
+        </div>
+        <input type="date" id="date" aria-label="Pick a date" title="Report for the period containing this date" />
+        <button type="button" class="btn sm" id="today">Today</button>
+        <select id="game" aria-label="Filter by game"><option value="">All games</option></select>
+        <button type="button" class="btn sm" id="export" data-icon="download" title="Download this period's results as CSV"><span>Export CSV</span></button>
+      </div>
+    </div>
+
+    <div id="body"><div class="panel state"><b>Reading reports…</b>The first load parses every Allure report once; later loads are instant.</div></div>
+  </div>
+
+  <div class="chart-tip" id="tip" hidden></div>
+
+  <script src="/ui.js"></script>
+  <script>
+    if (window.SGAP) SGAP.mountChrome();
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const servedByQa = window.SGAP_QA_API === '';
+    const api = (servedByQa ? '' : (window.SGAP ? SGAP.qaApi : 'http://127.0.0.1:3850')) + '/api/qa/analytics';
+    const reportHref = (id) => (servedByQa ? '/allure/' : 'http://127.0.0.1:5055/') + encodeURIComponent(id) + '/index.html';
+    const DAY = 86400000;
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    const params = new URLSearchParams(location.search);
+    const state = {
+      data: null,
+      period: ['day', 'week', 'month', 'year', 'all'].includes(params.get('period')) ? params.get('period') : 'week',
+      anchor: params.get('date') ? parseDate(params.get('date')) : startOfDay(new Date()),
+      game: params.get('game') || '',
+      error: '',
+    };
+
+    function parseDate(s) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+      return m ? new Date(+m[1], +m[2] - 1, +m[3]) : startOfDay(new Date());
+    }
+    function isoDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+    const gameNames = new Map();
+    function prettyGame(id) {
+      if (!id) return 'Unlabelled';
+      return gameNames.get(id) || id.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    async function loadGameNames() {
+      try {
+        const res = await fetch((servedByQa ? '' : (window.SGAP ? SGAP.qaApi : '')) + '/api/qa/catalog', { credentials: 'include' });
+        if (!res.ok) return;
+        const catalog = await res.json();
+        for (const pkg of catalog.packages || []) for (const g of pkg.games || []) if (g.name && g.name !== g.gameId) gameNames.set(g.gameId, g.name);
+        if (state.data) { fillGames(); render(); }
+      } catch { /* names fall back to the id */ }
+    }
+    function familyOf(caseId) { return (/^([A-Z]+)-/.exec(caseId || '') || [])[1] || 'Other'; }
+    function fmtDur(ms) {
+      if (!ms) return '—';
+      const s = Math.round(ms / 1000);
+      if (s < 60) return s + 's';
+      const m = Math.floor(s / 60);
+      return m < 60 ? m + 'm ' + String(s % 60).padStart(2, '0') + 's' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+    }
+    function fmtWhen(ts) {
+      const d = new Date(ts);
+      return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' · ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+    function rate(p, f) { return p + f === 0 ? null : (100 * p) / (p + f); }
+    function rateText(r) { return r === null ? '—' : (r >= 99.95 ? '100' : r.toFixed(1)) + '%'; }
+    function rateTone(r) { return r === null ? '' : r >= 90 ? 'good' : r >= 70 ? 'mid' : 'bad'; }
+
+    // ── Periods ─────────────────────────────────────────────────────────────
+    function rangeFor(period, anchor) {
+      const y = anchor.getFullYear(), m = anchor.getMonth();
+      if (period === 'day') return { start: startOfDay(anchor), end: addDays(startOfDay(anchor), 1) };
+      if (period === 'week') {
+        const start = addDays(startOfDay(anchor), -((anchor.getDay() + 6) % 7));
+        return { start, end: addDays(start, 7) };
+      }
+      if (period === 'month') return { start: new Date(y, m, 1), end: new Date(y, m + 1, 1) };
+      if (period === 'year') return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+      const runs = state.data ? state.data.runs : [];
+      const first = runs.length ? new Date(runs[0].at) : new Date();
+      const last = runs.length ? new Date(runs[runs.length - 1].at) : new Date();
+      return { start: new Date(first.getFullYear(), first.getMonth(), 1), end: new Date(last.getFullYear(), last.getMonth() + 1, 1) };
+    }
+    function shift(period, anchor, dir) {
+      if (period === 'day') return addDays(anchor, dir);
+      if (period === 'week') return addDays(anchor, 7 * dir);
+      if (period === 'month') return new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1);
+      if (period === 'year') return new Date(anchor.getFullYear() + dir, 0, 1);
+      return anchor;
+    }
+    function rangeLabel(period, r) {
+      const s = r.start, e = addDays(r.end, -1);
+      if (period === 'day') return WEEKDAYS[(s.getDay() + 6) % 7] + ', ' + MONTHS[s.getMonth()] + ' ' + s.getDate() + ', ' + s.getFullYear();
+      if (period === 'week') {
+        return MONTHS[s.getMonth()] + ' ' + s.getDate() + ' – ' + (s.getMonth() === e.getMonth() ? '' : MONTHS[e.getMonth()] + ' ') + e.getDate() + ', ' + e.getFullYear();
+      }
+      if (period === 'month') return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][s.getMonth()] + ' ' + s.getFullYear();
+      if (period === 'year') return String(s.getFullYear());
+      return MONTHS[s.getMonth()] + ' ' + s.getFullYear() + ' – ' + MONTHS[e.getMonth()] + ' ' + e.getFullYear();
+    }
+    function buckets(period, r) {
+      const out = [];
+      if (period === 'day') {
+        for (let h = 0; h < 24; h += 1) {
+          const s = new Date(r.start.getFullYear(), r.start.getMonth(), r.start.getDate(), h);
+          out.push({ start: +s, end: +s + 3600000, label: String(h).padStart(2, '0'), long: String(h).padStart(2, '0') + ':00 – ' + String(h).padStart(2, '0') + ':59' });
+        }
+      } else if (period === 'week' || period === 'month') {
+        for (let d = r.start; d < r.end; d = addDays(d, 1)) {
+          out.push({
+            start: +d, end: +addDays(d, 1),
+            label: period === 'week' ? WEEKDAYS[(d.getDay() + 6) % 7] + ' ' + d.getDate() : String(d.getDate()),
+            long: WEEKDAYS[(d.getDay() + 6) % 7] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate(),
+          });
+        }
+      } else {
+        for (let d = r.start; d < r.end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+          const e = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+          out.push({ start: +d, end: +e, label: MONTHS[d.getMonth()] + (period === 'all' ? ' ' + String(d.getFullYear()).slice(2) : ''), long: MONTHS[d.getMonth()] + ' ' + d.getFullYear() });
+        }
+      }
+      return out;
+    }
+
+    // ── Aggregation ─────────────────────────────────────────────────────────
+    function slice(r) {
+      const { runs, tests } = state.data;
+      const lo = +r.start, hi = +r.end;
+      const inTests = tests.filter((t) => t[1] >= lo && t[1] < hi && (!state.game || t[3] === state.game));
+      const runIdx = new Set(inTests.map((t) => t[0]));
+      const inRuns = runs.map((run, i) => ({ ...run, i })).filter((run) => state.game ? runIdx.has(run.i) : run.at >= lo && run.at < hi);
+      return { tests: inTests, runs: inRuns };
+    }
+    function totals(s) {
+      const t = { passed: 0, failed: 0, skipped: 0, total: s.tests.length, runs: s.runs.length, dur: 0 };
+      for (const x of s.tests) {
+        if (x[6] === 'passed') t.passed += 1;
+        else if (x[6] === 'failed') t.failed += 1;
+        else t.skipped += 1;
+      }
+      const withDur = s.runs.filter((run) => run.durationMs > 0);
+      t.dur = withDur.length ? withDur.reduce((a, run) => a + run.durationMs, 0) / withDur.length : 0;
+      t.rate = rate(t.passed, t.failed);
+      return t;
+    }
+    function groupBy(tests, keyFn) {
+      const map = new Map();
+      for (const t of tests) {
+        const k = keyFn(t);
+        const g = map.get(k) || { key: k, passed: 0, failed: 0, skipped: 0, total: 0 };
+        g.total += 1;
+        if (t[6] === 'passed') g.passed += 1; else if (t[6] === 'failed') g.failed += 1; else g.skipped += 1;
+        map.set(k, g);
+      }
+      return [...map.values()].map((g) => ({ ...g, rate: rate(g.passed, g.failed) }));
+    }
+
+    // ── Rendering ───────────────────────────────────────────────────────────
+    function deltaFor(cur, prev, kind) {
+      if (state.period === 'all' || prev === null || prev === undefined || cur === null) return '<div class="d">&nbsp;</div>';
+      if (kind === 'rate') {
+        const d = cur - prev;
+        if (Math.abs(d) < 0.05) return '<div class="d">same as previous period</div>';
+        return '<div class="d ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(1) + ' pts vs previous</div>';
+      }
+      const d = cur - prev;
+      if (d === 0) return '<div class="d">same as previous period</div>';
+      const good = kind === 'bad' ? d < 0 : kind === 'neutral' || kind === 'dur' ? null : d > 0;
+      return '<div class="d ' + (good === null ? '' : good ? 'up' : 'down') + '">' + (d > 0 ? '+' : '−') + (kind === 'dur' ? fmtDur(Math.abs(d)) : Math.abs(d)) + ' vs previous</div>';
+    }
+
+    function kpiHtml(t, p) {
+      const noPrev = p && p.total === 0 && p.runs === 0;
+      const delta = (cur, prev, kind) => (noPrev ? '<div class="d">no tests in the previous period</div>' : deltaFor(cur, prev, kind));
+      const card = (cls, label, value, d) => '<div class="kpi-card ' + cls + '"><div class="k"><span class="dot"></span>' + label + '</div><div class="v">' + value + '</div>' + d + '</div>';
+      return '<div class="kpis">' +
+        card('hero', 'Pass rate', rateText(t.rate), delta(t.rate, p && p.rate, 'rate')) +
+        card('', 'Tests executed', t.total, delta(t.total, p && p.total, 'neutral')) +
+        card('p', 'Passed', t.passed, delta(t.passed, p && p.passed, 'good')) +
+        card('f', 'Failed', t.failed, delta(t.failed, p && p.failed, 'bad')) +
+        card('', 'Runs', t.runs, delta(t.runs, p && p.runs, 'neutral')) +
+        card('', 'Avg run time', fmtDur(t.dur), delta(Math.round(t.dur / 1000) * 1000, p && Math.round(p.dur / 1000) * 1000, 'dur')) +
+      '</div>';
+    }
+
+    function trendSeries(s, bks) {
+      const rows = bks.map((b) => ({ ...b, passed: 0, failed: 0, skipped: 0 }));
+      for (const t of s.tests) {
+        const i = rows.findIndex((b) => t[1] >= b.start && t[1] < b.end);
+        if (i < 0) continue;
+        if (t[6] === 'passed') rows[i].passed += 1; else if (t[6] === 'failed') rows[i].failed += 1; else rows[i].skipped += 1;
+      }
+      return rows;
+    }
+
+    function drawTrend(rows) {
+      const box = $('trend');
+      if (!box) return;
+      const W = Math.max(320, box.clientWidth), H = box.clientHeight || 260;
+      const padL = 36, padR = 40, padT = 10, padB = 26;
+      const iw = W - padL - padR, ih = H - padT - padB;
+      const max = Math.max(1, ...rows.map((r) => r.passed + r.failed + r.skipped));
+      const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(max))); const m = max / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; })();
+      const bw = iw / rows.length;
+      const barW = Math.max(2, Math.min(28, bw * 0.62));
+      const y = (v) => padT + ih - (v / nice) * ih;
+      let svg = '';
+      for (let k = 0; k <= 4; k += 1) {
+        const v = (nice / 4) * k, yy = y(v);
+        svg += '<line class="gridline" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '"/>' +
+          '<text class="axis" x="' + (padL - 8) + '" y="' + (yy + 4) + '" text-anchor="end">' + Math.round(v) + '</text>' +
+          '<text class="axis" x="' + (W - padR + 8) + '" y="' + (yy + 4) + '">' + (25 * k) + '%</text>';
+      }
+      const step = Math.ceil(rows.length / Math.max(1, Math.floor(iw / 44)));
+      const pts = [];
+      rows.forEach((r, i) => {
+        const cx = padL + bw * i + bw / 2, x = cx - barW / 2;
+        let base = r.passed + r.failed + r.skipped;
+        const seg = (v, color) => {
+          if (!v) return '';
+          const top = y(base), h = y(base - v) - top;
+          base -= v;
+          return '<rect x="' + x + '" y="' + top + '" width="' + barW + '" height="' + Math.max(1, h) + '" rx="2" fill="' + color + '"/>';
+        };
+        svg += seg(r.skipped, 'var(--elevated)') + seg(r.failed, 'var(--fail)') + seg(r.passed, 'var(--pass)');
+        if (i % step === 0) svg += '<text class="axis" x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(r.label) + '</text>';
+        const rr = rate(r.passed, r.failed);
+        if (rr !== null) pts.push([cx, padT + ih - (rr / 100) * ih]);
+        svg += '<rect class="hit" data-i="' + i + '" x="' + (padL + bw * i) + '" y="' + padT + '" width="' + bw + '" height="' + ih + '"/>';
+      });
+      if (pts.length > 1) svg += '<polyline points="' + pts.map((p) => p.join(',')).join(' ') + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>';
+      svg += pts.map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3" fill="var(--canvas)" stroke="var(--accent)" stroke-width="2" pointer-events="none"/>').join('');
+      box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Passed and failed tests over time">' + svg + '</svg>';
+      box.onmousemove = (ev) => {
+        const hit = ev.target.closest('.hit');
+        const tip = $('tip');
+        box.querySelectorAll('.hit.on').forEach((el) => el.classList.remove('on'));
+        if (!hit) { tip.hidden = true; return; }
+        hit.classList.add('on');
+        const r = rows[Number(hit.dataset.i)];
+        tip.innerHTML = '<b>' + esc(r.long) + '</b>' +
+          '<div><span>Passed</span><span>' + r.passed + '</span></div>' +
+          '<div><span>Failed</span><span>' + r.failed + '</span></div>' +
+          (r.skipped ? '<div><span>Skipped</span><span>' + r.skipped + '</span></div>' : '') +
+          '<div><span>Pass rate</span><span>' + rateText(rate(r.passed, r.failed)) + '</span></div>';
+        tip.hidden = false;
+        const tw = tip.offsetWidth;
+        tip.style.left = Math.min(window.innerWidth - tw - 12, ev.clientX + 14) + 'px';
+        tip.style.top = (ev.clientY + 14) + 'px';
+      };
+      box.onmouseleave = () => { $('tip').hidden = true; box.querySelectorAll('.hit.on').forEach((el) => el.classList.remove('on')); };
+    }
+
+    function donutHtml(t, fails) {
+      const total = t.passed + t.failed + t.skipped;
+      const C = 2 * Math.PI * 42;
+      let off = 0;
+      const arc = (v, color) => {
+        if (!v) return '';
+        const len = (v / total) * C;
+        const s = '<circle cx="50" cy="50" r="42" fill="none" stroke="' + color + '" stroke-width="12" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-off) + '"/>';
+        off += len;
+        return s;
+      };
+      const pct = (v) => (total ? ((100 * v) / total).toFixed(1) + '%' : '—');
+      const cats = groupBy(fails, (x) => x[8] || 'Uncategorised').sort((a, b) => b.total - a.total).slice(0, 4);
+      return '<div class="donut-wrap"><div class="donut"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--elevated)" stroke-width="12"/>' +
+          arc(t.passed, 'var(--pass)') + arc(t.failed, 'var(--fail)') + arc(t.skipped, '#5a5d63') + '</svg>' +
+          '<div class="c"><b>' + total + '</b><span>tests</span></div></div>' +
+        '<div class="dist">' +
+          '<div><i style="background:var(--pass)"></i>Passed<b>' + t.passed + '</b><small>' + pct(t.passed) + '</small></div>' +
+          '<div><i style="background:var(--fail)"></i>Failed<b>' + t.failed + '</b><small>' + pct(t.failed) + '</small></div>' +
+          '<div><i style="background:#5a5d63"></i>Skipped<b>' + t.skipped + '</b><small>' + pct(t.skipped) + '</small></div>' +
+        '</div></div>' +
+        (cats.length ? '<div class="cats"><h4>Failure categories</h4>' + cats.map((c) => '<div><span>' + esc(c.key) + '</span><b>' + c.total + '</b></div>').join('') + '</div>' : '');
+    }
+
+    function barsHtml(groups, opts) {
+      if (!groups.length) return '<div class="state">No results in this period.</div>';
+      return '<div class="bars">' + groups.map((g) => {
+        const done = g.passed + g.failed + g.skipped || 1;
+        return '<button type="button" class="bar-row' + (opts.selected && opts.selected === g.key ? ' on' : '') + '"' + (opts.attr && g.key ? ' ' + opts.attr + '="' + esc(g.key) + '"' : '') + ' title="' + esc(opts.name(g.key)) + ': ' + g.passed + ' passed, ' + g.failed + ' failed' + (g.skipped ? ', ' + g.skipped + ' skipped' : '') + '">' +
+          '<span class="nm">' + esc(opts.name(g.key)) + (opts.sub ? '<small>' + esc(opts.sub(g.key)) + '</small>' : '') + '</span>' +
+          '<span class="stack"><i class="p" style="width:' + (100 * g.passed) / done + '%"></i><i class="f" style="width:' + (100 * g.failed) / done + '%"></i></span>' +
+          '<span class="pr ' + rateTone(g.rate) + '">' + rateText(g.rate) + '</span>' +
+          '<span class="ct">' + g.passed + '/' + (g.passed + g.failed) + '</span>' +
+        '</button>';
+      }).join('') + '</div>';
+    }
+
+    function failingHtml(s) {
+      const byCase = new Map();
+      for (const t of s.tests) {
+        const key = t[2] + '|' + t[3];
+        const g = byCase.get(key) || { caseId: t[2], gameId: t[3], fails: 0, runs: 0, last: 0, msg: '' };
+        g.runs += 1;
+        if (t[6] === 'failed') {
+          g.fails += 1;
+          if (t[1] >= g.last) { g.last = t[1]; g.msg = t[9]; }
+        }
+        byCase.set(key, g);
+      }
+      const top = [...byCase.values()].filter((g) => g.fails > 0).sort((a, b) => b.fails - a.fails || b.last - a.last).slice(0, 8);
+      if (!top.length) return '<div class="state"><b>No failures</b>Nothing failed in this period.</div>';
+      return '<table class="tbl"><thead><tr><th>Case</th><th>Game</th><th class="num">Failed</th><th class="hide-sm">Last failure</th><th class="hide-sm">Reason</th></tr></thead><tbody>' +
+        top.map((g) => '<tr><td class="id">' + esc(g.caseId) + '</td><td>' + esc(prettyGame(g.gameId)) + '</td>' +
+          '<td class="num">' + g.fails + '<span class="muted">/' + g.runs + '</span></td>' +
+          '<td class="when hide-sm">' + fmtWhen(g.last) + '</td><td class="msg" title="' + esc(g.msg) + '">' + esc(g.msg || '—') + '</td></tr>').join('') +
+        '</tbody></table>';
+    }
+
+    function runsHtml(s) {
+      const runs = s.runs.slice().sort((a, b) => b.at - a.at).slice(0, 12);
+      if (!runs.length) return '<div class="state">No runs in this period.</div>';
+      return '<table class="tbl"><thead><tr><th>Run</th><th class="hide-sm">When</th><th class="num">Passed</th><th class="num">Failed</th><th class="num">Rate</th><th class="num hide-sm">Duration</th><th></th></tr></thead><tbody>' +
+        runs.map((run) => {
+          const r = rate(run.passed, run.failed);
+          return '<tr><td>' + esc(run.label) + '</td><td class="when hide-sm">' + fmtWhen(run.at) + '</td>' +
+            '<td class="num" style="color:var(--pass)">' + run.passed + '</td><td class="num" style="color:' + (run.failed ? 'var(--fail)' : 'var(--faint)') + '">' + run.failed + '</td>' +
+            '<td class="num"><span class="rate-pill ' + rateTone(r) + '">' + rateText(r) + '</span></td>' +
+            '<td class="num hide-sm">' + fmtDur(run.durationMs) + '</td>' +
+            '<td class="num"><a class="open" href="' + reportHref(run.id) + '" target="_blank" rel="noreferrer">Report ↗</a></td></tr>';
+        }).join('') + '</tbody></table>' +
+        (s.runs.length > 12 ? '<div class="muted" style="font-size:12px;padding:10px 8px 0">Showing the 12 newest of ' + s.runs.length + ' runs. Export CSV for everything.</div>' : '');
+    }
+
+    function syncControls(r) {
+      document.querySelectorAll('#period-tabs .tab').forEach((b) => b.classList.toggle('on', b.dataset.period === state.period));
+      $('range-label').textContent = rangeLabel(state.period, r);
+      $('range-ctx').textContent = { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly', all: 'All time' }[state.period] + ' report';
+      $('date').value = isoDate(state.anchor);
+      $('prev').disabled = $('next').disabled = state.period === 'all';
+      $('next').disabled = $('next').disabled || +r.end > Date.now();
+      $('game').value = state.game;
+      const q = new URLSearchParams({ period: state.period, date: isoDate(state.anchor) });
+      if (state.game) q.set('game', state.game);
+      history.replaceState(null, '', location.pathname + '?' + q);
+    }
+
+    function render() {
+      const body = $('body');
+      if (state.error) {
+        body.innerHTML = '<div class="panel state"><b>Could not load analytics</b>' + esc(state.error) + '<br><button type="button" class="btn sm" onclick="load()">Try again</button></div>';
+        return;
+      }
+      if (!state.data) return;
+      const r = rangeFor(state.period, state.anchor);
+      syncControls(r);
+      if (!state.data.runs.length) {
+        body.innerHTML = '<div class="panel state"><b>No reports yet</b>Analytics appear after the first run publishes an Allure report.</div>';
+        return;
+      }
+      const s = slice(r);
+      const t = totals(s);
+      const prev = state.period === 'all' ? null : totals(slice(rangeFor(state.period, shift(state.period, state.anchor, -1))));
+      if (!s.tests.length) {
+        const last = state.data.runs[state.data.runs.length - 1];
+        body.innerHTML = kpiHtml(t, prev) +
+          '<div class="panel state" style="margin-top:16px"><b>No tests ran in this period</b>' +
+          (state.game ? esc(prettyGame(state.game)) + ' has no results here. ' : '') +
+          'The latest report is from ' + fmtWhen(last.at) + '.<br><button type="button" class="btn sm" id="jump">Go to the latest run</button></div>';
+        $('jump').onclick = () => { state.anchor = startOfDay(new Date(last.at)); render(); };
+        return;
+      }
+      const rows = trendSeries(s, buckets(state.period, r));
+      const games = groupBy(s.tests, (x) => x[3]).sort((a, b) => b.total - a.total);
+      const fams = groupBy(s.tests, (x) => familyOf(x[2])).sort((a, b) => b.total - a.total);
+      const fails = s.tests.filter((x) => x[6] === 'failed');
+      const unit = { day: 'hour', week: 'day', month: 'day', year: 'month', all: 'month' }[state.period];
+      body.innerHTML = kpiHtml(t, prev) +
+        '<div class="grid-2" style="margin-top:16px">' +
+          '<section class="panel"><div class="panel-head"><h3>Results trend</h3><span class="sub">per ' + unit + '</span>' +
+            '<div class="legend-row"><span><i class="lp"></i>Passed</span><span><i class="lf"></i>Failed</span><span><i class="ls"></i>Skipped</span><span><i class="lr"></i>Pass rate</span></div></div>' +
+            '<div class="panel-body"><div class="chart" id="trend"></div></div></section>' +
+          '<section class="panel"><div class="panel-head"><h3>Outcome split</h3><span class="sub">final result per test</span></div><div class="panel-body">' + donutHtml(t, fails) + '</div></section>' +
+        '</div>' +
+        '<div class="grid-even" style="margin-top:16px">' +
+          '<section class="panel"><div class="panel-head"><h3>By game</h3><span class="sub">click to filter</span></div><div class="panel-body">' +
+            barsHtml(games, { name: prettyGame, attr: 'data-game', selected: state.game }) + '</div></section>' +
+          '<section class="panel"><div class="panel-head"><h3>By test family</h3><span class="sub">pass rate excludes skipped</span></div><div class="panel-body">' +
+            barsHtml(fams, { name: (k) => k }) + '</div></section>' +
+        '</div>' +
+        '<div class="grid-even" style="margin-top:16px">' +
+          '<section class="panel"><div class="panel-head"><h3>Most failing cases</h3><span class="sub">this period</span></div><div class="panel-body">' + failingHtml(s) + '</div></section>' +
+          '<section class="panel"><div class="panel-head"><h3>Runs</h3><span class="sub">' + s.runs.length + ' in this period</span></div><div class="panel-body">' + runsHtml(s) + '</div></section>' +
+        '</div>';
+      drawTrend(rows);
+      body.querySelectorAll('[data-game]').forEach((el) => {
+        el.onclick = () => { state.game = state.game === el.dataset.game ? '' : el.dataset.game; render(); };
+      });
+    }
+
+    function fillGames() {
+      const sel = $('game');
+      const ids = [...new Set(state.data.tests.map((t) => t[3]).filter(Boolean))].sort();
+      sel.innerHTML = '<option value="">All games</option>' + ids.map((id) => '<option value="' + esc(id) + '">' + esc(prettyGame(id)) + '</option>').join('');
+      sel.value = state.game;
+    }
+
+    async function load() {
+      try {
+        const res = await fetch(api, { cache: 'no-store', credentials: 'include' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 404 ? ' — open the dashboard from the control panel (port 3850)' : ''));
+        const data = await res.json();
+        const changed = !state.data || data.runs.length !== state.data.runs.length || data.tests.length !== state.data.tests.length;
+        state.data = data;
+        state.error = '';
+        $('status').textContent = data.runs.length + ' reports · updated ' + new Date(data.generatedAt).toLocaleTimeString();
+        $('status').classList.remove('bad', 'idle');
+        $('sub').textContent = data.tests.length.toLocaleString() + ' test results across ' + data.runs.length + ' published Allure reports';
+        if (changed) { fillGames(); render(); }
+      } catch (error) {
+        $('status').textContent = 'Analytics unavailable';
+        $('status').classList.add('bad');
+        if (!state.data) { state.error = String(error.message || error); render(); }
+      }
+    }
+
+    function exportCsv() {
+      if (!state.data) return;
+      const r = rangeFor(state.period, state.anchor);
+      const s = slice(r);
+      const runs = state.data.runs;
+      const cell = (v) => { const x = String(v ?? ''); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+      const lines = [['date', 'time', 'run', 'case', 'game', 'package', 'feature', 'status', 'duration_s', 'category', 'message'].join(',')];
+      for (const t of s.tests.slice().sort((a, b) => a[1] - b[1])) {
+        const d = new Date(t[1]);
+        lines.push([isoDate(d), d.toTimeString().slice(0, 8), runs[t[0]].label, t[2], t[3], t[4], t[5], t[6], Math.round(t[7] / 1000), t[8], t[9]].map(cell).join(','));
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sgap-' + state.period + '-report-' + isoDate(r.start) + (state.game ? '-' + state.game : '') + '.csv';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    $('period-tabs').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-period]');
+      if (b) { state.period = b.dataset.period; render(); }
+    });
+    $('prev').onclick = () => { state.anchor = shift(state.period, state.anchor, -1); render(); };
+    $('next').onclick = () => { state.anchor = shift(state.period, state.anchor, 1); render(); };
+    $('today').onclick = () => { state.anchor = startOfDay(new Date()); render(); };
+    $('date').addEventListener('change', (ev) => { if (ev.target.value) { state.anchor = parseDate(ev.target.value); render(); } });
+    $('game').addEventListener('change', (ev) => { state.game = ev.target.value; render(); });
+    $('export').onclick = exportCsv;
+    document.addEventListener('keydown', (ev) => {
+      if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName)) return;
+      const k = ev.key.toLowerCase();
+      const map = { d: 'day', w: 'week', m: 'month', y: 'year' };
+      if (map[k]) { state.period = map[k]; render(); }
+      else if (ev.key === 'ArrowLeft' && state.period !== 'all') $('prev').click();
+      else if (ev.key === 'ArrowRight' && !$('next').disabled) $('next').click();
+    });
+    let resizeTimer;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 120); });
+
+    load();
+    loadGameNames();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>

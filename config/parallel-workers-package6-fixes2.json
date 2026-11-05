@@ -1,0 +1,74 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 6 second follow-up: buy-confirm guard trusts a vision-located pill when the HUD spin stays interactive under the panel; BF-011 reads the game HUD balance before the buy.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": [
+        "AT",
+        "BF",
+        "CSF",
+        "ES",
+        "FS",
+        "SM",
+        "UIDS"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "at/**/AT-006.spec.ts",
+        "at/**/AT-009.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "bf/**/BF-002.spec.ts",
+        "bf/**/BF-006.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "bf/**/BF-010.spec.ts",
+        "bf/**/BF-011.spec.ts",
+        "csf/**/CSF-012.spec.ts",
+        "es/**/ES-004.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "fs/**/FS-002.spec.ts",
+        "fs/**/FS-003.spec.ts",
+        "fs/**/FS-004.spec.ts",
+        "fs/**/FS-005.spec.ts",
+        "fs/**/FS-006.spec.ts",
+        "fs/**/FS-007.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "fs/**/FS-009.spec.ts",
+        "sm/**/SM-001.spec.ts",
+        "uids/**/UIDS-004.spec.ts"
+      ],
+      "playerId": "Zero Law_FX62",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": [
+        "BF",
+        "FS"
+      ],
+      "packageId": "6",
+      "testMatch": [
+        "bf/**/BF-011.spec.ts",
+        "fs/**/FS-002.spec.ts",
+        "fs/**/FS-003.spec.ts",
+        "fs/**/FS-004.spec.ts",
+        "fs/**/FS-008.spec.ts"
+      ],
+      "playerId": "Boobie Trap_FX62",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

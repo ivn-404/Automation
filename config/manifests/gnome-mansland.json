@@ -1,0 +1,344 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "gnome-mansland",
+  "displayName": "Gnome Mansland",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
+      "id": "scratchCard",
+      "enabled": true
+    }
+  ],
+  "locatorKeys": {
+    "gameGrid": "div.grid",
+    "gameIframe": "iframe[title=\"Game session\"]",
+    "searchGames": "input[placeholder*=\"Search games\"]"
+  },
+  "canvasActions": {
+    "canvasSelector": "canvas",
+    "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeature": {
+        "x": 0.5,
+        "y": 0.824
+      },
+      "buyFeatureConfirm": {
+        "x": 0.5,
+        "y": 0.929
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.921,
+        "y": 0.248
+      },
+      "betMinus": {
+        "x": 0.712,
+        "y": 0.833
+      },
+      "betPlus": {
+        "x": 0.908,
+        "y": 0.833
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.9,
+        "y": 0.925
+      },
+      "amplifyBet": {
+        "x": 0.73,
+        "y": 0.92
+      },
+      "menu": {
+        "x": 0.1,
+        "y": 0.925
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.27,
+        "y": 0.92
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.27,
+        "y": 0.92
+      },
+      "autoplaySpins10": {
+        "x": 0.22,
+        "y": 0.52
+      },
+      "scratchCard": {
+        "x": 0.189,
+        "y": 0.775
+      },
+      "buyFeatureOption1": {
+        "x": 0.498,
+        "y": 0.344
+      },
+      "buyFeatureOption2": {
+        "x": 0.498,
+        "y": 0.465
+      },
+      "buyFeatureOption3": {
+        "x": 0.498,
+        "y": 0.586
+      },
+      "buyFeatureOption4": {
+        "x": 0.498,
+        "y": 0.707
+      }
+    }
+  },
+  "scratchCard": {
+    "hubUrlPattern": "**/hubs/game",
+    "sideCanvasSelector": "#scratch-side-host canvas",
+    "inCanvasDrawer": {
+      "x": 0,
+      "y": 0.0713,
+      "width": 1,
+      "height": 0.9287
+    },
+    "actions": {
+      "size3x3": {
+        "x": 0.266,
+        "y": 0.203
+      },
+      "size4x4": {
+        "x": 0.5,
+        "y": 0.203
+      },
+      "size5x5": {
+        "x": 0.735,
+        "y": 0.203
+      },
+      "buyCard": {
+        "x": 0.5,
+        "y": 0.941
+      },
+      "scratchAll": {
+        "x": 0.5,
+        "y": 0.941
+      },
+      "close": {
+        "x": 0.925,
+        "y": 0.047
+      },
+      "betMinus": {
+        "x": 0.151,
+        "y": 0.85
+      },
+      "betPlus": {
+        "x": 0.852,
+        "y": 0.85
+      }
+    },
+    "scratchArea": {
+      "x": 0.08,
+      "y": 0.31,
+      "width": 0.84,
+      "height": 0.47
+    },
+    "openProbe": {
+      "area": {
+        "x": 0.12,
+        "y": 0.92,
+        "width": 0.18,
+        "height": 0.04
+      },
+      "hue": "green",
+      "minShare": 0.6
+    },
+    "textAreas": {
+      "title": {
+        "x": 0.03,
+        "y": 0.01,
+        "width": 0.6,
+        "height": 0.07
+      },
+      "totalWin": {
+        "x": 0.2,
+        "y": 0.06,
+        "width": 0.6,
+        "height": 0.055
+      },
+      "sizeTabs": {
+        "x": 0.1,
+        "y": 0.175,
+        "width": 0.8,
+        "height": 0.05
+      },
+      "legend": {
+        "x": 0.05,
+        "y": 0.275,
+        "width": 0.9,
+        "height": 0.04
+      },
+      "betValue": {
+        "x": 0.3,
+        "y": 0.835,
+        "width": 0.4,
+        "height": 0.035
+      },
+      "pill": {
+        "x": 0.2,
+        "y": 0.905,
+        "width": 0.6,
+        "height": 0.05
+      }
+    }
+  },
+  "network": {
+    "betUrlPattern": "**/api/v1/slots/bet",
+    "initializeUrlPattern": "**/api/v1/slots/initialize",
+    "fields": {
+      "balance": "balance",
+      "totalWin": "slot.totalWin",
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
+    }
+  },
+  "metadata": {
+    "launcherGameLabel": "Gnome Mansland",
+    "launcherGameId": "00290426",
+    "launcherGameKey": "gnome_mans_land",
+    "playButtonAriaLabel": "Play in modal",
+    "rendering": "canvas",
+    "host": "dijoker",
+    "devices": "mobile,desktop",
+    "portraitViewport": "390x844",
+    "orientationLock": "portrait",
+    "stagingStatus": "active",
+    "notes": "Package 6 slot \"Gnome Man's Land\", newly released 2026-10-27 (launcher 00290426, game path gnome_mans_land). PROBE-002 (2026-10-27): the HUD sits 0.008 above Zero Law: spin 0.500,0.920, turbo 0.900,0.925, amplify 0.730,0.920, bet -/+ 0.712/0.908 at y 0.833, autoplay 0.270,0.920, menu 0.100,0.925, buy hitbox 120x54 at 0.500,0.824. PROBE-005 (2026-10-27): four tiers as on Zero Law at stake 1 (v.1 Positively Wicked 78x, 3 scatters, x8; v.2 Lurking in the Shadows 150x, 4, x16; v.3 Oh! Gnome! 288x, 5, x32; v.4 Witch, please! 128x, random 3-6) with rows at y 0.344 / 0.465 / 0.586 / 0.707, BUY FEATURE at 0.500, 0.929, close at 0.921, 0.248. Scatter start table and payload paths follow Zero Law until the regression shows otherwise.",
+    "packageId": "package-6",
+    "normalModeMultiplier": "true",
+    "normalModeMultiplierMode": "tumble",
+    "normalModeMultiplierPath": "slot.tumbles[].multiplier.current",
+    "normalModeTumbleMultipliers": "1,2,4,8,16,32,64,128,256,512,1024",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true",
+    "buyFeatureMultiplier": "78",
+    "maxWinMultiplier": "5000",
+    "maxWinFlagPath": "slot.hasMaxWin",
+    "buyFeatureSelections": "4",
+    "buyFeatureOption2Multiplier": "150",
+    "buyFeatureOption2StartMultiplier": "16",
+    "buyFeatureOption1StartMultiplier": "8",
+    "buyFeatureOption1Scatters": "3",
+    "buyFeatureOption3Multiplier": "288",
+    "buyFeatureOption3StartMultiplier": "32",
+    "buyFeatureOption3Scatters": "5",
+    "buyFeatureOption4Multiplier": "128",
+    "buyFeatureOption4Scatters": "3",
+    "buyFeatureStartMultiplierPath": "tumbles[].multiplier.current",
+    "buyFeatureOption2Scatters": "4",
+    "featureStartMultipliers": "3:8,4:16,5:32,6:64",
+    "featureTriggerScatterPaths": "slot.area,slot.tumbles[].symbols.in"
+  }
+}

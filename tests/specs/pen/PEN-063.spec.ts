@@ -1,7 +1,7 @@
 /**
  * PEN-063 — Flooding and oversized frames must not crash the hub or leak internals.
  *
- * Manual Test Case ID: PEN-063 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-063 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: a burst of invocations plus one oversized frame must be absorbed — the hub
  * either answers or throttles cleanly, the socket stays usable (or closes with a reason),
  * and no completion leaks a stack trace / internal path. Burst is kept modest for staging.

@@ -5,6 +5,42 @@
   "iframeSelectorKey": "gameIframe",
   "controllers": [
     {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
       "id": "scratchCard",
       "enabled": true
     }
@@ -17,9 +53,125 @@
   "canvasActions": {
     "canvasSelector": "canvas",
     "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.5,
+        "y": 0.918
+      },
+      "buyFeature": {
+        "x": 0.5,
+        "y": 0.815
+      },
+      "buyFeatureConfirm": {
+        "x": 0.502,
+        "y": 0.81
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.92,
+        "y": 0.245
+      },
+      "betMinus": {
+        "x": 0.712,
+        "y": 0.827
+      },
+      "betPlus": {
+        "x": 0.908,
+        "y": 0.827
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.9,
+        "y": 0.921
+      },
+      "amplifyBet": {
+        "x": 0.727,
+        "y": 0.917
+      },
+      "menu": {
+        "x": 0.1,
+        "y": 0.92
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.27,
+        "y": 0.917
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.27,
+        "y": 0.917
+      },
+      "autoplaySpins10": {
+        "x": 0.22,
+        "y": 0.52
+      },
       "scratchCard": {
-        "x": 0.189,
-        "y": 0.702
+        "x": 0.19,
+        "y": 0.761
       }
     }
   },
@@ -127,7 +279,9 @@
     "fields": {
       "balance": "balance",
       "totalWin": "slot.totalWin",
-      "transactionState": "transactionState"
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
     }
   },
   "metadata": {
@@ -141,8 +295,14 @@
     "portraitViewport": "390x844",
     "orientationLock": "portrait",
     "stagingStatus": "active",
-    "notes": "Scratch-only manifest (SCG). Game space 428x926; HUD SCRATCH button from Phaser discovery; scratch drawer is the shared 428x860 panel. Slot controllers (spin, bet, buy…) are not configured for this title.",
+    "notes": "Slot HUD starts from the Package 3 portrait layout so regression can click. Not yet measured by PROBE-002. Scratch drawer stays the shared panel. normalModeMultiplier is false.",
     "packageId": "package-4",
-    "normalModeMultiplier": "false"
+    "normalModeMultiplier": "false",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true"
   }
 }

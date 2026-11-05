@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "unregistered",
+  "displayName": "Unregistered game (Game URL)",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    {
+      "id": "fullscreen",
+      "enabled": false
+    }
+  ],
+  "locatorKeys": {
+    "gameIframe": "iframe[title=\"Game session\"]"
+  },
+  "network": {
+    "betUrlPattern": "**/api/v1/slots/bet",
+    "initializeUrlPattern": "**/api/v1/slots/initialize",
+    "fields": {
+      "balance": "balance",
+      "totalWin": "slot.totalWin",
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
+    }
+  },
+  "metadata": {
+    "discovery": "runtime",
+    "devices": "mobile,desktop",
+    "notes": "Template for a pasted Game URL whose game has no manifest. Never used as-is: DISC-001 inspects the game and writes the learned manifest the cases run against (see src/discovery). Nothing here is a claim about any game; the network block is the shared DiJoker slots API and is only trusted once discovery sees the game call its initialize endpoint."
+  }
+}

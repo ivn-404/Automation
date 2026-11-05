@@ -1,0 +1,74 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "3G runtime simulation, package 2. DevTools 3G preset only. Next package waits for this one.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "packageId": "2",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Kobo Ass_3G2",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "hustle-the-blazing-horse",
+      "gameName": "Hustle The Blazing Horse",
+      "packageId": "2",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Hustle The Blazing Horse_3G2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "jungle-fruity",
+      "gameName": "Jungle Fruity",
+      "packageId": "2",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Jungle Fruity_3G2",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "bad-beach",
+      "gameName": "Bad Beach",
+      "packageId": "2",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Bad Beach_3G2",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

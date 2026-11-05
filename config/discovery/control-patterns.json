@@ -1,0 +1,89 @@
+{
+  "notes": "Level 2 (shared engine / UI patterns) for Game URL discovery. Regexes are case-insensitive and tested against a scene-graph object's texture key, frame name and name (`key`), and against the visible text drawn on or just below it (`label`). An exact `canonical` key is high confidence on its own; any other key match needs a matching label to be high. Labels alone are medium. Controls without a capability are reported but never gate a case.",
+  "startScenes": "boot|preload|loading|loader|splash|intro|title",
+  "labelReach": 0.6,
+  "controls": {
+    "spin": {
+      "capability": "spin",
+      "key": "(^|[_-])spin([_-]|$)|^spin",
+      "notKey": "auto|free|turbo",
+      "label": "^spin$",
+      "canonical": ["spin", "spin_button", "button_spin", "btn_spin"]
+    },
+    "betMinus": {
+      "capability": "bet",
+      "key": "decrease|minus|bet[_-]?down|bet[_-]?less|stake[_-]?down",
+      "canonical": ["decrease_bet", "bet_minus", "minus"]
+    },
+    "betPlus": {
+      "capability": "bet",
+      "key": "increase|plus|bet[_-]?up|bet[_-]?more|stake[_-]?up",
+      "canonical": ["increase_bet", "bet_plus", "plus"]
+    },
+    "autoplay": {
+      "capability": "autoplay",
+      "key": "auto[_-]?play|auto[_-]?spin|^auto([_-]|$)",
+      "label": "^auto ?play$|^auto$",
+      "canonical": ["autoplay", "autoplay_off", "autoplay_on"]
+    },
+    "turbo": {
+      "capability": "turbo",
+      "key": "turbo|quick[_-]?spin|fast[_-]?spin|lightning",
+      "label": "^turbo$|quick ?spin|fast ?spin",
+      "canonical": ["turbo", "turbo_off", "turbo_on"]
+    },
+    "amplifyBet": {
+      "capability": "amplifyBet",
+      "key": "amplif|ante|bet[_-]?boost|double[_-]?chance",
+      "label": "amplify|ante ?bet|bet ?boost|double ?chance",
+      "canonical": ["amplify", "amplify_bet", "ante_bet"]
+    },
+    "buyFeature": {
+      "capability": "buyFeature",
+      "key": "buy[_-]?feature|bonus[_-]?buy|feature[_-]?buy|^buy([_-]|$)",
+      "label": "^buy|bonus ?buy|buy ?feature",
+      "canonical": ["buy_feature", "buy", "bonus_buy"]
+    },
+    "menu": {
+      "capability": "menu",
+      "key": "^menu|hamburger|burger",
+      "label": "^menu$",
+      "canonical": ["menu", "menu_button"]
+    },
+    "settings": {
+      "capability": "settings",
+      "key": "settings|gear|cog",
+      "label": "^settings$",
+      "canonical": ["settings"]
+    },
+    "help": {
+      "key": "info|help|paytable|rules",
+      "label": "^info$|^help$|paytable|game rules"
+    },
+    "sound": {
+      "key": "sound|audio|mute|volume|music",
+      "label": "^sound$|^music$"
+    },
+    "fullscreen": {
+      "capability": "fullscreen",
+      "key": "maximi[sz]e|fullscreen|full[_-]screen",
+      "canonical": ["maximize", "fullscreen", "fullscreentoggle"]
+    },
+    "scratchCard": {
+      "capability": "scratchCard",
+      "key": "scratch",
+      "label": "^scratch",
+      "canonical": ["scratch_card", "hud_scratch_card_button"]
+    }
+  },
+  "hudTexts": {
+    "balance": "^balance$|^credit$|^wallet$",
+    "bet": "^bet$|^stake$|^total bet$",
+    "win": "^win$|^last win$|^total win$"
+  },
+  "featureHints": {
+    "freeSpins": "free[_\\s-]?spins?|freespin",
+    "bonus": "bonus",
+    "maxWin": "max[_\\s-]?win|win up to"
+  }
+}

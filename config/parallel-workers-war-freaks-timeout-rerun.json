@@ -1,0 +1,28 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks timeout/automation rerun only. Skips confirmed product defects AT-002/AT-004/AT-005.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["AP", "AT", "BF"],
+      "testMatch": [
+        "ap/**/AP-001.spec.ts",
+        "ap/**/AP-010.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "bf/**/BF-003.spec.ts"
+      ],
+      "playerId": "War Freaks_TO1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

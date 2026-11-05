@@ -1,0 +1,78 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "CSF-001 onboarding gate on Package 2 (after PROBE-002 / PROBE-001 passed).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Kobo Ass_CSF1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "hustle-the-blazing-horse",
+      "gameName": "Hustle The Blazing Horse",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Hustle The Blazing Horse_CSF1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "jungle-fruity",
+      "gameName": "Jungle Fruity",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Jungle Fruity_CSF1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 4,
+      "gameId": "bad-beach",
+      "gameName": "Bad Beach",
+      "category": "CSF",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Bad Beach_CSF1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}

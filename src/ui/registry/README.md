@@ -52,4 +52,4 @@ await frame.locator(ui.resolve('spinButton').selector).click();
 | `resolveIframe()` | Resolved iframe from `manifest.iframeSelectorKey` |
 | `has(key)` / `listKeys()` | Discovery |
 
-See `docs/UI_REGISTRY.md` for the full flow.
+See `docs/architecture/layers/UI_REGISTRY.md` for the full flow.

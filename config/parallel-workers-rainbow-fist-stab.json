@@ -1,0 +1,28 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Rainbow Fist: CSF-001/TM-001/BF-002/AT-001 after game surface spin band + buy confirm y 0.914. Skips AT-002/004/005 product defects.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "STAB",
+      "categories": ["CSF", "TM", "BF", "AT"],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts",
+        "tm/**/TM-001.spec.ts",
+        "bf/**/BF-002.spec.ts",
+        "at/**/AT-001.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_STAB1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

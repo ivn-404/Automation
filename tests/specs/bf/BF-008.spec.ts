@@ -18,6 +18,7 @@ import {
   createDefaultExecutionReporters,
 } from '../../../src/reporting/index.js';
 import { buyFeatureForBet, spinForBet } from '../../support/canvas-bet-flow.js';
+import { settleWalletWithSpins } from '../../support/buy-tier-check.js';
 import { featureTriggeredFromBody } from '../../support/buy-feature-verify.js';
 import { dismissDialogConfirm, waitForIdleHud } from '../../support/canvas-healing.js';
 import { drainFreeSpins } from '../../support/free-spin-flow.js';
@@ -34,7 +35,7 @@ test.describe('BF — Buy Feature', () => {
     sgapDriver,
     page,
   }, testInfo) => {
-    test.setTimeout(360_000);
+    test.setTimeout(600_000);
 
     const tracker = new InMemoryExecutionTracker();
     await tracker.start(MANUAL_TEST_ID, testInfo.project.name);
@@ -58,6 +59,8 @@ test.describe('BF — Buy Feature', () => {
         sgapSession.manifest,
         sgapSession.platform.getInitializeBody(),
       );
+      // A session can reopen on an earlier test's unfinished feature; play it out before buying.
+      await settleWalletWithSpins(sgapSession, sgapDriver, page, 1);
 
       const buy = await buyFeatureForBet(sgapSession, sgapDriver, page, {
         settleAfter: false,

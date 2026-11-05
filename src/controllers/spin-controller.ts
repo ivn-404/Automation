@@ -18,6 +18,8 @@ import type {
 } from '../core/models/index.js';
 import type { BetResponseWatcher } from '../network/bet-response-watcher.js';
 import { NO_HEAL, type ActionHealer } from './strategy/action-healer.js';
+import { failureKind } from './strategy/failure-class.js';
+import { clickCanvasControl } from './strategy/click-control.js';
 import type { PlaywrightGameDriver } from '../driver/playwright-game-driver.js';
 import { resolveTimeoutMs } from '../driver/wait-options.js';
 import { gateCanvasIntent } from '../eye/index.js';
@@ -124,8 +126,27 @@ export class SpinController implements ISpinController {
           return bet;
         } catch (error: unknown) {
           lastError = error;
+          if (failureKind(error) === 'defect') {
+            throw error;
+          }
+          const late = await this.readLateBet(2_000);
+          if (late !== undefined) {
+            console.log('[sgap-click] spin: /bet arrived after the waiter — not retrying the click');
+            await this.healer.settle('spin');
+            return late;
+          }
           watcher.reset();
-          await this.healer.recover('spin', error);
+          if (attempt < maxAttempts) {
+            const reason = error instanceof Error ? error.message.split('\n')[0] : String(error);
+            console.log(`[sgap-click] spin retry ${attempt + 1}/${maxAttempts}: no /bet (${reason})`);
+          }
+          try {
+            await this.healer.recover('spin', error);
+          } catch (recoverError: unknown) {
+            if (failureKind(recoverError) === 'defect') {
+              throw recoverError;
+            }
+          }
         }
       }
       throw lastError;
@@ -164,9 +185,9 @@ export class SpinController implements ISpinController {
       await this.clickSpin(options);
       await start;
       await complete;
+    } finally {
       this.startPending = undefined;
       this.completePending = undefined;
-    } finally {
       this.lockState = { locked: false };
     }
   }
@@ -178,7 +199,10 @@ export class SpinController implements ISpinController {
 
     const rendering = this.manifest.metadata?.rendering ?? 'dom';
     if (rendering === 'canvas') {
-      await this.driver.clickCanvas('spin', { ...options, singleInput: true });
+      await clickCanvasControl(this.driver, this.manifest, 'spin', {
+        ...options,
+        singleInput: true,
+      });
     } else {
       await this.driver.click('spinButton', options);
     }
@@ -186,15 +210,19 @@ export class SpinController implements ISpinController {
   }
 
   async waitForSpinStart(options?: ObservableWaitOptions): Promise<void> {
-    const pending = this.armSpinStart(options);
-    await pending;
-    this.startPending = undefined;
+    try {
+      await this.armSpinStart(options);
+    } finally {
+      this.startPending = undefined;
+    }
   }
 
   async waitForSpinComplete(options?: ObservableWaitOptions): Promise<void> {
-    const pending = this.armSpinComplete(options);
-    await pending;
-    this.completePending = undefined;
+    try {
+      await this.armSpinComplete(options);
+    } finally {
+      this.completePending = undefined;
+    }
   }
 
   private armSpinStart(options?: ObservableWaitOptions): Promise<Request> {
@@ -222,6 +250,21 @@ export class SpinController implements ISpinController {
       { timeout },
     );
     return this.completePending;
+  }
+
+  /** A click that already sent /bet must not be retried. */
+  private async readLateBet(timeoutMs: number): Promise<BetResponseSnapshot | undefined> {
+    if (this.betWatcher === undefined) {
+      return undefined;
+    }
+    this.betWatcher.reset();
+    this.betWatcher.arm({ timeoutMs });
+    try {
+      return await this.betWatcher.read({ timeoutMs });
+    } catch {
+      this.betWatcher.reset();
+      return undefined;
+    }
   }
 
   private requireNetwork(): { page: Page; network: NetworkConfig } {

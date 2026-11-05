@@ -1,0 +1,58 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "3G runtime simulation, package 3. DevTools 3G preset only. Next package waits for this one.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "packageId": "3",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "War Freaks_3G3",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "packageId": "3",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_3G3",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "packageId": "3",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_3G3",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

@@ -5,7 +5,7 @@
  * can we go inside the game iframe and test controllers via real DOM / Phaser
  * objects, or is the HUD painted on canvas so we must keep coords + /bet?
  *
- * Universal first step for every future game (see docs/PROBE_GATE.md).
+ * Universal first step for every future game (see docs/guides/PROBE_GATE.md).
  * Run headed, 1 worker, one game at a time.
  */
 

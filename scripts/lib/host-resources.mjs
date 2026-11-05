@@ -22,7 +22,6 @@ const DEFAULTS = {
   cpuCoresPerBrowser: 1,
   whenFull: 'queue',
   keepFinishedRuns: 200,
-  sessionHours: 12,
 };
 
 function readJson(file) {

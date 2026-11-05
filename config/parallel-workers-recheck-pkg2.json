@@ -1,0 +1,98 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 2 recheck after the first regression: AT-001 (multiplierValues now set) plus the BF-007 / BF-008 / FS-003 buy-flow timeouts.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "kobo-ass",
+      "gameName": "Kobo Ass",
+      "category": "RECHECK",
+      "categories": [
+        "AT",
+        "BF",
+        "FS"
+      ],
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "fs/**/FS-003.spec.ts"
+      ],
+      "playerId": "Kobo Ass_RCK1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "hustle-the-blazing-horse",
+      "gameName": "Hustle The Blazing Horse",
+      "category": "RECHECK",
+      "categories": [
+        "AT",
+        "BF",
+        "FS"
+      ],
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "fs/**/FS-003.spec.ts"
+      ],
+      "playerId": "Hustle The Blazing Horse_RCK1",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "jungle-fruity",
+      "gameName": "Jungle Fruity",
+      "category": "RECHECK",
+      "categories": [
+        "AT",
+        "BF",
+        "FS"
+      ],
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "fs/**/FS-003.spec.ts"
+      ],
+      "playerId": "Jungle Fruity_RCK1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 4,
+      "gameId": "bad-beach",
+      "gameName": "Bad Beach",
+      "category": "RECHECK",
+      "categories": [
+        "AT",
+        "BF",
+        "FS"
+      ],
+      "testMatch": [
+        "at/**/AT-001.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "fs/**/FS-003.spec.ts"
+      ],
+      "playerId": "Bad Beach_RCK1",
+      "monitor": 1,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}

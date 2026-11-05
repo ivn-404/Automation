@@ -3,67 +3,108 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SGAP Control Panel</title>
+  <title>SGAP Test runner</title>
   <link rel="stylesheet" href="/ui.css" />
   <style>
     /* Worker Monitor layout (tokens and components come from /ui.css). */
-    body { display: block; min-height: 100%; height: auto; }
+    body { display: flex; flex-direction: column; min-height: 100%; height: 100%; }
 
-    /* Header stats */
-    .summary { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
-    .summary .stat { display: inline-flex; align-items: center; gap: 6px; }
-    .summary b { color: var(--text); font-weight: 600; }
+    /* Score sits under the bar so the actions don't compete with the counts. */
+    .summary {
+      display: flex; align-items: flex-end; gap: var(--s5);
+      padding: 0 var(--s5) 10px; color: var(--muted);
+    }
+    .summary:empty { display: none; }
+    .summary .stat { display: flex; flex-direction: column; gap: 2px; min-width: 64px; }
+    .summary .stat b { color: var(--text); font: 600 22px/1.05 var(--mono); font-variant-numeric: tabular-nums; }
+    .summary .stat em { font-style: normal; font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .summary .p b { color: var(--pass); }
     .summary .f b { color: var(--fail); }
     .summary .r b { color: var(--run); }
-    .summary .sep { width: 1px; height: 14px; background: var(--line-strong); }
 
-    /* Lane toolbar */
+    /* Live lanes fill the window. With no lanes, the board shrinks to one line and the runner is the page. */
+    .board { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    body.idle .board { flex: none; }
+    body.idle .nav, body.idle .keys { display: none; }
+    body.idle main {
+      display: block; flex: none; height: auto; padding: 10px var(--s5) 0;
+      grid-template-columns: none;
+    }
+    body.idle main .empty { padding: 0; text-align: left; color: var(--muted); }
     .nav {
       display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
       padding: var(--s3) var(--s5) 0;
     }
-    .search { width: 240px; }
+    .search { width: 220px; }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
 
-    /* Lanes */
     main {
-      display: grid; gap: var(--s4); padding: var(--s4) var(--s5) var(--s5);
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      align-content: start;
+      flex: 1; min-height: 0;
+      display: grid; gap: var(--s4); padding: var(--s4) var(--s5) var(--s3);
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      align-content: stretch;
     }
-    main.single { grid-template-columns: minmax(320px, 960px); justify-content: center; }
+    main.single { grid-template-columns: minmax(320px, 880px); justify-content: center; }
     .lane {
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
-      display: flex; flex-direction: column; min-height: 168px; max-height: min(72vh, 760px);
-      transition: border-color 0.2s var(--ease);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; min-height: 0; height: 100%;
+      border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(180deg, rgba(96, 100, 110, 0.42) 0%, rgba(22, 24, 30, 0.62) 38%, rgba(14, 16, 22, 0.78) 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 236, 214, 0.45), inset 0 -2px 6px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(18px) saturate(1.35);
+      transition: border-color 0.16s var(--ease), background 0.16s var(--ease);
     }
-    .lane:hover { border-color: var(--line-strong); }
+    .lane::before {
+      content: ""; position: absolute; z-index: 2; pointer-events: none;
+      top: 0; left: 22%; right: 22%; height: 3px; border-radius: 0 0 8px 8px;
+      background: #fffef9;
+      box-shadow:
+        0 0 1px 1px rgba(255, 199, 142, 0.9),
+        0 2px 4px 1px rgba(255, 148, 41, 0.45),
+        0 10px 22px 4px rgba(255, 158, 61, 0.4);
+      transition: left 0.2s var(--ease), right 0.2s var(--ease);
+    }
+    .lane:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: linear-gradient(180deg, rgba(120, 124, 134, 0.48) 0%, rgba(22, 24, 30, 0.66) 38%, rgba(14, 16, 22, 0.8) 100%);
+    }
+    .lane:hover::before { left: 16%; right: 16%; }
     .lane.mine { border-color: var(--accent-line); }
     .lane.stopped { opacity: 0.6; }
-    .lane.is-running { box-shadow: inset 0 2px 0 var(--run); }
-    .lane.is-failed { box-shadow: inset 0 2px 0 var(--fail); }
-    .lane.is-done { box-shadow: inset 0 2px 0 var(--pass); }
+    .lane.is-running::before {
+      background: #ffe7b0;
+      box-shadow: 0 0 1px 1px rgba(255, 191, 71, 0.8), 0 8px 18px 2px rgba(255, 191, 71, 0.4);
+    }
+    .lane.is-failed::before {
+      background: #ffd5dc;
+      box-shadow: 0 0 1px 1px rgba(255, 93, 115, 0.75), 0 8px 18px 2px rgba(255, 93, 115, 0.35);
+    }
+    .lane.is-done::before {
+      background: #dfffea;
+      box-shadow: 0 0 1px 1px rgba(61, 220, 151, 0.7), 0 8px 18px 2px rgba(61, 220, 151, 0.32);
+    }
     .lane-head { padding: var(--s3) var(--s4) var(--s3); }
-    .lane-row { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+    .lane-row { display: flex; align-items: center; gap: var(--s2); min-width: 0; min-height: 28px; }
     .lane-id {
       font: 600 var(--fs-sm)/20px var(--mono); color: var(--accent);
       padding: 0 6px; border-radius: 5px; background: var(--accent-soft); border: 1px solid var(--accent-line);
     }
-    .lane-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .lane-name { font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
     .lane-cat { color: var(--faint); font-size: var(--fs-sm); white-space: nowrap; }
-    .lane-count { margin-left: auto; color: var(--muted); font-size: var(--fs-md); }
-    .lane-now { color: var(--muted); font-size: var(--fs-md); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lane-count { margin-left: auto; color: var(--text); font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+    .lane-now { color: var(--text); font-size: var(--fs-base); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lane-now .k { color: var(--faint); font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 8px; }
     .lane-now .mono { color: var(--run); }
     .lane-now.idle { color: var(--faint); }
-    .lane .meter { margin-top: var(--s3); border-radius: 2px; height: 3px; }
+    .lane .meter { margin-top: var(--s3); border-radius: 2px; height: 4px; }
     .tag { font-size: var(--fs-xs); color: var(--fail); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
     .tests { list-style: none; margin: 0; padding: 4px 6px 8px; overflow: auto; flex: 1; border-top: 1px solid var(--line-soft); }
     .test {
-      display: grid; grid-template-columns: 8px 78px 1fr auto;
-      gap: 10px; align-items: baseline;
-      padding: 6px 8px; border-radius: var(--r-sm);
+      display: grid; grid-template-columns: 8px 78px minmax(0, 1fr) auto;
+      gap: 10px; align-items: center;
+      padding: 7px 8px; border-radius: var(--r-sm);
+      transition: background 0.12s var(--ease);
     }
     .test .dot { align-self: center; }
     .test.has-error { cursor: pointer; }
@@ -84,92 +125,236 @@
     .test.open .err { display: block; }
     .lane .empty { padding: 18px 8px; }
 
-    /* ── Test runner ─────────────────────────────────────────────────────── */
-    .qa { margin: var(--s4) var(--s5) 0; }
-    .qa .card-head { flex-wrap: wrap; }
-    .qa-desc { color: var(--muted); font-size: var(--fs-md); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-    .qa-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); }
-    .qa-col { padding: var(--s4); min-width: 0; display: grid; gap: var(--s4); align-content: start; }
-    .qa-col + .qa-col { border-left: 1px solid var(--line-soft); }
-    .qa-step { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
-    .qa-step .num {
-      width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
-      font: 600 var(--fs-xs)/1 var(--mono); color: var(--accent); border: 1px solid var(--accent-line);
+    /* ── New run builder ─────────────────────────────────────────────────── */
+    .qa:not([hidden]) { display: block; }
+    .qa-head { display: flex; align-items: flex-end; gap: 16px; margin: 4px 0 18px; }
+    .qa-head h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+    .qa-head .sub { margin: 4px 0 0; color: var(--faint); font-size: 13px; max-width: 760px; }
+    .qa-head .btn { margin-left: auto; }
+    .qa-sec-title { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+    .qa-sec-title h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+    .qa-sec-title .sub { color: var(--faint); font-size: 12px; }
+    .qa-sec-title .tools { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+    .qa-sec-title .num {
+      width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none;
+      font: 600 11px/1 var(--mono); color: var(--accent-strong); background: var(--accent-soft);
     }
-    .qa-step .tools { margin-left: auto; display: flex; gap: 2px; }
-    .qa-row { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    .qa-field { display: grid; gap: 6px; }
-    .qa select { width: 100%; }
 
-    .qa-groups { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; }
-    .qa-group { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3); margin: 0; min-width: 0; background: var(--bg-raised); }
-    .qa-group.g-regression { grid-column: 1 / -1; }
-    .qa-group legend { padding: 0 6px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-    .qa-group.g-security { border-color: var(--fail-line); }
-    .qa-group.g-security legend { color: var(--fail); }
-    .qa-group .gdesc { color: var(--faint); font-size: var(--fs-sm); margin: 0 0 var(--s2); }
-    .qa-group .gtools { display: flex; gap: 4px; margin-bottom: 6px; }
-    .qa-fams { display: grid; gap: 2px var(--s2); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-    .qa-fam {
-      display: flex; gap: var(--s2); align-items: center; padding: 5px 8px; border-radius: var(--r-sm);
-      cursor: pointer; border: 1px solid transparent;
+    /* Preset cards + re-run chips */
+    .qa-presets { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); margin-bottom: 14px; }
+    .qa-preset {
+      position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 118px; padding: 14px; text-align: left;
+      border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer;
+      transition: border-color 0.14s var(--ease), background 0.14s var(--ease), transform 0.14s var(--ease);
     }
-    .qa-fam:hover { background: var(--hover); }
-    .qa-fam:has(input:checked) { background: var(--accent-soft); border-color: var(--accent-line); }
-    .g-security .qa-fam:has(input:checked) { background: var(--fail-soft); border-color: var(--fail-line); }
-    .qa-fam b { min-width: 40px; font: 600 var(--fs-md) var(--mono); }
-    .qa-fam .fl { color: var(--muted); font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-    .qa-fam .n { color: var(--faint); font: var(--fs-sm) var(--mono); }
-    .qa-fam.off { opacity: 0.45; cursor: not-allowed; }
-    .qa-fam.off:hover { background: none; }
-
-    .qa-pkgs { display: grid; gap: var(--s2); max-height: min(440px, 55vh); overflow: auto; padding-right: 4px; }
-    .qa-pkgbox { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3); background: var(--bg-raised); }
-    .qa-pkgbox > label { display: flex; gap: var(--s2); align-items: center; cursor: pointer; font-weight: 600; font-size: var(--fs-md); }
-    .qa-pkgbox > label .n { margin-left: auto; color: var(--faint); font: var(--fs-sm) var(--mono); font-weight: 400; }
-    .qa-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px var(--s2); padding: 6px 0 0 23px; }
-    .qa-games label { display: flex; gap: 6px; align-items: center; cursor: pointer; color: var(--muted); font-size: var(--fs-md); padding: 2px 0; }
-    .qa-games label.on { color: var(--text); }
-
-    .qa-opts { display: grid; gap: 2px; }
-    .qa-opts label {
-      display: grid; grid-template-columns: 15px 1fr; gap: 2px 10px; align-items: center;
-      padding: 6px 8px; border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-md);
+    .qa-preset:hover { border-color: var(--line-strong); background: #2a2c2f; }
+    .qa-preset:focus-visible { outline: none; box-shadow: var(--ring); }
+    .qa-preset.on { border-color: var(--accent-line); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+    .qa-preset .t { font-size: 14px; font-weight: 600; padding-right: 44px; }
+    .qa-preset .d {
+      color: var(--muted); font-size: 12px; line-height: 1.45;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .qa-opts label:hover { background: var(--hover); }
-    .qa-opts label small { grid-column: 2; color: var(--faint); font-size: var(--fs-sm); }
-    .qa-opts .hint { padding: 6px 8px 0; }
+    .qa-preset .m { margin-top: auto; display: flex; gap: 8px; align-items: baseline; color: var(--faint); font-size: 12px; }
+    .qa-preset .m b { color: var(--text); font: 600 16px/1 var(--mono); }
+    .qa-preset .badge {
+      margin-left: auto; align-self: center; height: 20px; padding: 0 7px; border-radius: 999px; flex: none;
+      display: inline-flex; align-items: center; font: 600 10px var(--mono); letter-spacing: 0.06em;
+      background: var(--fail-soft); color: var(--fail);
+    }
+    .qa-preset.on .check { display: grid; }
+    .qa-preset .check {
+      display: none; position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border-radius: 50%;
+      place-items: center; background: var(--accent); color: #fff;
+    }
+    .qa-preset .check svg { width: 12px; height: 12px; }
+    .qa-rerun { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; overflow-x: auto; padding-bottom: 2px; }
+    .qa-rerun .lbl { color: var(--faint); font-size: 12px; white-space: nowrap; margin-right: 2px; }
+    .qa-rr {
+      display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; flex: none; max-width: 360px;
+      border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+      font-size: 12px; cursor: pointer; transition: border-color 0.14s var(--ease), background 0.14s var(--ease);
+    }
+    .qa-rr:hover { border-color: var(--line-strong); background: #2a2c2f; }
+    .qa-rr:focus-visible { outline: none; box-shadow: var(--ring); }
+    .qa-rr svg { width: 13px; height: 13px; color: var(--accent-strong); flex: none; }
+    .qa-rr .l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qa-rr .g, .qa-rr .a { color: var(--faint); white-space: nowrap; }
+    .qa-rr .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
+    .qa-rr .dot.passed { background: var(--pass); }
+    .qa-rr .dot.failed, .qa-rr .dot.interrupted { background: var(--fail); }
+    .qa-rr .dot.running, .qa-rr .dot.queued { background: var(--run); }
 
+    /* Selection column + sticky summary */
+    .qa-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+    .qa-main { display: grid; gap: 16px; min-width: 0; }
+    .qa-url { width: 100%; box-sizing: border-box; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 13px var(--mono, monospace); }
+    .disc-badge { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--surface); color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+    .disc-badge.ready { color: var(--pass); }
+    .disc-badge.calibration { color: #e0a63a; }
+    .disc-badge.blocked { color: var(--fail); }
+    #disc-body { font-size: 12px; display: grid; gap: 8px; }
+    #disc-body .facts { color: var(--faint); overflow-wrap: anywhere; }
+    #disc-body .blocked { color: var(--fail); }
+    #disc-body details summary { cursor: pointer; font-weight: 600; }
+    #disc-body .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; align-items: center; padding: 4px 0; border-top: 1px solid var(--line); }
+    #disc-body .row .why { grid-column: 1 / -1; color: var(--faint); overflow-wrap: anywhere; }
+    #disc-body .st { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    #disc-body .st.ready { color: var(--pass); }
+    #disc-body .st.calibration { color: #e0a63a; }
+    #disc-body .st.unsupported { color: var(--faint); }
+    #disc-body .st.blocked { color: var(--fail); }
+    #disc-body .acts { display: flex; gap: 4px; }
+    #disc-body .acts button { font-size: 11px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+    #disc-body .acts button.on { border-color: var(--pass); color: var(--pass); }
+    #disc-body .outcome { font-weight: 600; color: var(--text); }
+    #disc-body .next { color: var(--text); }
+    .qa-url-device { margin-top: 8px; height: 32px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 12px inherit; }
+    .qa-url-device[hidden] { display: none; }
+    .qa-url-check { margin: 8px 0 0; font-size: 12px; color: var(--faint); overflow-wrap: anywhere; }
+    .qa-url-check.ok { color: var(--pass); }
+    .qa-url-check.bad { color: var(--fail); }
+    .qa-sec { background: var(--sidebar); border: 1px solid var(--line); border-radius: 18px; padding: 16px; min-width: 0; }
+    .qa-sec .note { color: var(--faint); font-size: 12px; margin: 0 0 10px; }
+    .qa-sec select { min-width: 220px; }
+
+    .qa-group + .qa-group { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+    .qa-group .gh { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .qa-group .gh b { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .qa-group.g-security .gh b { color: var(--fail); }
+    .qa-group .gh .gd { color: var(--faint); font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qa-group .gh .gtools { margin-left: auto; display: flex; gap: 4px; flex: none; }
+    .qa-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .qa-chip {
+      position: relative; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px;
+      border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+      font-size: 13px; cursor: pointer; user-select: none;
+      transition: border-color 0.12s var(--ease), background 0.12s var(--ease), color 0.12s var(--ease);
+    }
+    .qa-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .qa-chip:hover { border-color: var(--line-strong); color: var(--text); }
+    .qa-chip:has(input:focus-visible) { box-shadow: var(--ring); }
+    .qa-chip:has(input:checked) { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text); }
+    .qa-chip b { font: 600 12px var(--mono); color: var(--text); }
+    .qa-chip .n { color: var(--faint); font: 11px var(--mono); }
+    .qa-chip:has(input:checked) .n { color: var(--accent-strong); }
+    .qa-chip.sec:has(input:checked) { border-color: var(--fail-line); background: var(--fail-soft); }
+    .qa-chip.sec:has(input:checked) .n { color: var(--fail); }
+    .qa-chip.off { opacity: 0.4; cursor: not-allowed; }
+    .qa-chip.off:hover { border-color: var(--line); color: var(--muted); }
+
+    .qa-pkgs { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+    .qa-pkg { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 12px 12px; }
+    .qa-pkg.some { border-color: var(--accent-line); }
+    .qa-pkg > label { display: flex; align-items: center; gap: 8px; height: 26px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .qa-pkg > label .n { margin-left: auto; color: var(--faint); font: 11px var(--mono); font-weight: 400; }
+    .qa-pkg.some > label .n { color: var(--accent-strong); }
+    .qa-pkg .qa-chips { margin-top: 8px; }
+    .qa-pkg .qa-chip { height: 30px; padding: 0 10px; font-size: 12px; background: var(--elevated); border-color: transparent; }
+    .qa-pkg .qa-chip:has(input:checked) { border-color: var(--accent-line); background: var(--accent-soft); }
+
+    .qa-opts { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .qa-switch {
+      position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 12px 14px; cursor: pointer;
+      border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+      transition: border-color 0.12s var(--ease);
+    }
+    .qa-switch:hover { border-color: var(--line-strong); }
+    .qa-switch .t { font-size: 13px; font-weight: 600; }
+    .qa-switch small { grid-column: 1; color: var(--faint); font-size: 12px; line-height: 1.4; }
+    .qa-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .qa-switch .tg {
+      grid-column: 2; grid-row: 1 / span 2; position: relative; width: 34px; height: 20px; border-radius: 999px;
+      background: var(--elevated); border: 1px solid var(--line-strong); transition: background 0.16s var(--ease);
+    }
+    .qa-switch .tg::after {
+      content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--muted); transition: transform 0.16s var(--ease), background 0.16s var(--ease);
+    }
+    .qa-switch:has(input:checked) { border-color: var(--accent-line); }
+    .qa-switch:has(input:checked) .tg { background: var(--accent); border-color: var(--accent); }
+    .qa-switch:has(input:checked) .tg::after { transform: translateX(14px); background: #fff; }
+    .qa-switch:has(input:focus-visible) { box-shadow: var(--ring); }
+
+    .qa-summary {
+      position: sticky; top: 0; display: flex; flex-direction: column; gap: 14px; padding: 18px;
+      background: var(--sidebar); border: 1px solid var(--line); border-radius: 18px;
+    }
+    .qa-sum-k { color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .qa-sum-total { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+    .qa-sum-total b { font: 650 40px/1 var(--mono); letter-spacing: -0.03em; }
+    .qa-sum-total span { color: var(--muted); font-size: 13px; }
+    .qa-sum-sel { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .qa-sum-rows { display: grid; gap: 12px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+    .qa-sum-row .k { color: var(--faint); font-size: 11px; margin-bottom: 6px; }
+    .qa-sum-row .v { font-size: 13px; color: var(--text); }
+    .qa-sum-row .v.muted { color: var(--faint); }
+    .qa-sum-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .qa-sum-tags span {
+      height: 22px; padding: 0 8px; border-radius: 6px; display: inline-flex; align-items: center;
+      background: var(--elevated); color: var(--text); font: 11px var(--mono);
+    }
+    .qa-sum-tags span.sec { background: var(--fail-soft); color: var(--fail); }
+    .qa-sum-tags span.more { color: var(--faint); }
+    .qa-sum-msg { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+    .qa-sum-msg svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+    .qa-sum-msg.warn { background: var(--fail-soft); color: #f0b3b3; }
+    .qa-sum-msg.info { background: var(--elevated); color: var(--muted); }
+    .qa-sum-actions { display: flex; gap: 8px; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+    .qa-sum-actions #qa-run { flex: 1; justify-content: center; height: 40px; }
+    .qa-sum-actions #qa-reset { height: 40px; }
+
+    @media (max-width: 1100px) {
+      .qa-layout { grid-template-columns: 1fr; }
+      .qa-summary {
+        position: sticky; top: auto; bottom: 0; z-index: 5; flex-direction: row; align-items: center; gap: 12px; padding: 12px 14px;
+        border-radius: 14px; box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.45);
+      }
+      #qa-sum { flex: 1; min-width: 0; }
+      .qa-sum-rows, .qa-sum-k, .qa-sum-msg.info:not(.need), .qa-sum-msg.warn { display: none; }
+      .qa-sum-msg.need { margin-top: 6px; padding: 6px 10px; }
+      .qa-sum-total { margin-top: 0; }
+      .qa-sum-total b { font-size: 24px; }
+      .qa-sum-sel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+      .qa-sum-actions { border-top: 0; padding-top: 0; flex: none; }
+      .qa-sum-actions #qa-run { flex: none; min-width: 140px; }
+    }
+    @media (max-width: 720px) {
+      .qa-head { flex-wrap: wrap; }
+      .qa-head .btn { margin-left: 0; }
+      .qa-presets { grid-template-columns: 1fr 1fr; }
+      .qa-sum-actions #qa-reset { display: none; }
+    }
+
+    /* Run status strip under the Runs list */
     .qa-actions {
-      display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap;
-      padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: var(--bg-raised);
-      border-radius: 0 0 var(--r-lg) var(--r-lg);
+      display: flex; gap: var(--s2); align-items: center; flex-wrap: nowrap; flex: none;
+      min-height: 52px; padding: 0 var(--s4); border-top: 1px solid var(--line);
     }
-    .qa-state { color: var(--muted); font-size: var(--fs-md); flex: 1; min-width: 220px; }
+    .qa-state { color: var(--muted); font-size: var(--fs-md); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .qa-state.running { color: var(--run); }
     .qa-state.passed { color: var(--pass); }
     .qa-state.failed, .qa-state.bad { color: var(--fail); }
     .qa-state.stopped { color: var(--muted); }
+    .qa-state.calibration { color: var(--warn, #d29922); }
     .qa-state a { color: var(--accent); }
-    .qa-where { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
-    .qa-where .tab svg { width: 14px; height: 14px; }
-    .qa-where .tab .m { color: var(--faint); font-family: var(--mono); font-size: var(--fs-sm); }
-    .qa-where .tab.on .m { color: var(--accent); }
-    .qa-where .tab.off { color: var(--faint); }
     .qa-log {
       margin: 0 var(--s4) var(--s4); max-height: 220px; overflow: auto; font: var(--fs-sm)/1.55 var(--mono);
       background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s2) var(--s3);
       white-space: pre-wrap; word-break: break-word; color: var(--muted);
     }
 
-    .runs { margin: var(--s4) var(--s5) 0; }
+    .runs { margin: 0 var(--s5) var(--s4); }
+    body.idle .run-list { max-height: 168px; }
     .runs .card-head { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
     .runs .cap { color: var(--faint); font-size: var(--fs-sm); margin-left: auto; }
     .runs .cap b { color: var(--muted); font-weight: 600; }
     .run-list { max-height: 248px; overflow: auto; }
     .run-row {
       display: grid; grid-template-columns: 92px minmax(90px, 140px) minmax(0, 1fr) 96px 72px auto; gap: var(--s3);
-      align-items: center; padding: var(--s2) var(--s4); border-top: 1px solid var(--line-soft); font-size: var(--fs-md); cursor: pointer;
+      align-items: center; min-height: 52px; padding: 0 var(--s4); border-top: 1px solid var(--line-soft); font-size: var(--fs-md); cursor: pointer;
+      transition: background 0.12s var(--ease);
     }
     .run-row:hover { background: var(--hover); }
     .run-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
@@ -188,15 +373,10 @@
       .run-row .who, .run-row .el { display: none; }
     }
 
-    .keys { color: var(--faint); font-size: var(--fs-sm); padding: 0 var(--s5) var(--s4); display: flex; flex-wrap: wrap; gap: 6px var(--s3); align-items: center; }
+    .keys { color: var(--faint); font-size: var(--fs-sm); padding: 0 var(--s5) var(--s4); display: flex; flex-wrap: wrap; gap: 6px var(--s3); align-items: center; margin-top: auto; }
 
-    @media (max-width: 1100px) {
-      .qa-layout { grid-template-columns: 1fr; }
-      .qa-col + .qa-col { border-left: 0; border-top: 1px solid var(--line-soft); }
-    }
     @media (max-width: 720px) {
       .summary { order: 5; width: 100%; }
-      .qa { margin: var(--s3) var(--s3) 0; }
       .nav { padding: var(--s3) var(--s3) 0; }
       .search { width: 100%; }
       .chips { margin-left: 0; }
@@ -205,44 +385,281 @@
       .test .dur { grid-column: 3; }
       .keys { display: none; }
     }
+
+    /* QA Command overview (shell, rail, pills come from /ui.css): live workspace, attention panel, worker drawer. */
+    body.haulix .nav, body.haulix #overall, body.haulix .keys, body.haulix .top { display: none; }
+
+    body.haulix .stage {
+      flex: 1; min-height: 0;
+      display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr); gap: 16px;
+      overflow: auto;
+    }
+    body.haulix .panel, body.haulix .board {
+      background: var(--sidebar); border: 1px solid var(--line); border-radius: 18px;
+    }
+    body.haulix .board { grid-column: 1; grid-row: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px; }
+    body.haulix .ws-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+    body.haulix .ws-head h2, body.haulix .panel-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    body.haulix .ws-head .sub, body.haulix .panel-head .sub { color: var(--faint); font-size: 12px; }
+    body.haulix .ws-head .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pass); box-shadow: 0 0 0 3px var(--pass-soft); align-self: center; }
+    body.haulix main {
+      flex: 1; min-height: 0; height: auto; padding: 0; overflow: auto;
+      display: grid; gap: 12px; align-content: start;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+    body.haulix main.single { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); justify-content: stretch; }
+    body.haulix main .empty { grid-column: 1 / -1; }
+
+    body.haulix .lane {
+      height: 188px; padding: 14px; gap: 0;
+      border-radius: 14px; border: 1px solid var(--line); background: var(--surface);
+      box-shadow: none; backdrop-filter: none; cursor: pointer; overflow: hidden;
+      transition: background 0.14s var(--ease), border-color 0.14s var(--ease);
+    }
+    body.haulix .lane::before { display: none; }
+    body.haulix .lane:hover { background: #2a2c2f; border-color: var(--line-strong); }
+    body.haulix .lane.selected { border-color: var(--accent-line); box-shadow: inset 0 0 0 1px var(--accent-line); }
+    body.haulix .lane:focus-visible { box-shadow: var(--ring); }
+    body.haulix .wc-top { display: flex; align-items: center; gap: 8px; min-width: 0; height: 24px; }
+    body.haulix .lane-id {
+      font: 600 11px/20px var(--mono); color: var(--accent-strong);
+      background: var(--accent-soft); border: 0; border-radius: 6px; padding: 0 6px;
+    }
+    body.haulix .lane-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.haulix .wc-state {
+      height: 22px; padding: 0 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; background: var(--elevated); color: var(--muted);
+    }
+    body.haulix .wc-state.running { background: var(--run-soft); color: var(--run); }
+    body.haulix .wc-state.failed { background: var(--fail-soft); color: var(--fail); }
+    body.haulix .wc-state.passed { background: var(--pass-soft); color: var(--pass); }
+    body.haulix .wc-suite { color: var(--faint); font-size: 12px; margin-top: 4px; height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.haulix .wc-now { margin-top: 8px; font-size: 13px; color: var(--text); height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.haulix .wc-now .mono { color: var(--run); margin-right: 6px; }
+    body.haulix .wc-now.idle { color: var(--faint); }
+    body.haulix .wc-pct { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+    body.haulix .wc-pct b { font: 600 20px/1 var(--mono); letter-spacing: -0.02em; }
+    body.haulix .wc-pct span { color: var(--faint); font-size: 12px; }
+    body.haulix .lane .meter { height: 4px; margin-top: 8px; border-radius: 999px; background: var(--elevated); }
+    body.haulix .wc-foot { display: flex; align-items: center; gap: 12px; margin-top: 10px; color: var(--faint); font-size: 12px; height: 26px; }
+    body.haulix .wc-foot .f { color: var(--fail); }
+    body.haulix .wc-foot .btn { margin-left: auto; }
+
+    .view-switch { margin-left: auto; align-self: center; display: inline-flex; padding: 2px; gap: 2px; border-radius: 9px; background: var(--elevated); border: 1px solid var(--line); }
+    .view-switch button {
+      height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent;
+      color: var(--muted); font: 600 12px var(--font, inherit); cursor: pointer;
+    }
+    .view-switch button:hover { color: var(--text); }
+    .view-switch button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+    body.haulix.all-tests.live .stage { grid-template-rows: auto auto; }
+    body.haulix.all-tests.live .board { min-height: 600px; }
+    body.haulix main.all-tests { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    body.haulix main.all-tests .lane { height: auto; max-height: 520px; cursor: default; padding: 14px 14px 6px; }
+    body.haulix main.all-tests .lane:hover { background: var(--surface); border-color: var(--line); }
+    body.haulix main.all-tests .lane-sum { display: flex; align-items: center; gap: 10px; margin-top: 6px; color: var(--faint); font-size: 12px; }
+    body.haulix main.all-tests .lane-sum .f { color: var(--fail); }
+    body.haulix main.all-tests .lane-sum .btn { margin-left: auto; }
+    body.haulix main.all-tests .tests { flex: 0 1 auto; margin: 10px -8px 0; padding: 4px 2px 6px; min-height: 0; }
+    body.haulix main.all-tests .test.running { background: var(--run-soft); }
+
+    body.haulix .side { grid-column: 2; grid-row: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow: auto; }
+    body.haulix .panel { padding: 14px 16px; }
+    body.haulix .side .panel-head { min-height: 0; padding: 0; border-bottom: 0; margin-bottom: 10px; }
+    body.haulix .panel-head .n {
+      margin-left: auto; height: 20px; min-width: 20px; padding: 0 7px; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--elevated); color: var(--muted); font: 600 11px var(--mono);
+    }
+    body.haulix .panel-head .n.bad { background: var(--fail-soft); color: var(--fail); }
+    body.haulix .att-item {
+      position: relative; display: block; width: 100%; text-align: left; cursor: pointer;
+      padding: 10px 12px 10px 14px; margin-bottom: 8px; border-radius: 10px; border: 0;
+      background: var(--surface); color: var(--text);
+      transition: background 0.14s var(--ease);
+    }
+    body.haulix .att-item::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--fail); }
+    body.haulix .att-item:hover { background: #2a2c2f; }
+    body.haulix .att-item .l1 { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+    body.haulix .att-item .l1 .mono { color: var(--fail); }
+    body.haulix .att-item .l1 .w { margin-left: auto; color: var(--faint); font-size: 11px; }
+    body.haulix .att-item .l2 { color: var(--muted); font-size: 12px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.haulix .act-item {
+      display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+      width: 100%; padding: 8px 6px; border: 0; border-top: 1px solid var(--line-soft); background: none;
+      color: var(--text); text-align: left; cursor: pointer; border-radius: 6px; font-size: 13px;
+      transition: background 0.14s var(--ease);
+    }
+    body.haulix .act-item:first-child { border-top: 0; }
+    body.haulix .act-item:hover { background: var(--surface); }
+    body.haulix .act-item .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body.haulix .act-item .t .mono { color: var(--muted); margin-right: 6px; }
+    body.haulix .act-item .s { font-size: 11px; font-weight: 600; }
+    body.haulix .act-item.passed .s { color: var(--pass); }
+    body.haulix .act-item.failed .s, body.haulix .act-item.timedOut .s { color: var(--fail); }
+    body.haulix .act-item.skipped .s { color: var(--faint); }
+    body.haulix .side .empty { padding: 14px 4px; text-align: left; color: var(--faint); font-size: 12px; }
+
+    body.haulix .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: 420px; max-width: 100%;
+      display: flex; flex-direction: column;
+      background: var(--sidebar); border-left: 1px solid var(--line-strong);
+      box-shadow: -24px 0 48px rgba(0, 0, 0, 0.45);
+      transform: translateX(100%); visibility: hidden;
+      transition: transform 0.26s var(--rail-ease), visibility 0s linear 0.26s;
+    }
+    body.haulix .drawer.open { transform: none; visibility: visible; transition: transform 0.26s var(--rail-ease); }
+    body.haulix .dr-head { display: flex; align-items: flex-start; gap: 10px; padding: 18px 18px 14px; border-bottom: 1px solid var(--line-soft); }
+    body.haulix .dr-head h2 { margin: 0; font-size: 18px; font-weight: 650; }
+    body.haulix .dr-head .sub { color: var(--faint); font-size: 12px; margin-top: 2px; }
+    body.haulix .dr-head .btn { margin-left: auto; }
+    body.haulix .dr-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px; }
+    body.haulix .dr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    body.haulix .dr-stat { background: var(--surface); border-radius: 10px; padding: 10px; }
+    body.haulix .dr-stat span { display: block; color: var(--faint); font-size: 11px; }
+    body.haulix .dr-stat b { font: 600 18px/1.3 var(--mono); }
+    body.haulix .dr-stat.p b { color: var(--pass); }
+    body.haulix .dr-stat.f b { color: var(--fail); }
+    body.haulix .dr-stat.r b { color: var(--run); }
+    body.haulix .dr-now { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface); font-size: 13px; }
+    body.haulix .dr-now .k { display: block; color: var(--faint); font-size: 11px; margin-bottom: 2px; }
+    body.haulix .dr-now .mono { color: var(--run); margin-right: 6px; }
+    body.haulix .drawer .meter { height: 4px; margin-top: 12px; border-radius: 999px; background: var(--elevated); }
+    body.haulix .dr-section { margin: 18px 0 8px; color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    body.haulix .drawer .tests { border: 0; padding: 0; overflow: visible; }
+    body.haulix .drawer .test { grid-template-columns: 8px 70px minmax(0, 1fr) auto; }
+    body.haulix .dr-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line-soft); }
+
+    body.haulix .runs { margin: 0; }
+    body.haulix .runs.card {
+      background: var(--sidebar); border-color: var(--line); box-shadow: none; backdrop-filter: none; border-radius: 18px;
+    }
+    body.haulix.live .runs { grid-column: 1 / -1; }
+    body.haulix.idle .board, body.haulix.idle .side { display: none; }
+    body.haulix.idle .stage { grid-template-columns: minmax(0, 1fr); }
+    body.haulix.idle .runs { grid-column: 1 / -1; grid-row: 1; min-height: 0; overflow: auto; }
+    body.haulix.idle .run-list { max-height: none; }
+
+    /* New run view replaces the live stage. */
+    body.haulix.builder .page-head, body.haulix.builder .summary, body.haulix.builder .board,
+    body.haulix.builder .side, body.haulix.builder .runs { display: none; }
+    body.haulix.builder .stage { display: block; padding-bottom: 24px; }
+
+    @media (max-width: 1439px) {
+      body.haulix .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; }
+      body.haulix .board { grid-row: auto; min-height: 420px; }
+      body.haulix .side { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+    }
+    @media (max-width: 1023px) {
+      body.haulix main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      body.haulix .utility .search { width: 180px; }
+    }
+    @media (max-width: 767px) {
+      body.haulix .workspace { padding: 0 12px 12px; }
+      body.haulix .utility { margin: 0 -12px; padding: 0 12px; height: auto; min-height: 56px; flex-wrap: wrap; }
+      body.haulix .utility .search { order: 5; width: 100%; margin-bottom: 8px; }
+      body.haulix main { grid-template-columns: 1fr; }
+      body.haulix .side { grid-template-columns: 1fr; }
+      body.haulix .summary { flex-wrap: nowrap; overflow-x: auto; }
+      body.haulix .drawer { width: 100%; }
+    }
   </style>
 </head>
-<body>
-  <header class="top">
-    <div class="bar">
-      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Control Panel</span></div>
+<body class="idle haulix">
+  <aside class="rail" aria-label="Navigation">
+    <div class="rail-panel">
+      <div class="mark-row"><div class="mark" data-icon="logo" title="SGAP"></div><span class="rail-name">SGAP</span></div>
+      <button type="button" class="rail-add" id="qa-toggle" data-icon="sliders" title="New run" aria-expanded="false"><span>New run</span></button>
       <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <button type="button" class="rail-pin" id="rail-pin" aria-pressed="false" title="Pin the navigation open">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+      <button type="button" class="rail-stop" id="stop-all" data-icon="stop" data-control title="Stop every worker"><span>Stop all</span></button>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="utility">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>QA Workspace</span><span>/</span><b id="crumb-page">Test runner</b><span class="ctx" id="run-ctx" hidden></span></nav>
       <div class="spacer"></div>
-      <div class="summary mono" id="summary"></div>
+      <input class="search" id="search" type="search" placeholder="Search tests, games, workers" aria-label="Search tests" autocomplete="off" />
       <span class="status idle" id="status">Connecting…</span>
       <button type="button" class="access" id="access" hidden></button>
-      <button type="button" class="btn sm" id="qa-toggle" data-icon="sliders" title="Pick test families and games, then run them through the worker monitor"><span>Test runner</span></button>
-      <button type="button" class="btn sm danger" id="stop-all" data-icon="stop" data-control title="Stop every worker and close Playwright browsers"><span>Stop all</span></button>
+    </header>
+    <div class="page-head">
+      <div>
+        <h1 id="page-title">Test runner</h1>
+        <p class="sub" id="page-sub">Real-time overview</p>
+      </div>
+    </div>
+    <div class="summary" id="summary" role="toolbar" aria-label="Filter by status"></div>
+    <div class="nav">
+      <div class="tabs" id="tabs" role="tablist" aria-label="Filter tests"></div>
+      <div class="chips" id="chips"></div>
     </div>
     <div class="overall" id="overall"></div>
-  </header>
+    <div class="stage">
+  <section class="board" aria-label="Live execution monitor">
+  <div class="ws-head"><span class="live-dot" aria-hidden="true"></span><h2>Live execution</h2><span class="sub" id="ws-sub"></span>
+    <div class="view-switch" id="view-switch" role="group" aria-label="Live execution view">
+      <button type="button" data-view="cards" aria-pressed="true">Cards</button>
+      <button type="button" data-view="tests" aria-pressed="false">All tests</button>
+    </div>
+  </div>
+  <main id="lanes"><div class="empty">Waiting for worker sessions…</div></main>
+  <div class="keys">
+    <span><kbd>/</kbd> search</span><span><kbd>A</kbd> all</span><span><kbd>R</kbd> running</span><span><kbd>F</kbd> failed</span>
+    <span><kbd>P</kbd> passed</span><span><kbd>Q</kbd> queued</span><span><kbd>1</kbd>–<kbd>9</kbd> focus worker</span>
+    <span><kbd>0</kbd> all workers</span><span><kbd>Esc</kbd> clear</span>
+  </div>
+  </section>
 
-  <section class="qa card" id="qa" hidden aria-label="Test runner">
-    <div class="card-head">
-      <span class="card-title">Test runner</span>
-      <span class="qa-desc" id="qa-desc">Loading simulations…</span>
+  <aside class="side" aria-label="Attention and activity">
+    <section class="panel" id="disc-panel" aria-label="Game discovery" hidden>
+      <div class="panel-head"><h3>Game discovery</h3><span class="disc-badge" id="disc-badge"></span></div>
+      <div id="disc-body"></div>
+    </section>
+    <section class="panel" aria-label="Requires attention">
+      <div class="panel-head"><h3>Requires attention</h3><span class="n" id="att-n">0</span></div>
+      <div id="attention"></div>
+    </section>
+    <section class="panel" aria-label="Recent activity">
+      <div class="panel-head"><h3>Recent activity</h3><span class="sub">this run</span></div>
+      <div id="activity"></div>
+    </section>
+  </aside>
+
+  <section class="qa" id="qa" hidden aria-label="New run">
+    <div class="qa-head">
+      <div>
+        <h1>New run</h1>
+        <p class="sub" id="qa-desc">Loading test catalog…</p>
     </div>
-    <div id="qa-form"></div>
-    <div class="qa-actions">
-      <span class="qa-state" id="qa-state"></span>
-      <div class="qa-where" id="qa-where" hidden>
-        <span class="field-label">Run on</span>
-        <div class="tabs" role="radiogroup" aria-label="Run on">
-          <button type="button" class="tab" role="radio" data-where="mine" data-icon="monitor"><span>My PC</span></button>
-          <button type="button" class="tab" role="radio" data-where="server"><span>Server PC</span></button>
+      <button type="button" class="btn ghost" id="qa-back" data-icon="left" title="Back to runs (Esc)"><span>Back to runs</span></button>
         </div>
-        <a class="btn ghost sm" id="qa-setup" href="/agent/setup.cmd" download="SGAP-setup.cmd" data-icon="download" hidden><span>Set up my PC</span></a>
+    <div id="qa-quick"></div>
+    <div class="qa-layout">
+      <div class="qa-main">
+        <div class="qa-main" id="qa-form"></div>
+        <section class="qa-sec" aria-label="Game URL">
+          <div class="qa-sec-title"><span class="num">4</span><h2>Game URL</h2><span class="sub">optional</span></div>
+          <input id="qa-url" class="qa-url" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a game link — empty opens each game from the staging launcher">
+          <select id="qa-url-device" class="qa-url-device" aria-label="Device configuration for the Game URL" hidden>
+            <option value="preserve">Device: keep the link's</option>
+            <option value="mobile">Device: test the mobile variant (device=mobile)</option>
+            <option value="desktop">Device: test the desktop variant (device=desktop)</option>
+            <option value="switch">Device: switch per test, like the launcher (cases that check both layouts)</option>
+          </select>
+          <p class="qa-url-check" id="qa-url-check">Empty: each selected game opens from the staging launcher. A pasted link (staging token URL, LAN or localhost dev server) opens that one session directly. A registered game is picked from the link; a game SGAP does not know is learned first (inspect, safe panels, a few normal spins) and then runs the cases it verified.</p>
+        </section>
       </div>
-      <button type="button" class="btn ghost sm" id="qa-log-toggle" data-icon="terminal"><span>Show log</span></button>
-      <button type="button" class="btn danger" id="qa-stop" data-icon="stop" data-control disabled><span>Stop</span></button>
-      <button type="button" class="btn primary" id="qa-run" data-icon="play" data-control><span>Run selected tests</span></button>
+      <aside class="qa-summary" aria-label="Run summary">
+        <div id="qa-sum"></div>
+        <div class="qa-sum-actions">
+          <button type="button" class="btn ghost" id="qa-reset"><span>Reset</span></button>
+          <button type="button" class="btn primary" id="qa-run" data-icon="play" data-control><span>Run</span></button>
+      </div>
+      </aside>
     </div>
-    <pre class="qa-log mono" id="qa-log" hidden></pre>
   </section>
 
   <section class="runs card" id="runs" hidden aria-label="Runs">
@@ -251,19 +668,25 @@
       <span class="cap" id="cap"></span>
     </div>
     <div class="run-list" id="run-list"></div>
+    <div class="qa-actions">
+      <span class="qa-state" id="qa-state"></span>
+      <button type="button" class="btn ghost sm" id="qa-log-toggle" data-icon="terminal"><span>Show log</span></button>
+      <button type="button" class="btn danger sm" id="qa-stop" data-icon="stop" data-control disabled><span>Stop</span></button>
+    </div>
+    <pre class="qa-log mono" id="qa-log" hidden></pre>
   </section>
+  </div>
+  </div>
 
-  <div class="nav">
-    <div class="tabs" id="tabs" role="tablist" aria-label="Filter tests"></div>
-    <input class="search" id="search" type="search" placeholder="Search tests" aria-label="Search tests" autocomplete="off" />
-    <div class="chips" id="chips"></div>
-  </div>
-  <main id="lanes"><div class="empty">Waiting for worker sessions…</div></main>
-  <div class="keys">
-    <span><kbd>/</kbd> search</span><span><kbd>A</kbd> all</span><span><kbd>R</kbd> running</span><span><kbd>F</kbd> failed</span>
-    <span><kbd>P</kbd> passed</span><span><kbd>Q</kbd> queued</span><span><kbd>1</kbd>–<kbd>9</kbd> focus worker</span>
-    <span><kbd>0</kbd> all workers</span><span><kbd>Esc</kbd> clear</span>
-  </div>
+  <aside class="drawer" id="drawer" aria-label="Worker details" aria-hidden="true">
+    <div class="dr-head">
+      <div><h2 id="dr-title">Worker</h2><div class="sub" id="dr-sub"></div></div>
+      <button type="button" class="btn ghost sm icon" id="dr-close" data-icon="x" title="Close (Esc)" aria-label="Close"></button>
+    </div>
+    <div class="dr-body" id="dr-body"></div>
+    <div class="dr-foot" id="dr-foot"></div>
+  </aside>
+
   <script src="/ui.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -284,6 +707,7 @@
       open: new Set(),
       data: null,
       lastKey: '',
+      view: params.get('view') === 'tests' || (params.get('view') !== 'cards' && localStorage.getItem('sgap.liveView') === 'tests') ? 'tests' : 'cards',
     };
     let stopBusy = false;
     const icon = (name) => (window.SGAP ? SGAP.icon(name) : '');
@@ -366,12 +790,32 @@
       const t = data.totals || {};
       const total = t.total || 0;
       const done = t.done || 0;
-      document.getElementById('summary').innerHTML = total === 0 ? '' :
-        '<span class="stat" title="Finished / total"><span><b>' + done + '</b>/' + total + '</span></span><span class="sep"></span>' +
-        '<span class="stat p" title="Passed"><span class="dot" style="background:var(--pass)"></span><b>' + (t.passed || 0) + '</b></span>' +
-        '<span class="stat f" title="Failed or timed out"><span class="dot" style="background:var(--fail)"></span><b>' + failedCount(t) + '</b></span>' +
-        '<span class="stat r" title="Running"><span class="dot" style="background:var(--run)"></span><b>' + (t.running || 0) + '</b></span><span class="sep"></span>' +
-        '<span class="stat" title="Elapsed">' + fmtElapsed(Date.now() - (data.startedAt || startedFallback)) + '</span>';
+      const kpi = (cls, filter, label, value) =>
+        '<button type="button" class="kpi ' + cls + (state.filter === filter ? ' on' : '') + '" data-filter="' + filter + '" aria-pressed="' + (state.filter === filter) + '">' +
+        (cls ? '<span class="dot"></span>' : '') + '<span>' + label + '</span><b>' + value + '</b></button>';
+      const queued = Math.max(0, total - done - (t.running || 0));
+      document.getElementById('summary').innerHTML =
+        kpi('', 'all', 'All', total ? done + '/' + total : '0') +
+        kpi('r', 'running', 'Running', t.running || 0) +
+        kpi('f', 'failed', 'Failed', failedCount(t)) +
+        kpi('p', 'passed', 'Passed', t.passed || 0) +
+        kpi('', 'queued', 'Queued', queued) +
+        '<span class="kpi static"><span>Elapsed</span><b>' + fmtElapsed(Date.now() - (data.startedAt || startedFallback)) + '</b></span>';
+      const sub = document.getElementById('page-sub');
+      if (sub && workers.length) {
+        sub.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) +
+          ' · ' + workers.length + ' worker' + (workers.length === 1 ? '' : 's') + ' live';
+      }
+      const ctx = document.getElementById('run-ctx');
+      const runId = qa.selected || data.runId || '';
+      ctx.hidden = !runId;
+      ctx.textContent = runId;
+      const wsSub = document.getElementById('ws-sub');
+      if (wsSub) {
+        const filter = currentFilter();
+        wsSub.textContent = done + ' of ' + total + ' tests done' + (filter.key !== 'all' ? ' · showing ' + filter.label.toLowerCase() : '') +
+          (state.query ? ' · “' + state.query + '”' : '');
+      }
       const pct = (n) => (total ? (100 * n) / total : 0);
       document.getElementById('overall').innerHTML =
         '<i class="ok" style="width:' + pct(t.passed || 0) + '%"></i>' +
@@ -399,13 +843,190 @@
         (workers.length < expected ? '<span class="hint">' + workers.length + ' of ' + expected + ' workers</span>' : '');
     }
 
-    function renderLane(lane) {
+    function laneStats(lane) {
       const total = lane.total || (lane.tests || []).length || 0;
       const done = (lane.passed || 0) + failedCount(lane) + (lane.skipped || 0);
-      const pct = (n) => (total ? (100 * n) / total : 0);
       const isStopped = lane.status === 'stopped';
       const isDone = lane.status === 'done' || isStopped;
-      const tone = failedCount(lane) > 0 ? ' is-failed' : lane.running > 0 ? ' is-running' : isDone && total > 0 ? ' is-done' : '';
+      const tone = lane.running > 0 ? 'running' : failedCount(lane) > 0 ? 'failed' : isDone && total > 0 ? 'passed' : 'queued';
+      const label = isStopped ? 'Stopped' : lane.running > 0 ? 'Running' : isDone ? 'Finished' : 'Waiting';
+      const spent = (lane.tests || []).reduce((sum, test) =>
+        sum + (test.status === 'running' && test.startedAt ? Date.now() - test.startedAt : Number(test.durationMs) || 0), 0);
+      return { total, done, isStopped, isDone, tone, label, spent, pct: (n) => (total ? (100 * n) / total : 0) };
+    }
+    function meterHtml(lane, s) {
+      return '<div class="meter"><i class="ok" style="width:' + s.pct(lane.passed || 0) + '%"></i>' +
+        '<i class="bad" style="width:' + s.pct(failedCount(lane)) + '%"></i>' +
+        '<i class="live" style="width:' + s.pct(lane.running || 0) + '%"></i></div>';
+    }
+    function laneMatches(lane) {
+      const filter = currentFilter();
+      if (filter.key === 'all' && !state.query) return true;
+      const q = state.query.toLowerCase();
+      if (q && (laneName(lane).toLowerCase().includes(q) || ('w' + lane.id) === q) && filter.key === 'all') return true;
+      return (lane.tests || []).some((test) => filter.match(statusOf(test)) && matchesQuery(test));
+    }
+
+    /** Live FPS line for PAD lanes: last-second FPS, 10 s 1% low, band, 60 s sparkline. */
+    function perfHtml(lane) {
+      const p = lane.perf;
+      if (!p || !Number.isFinite(p.fps)) return '';
+      const stale = Date.now() - (p.at || 0) > 5000;
+      const hist = (p.history || []).filter(Number.isFinite);
+      const w = 120, h = 24, top = 75;
+      const pts = hist.map((v, i) => {
+        const x = hist.length > 1 ? (i / (hist.length - 1)) * w : w;
+        const y = h - (Math.min(top, Math.max(0, v)) / top) * h;
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      const y60 = (h - (60 / top) * h).toFixed(1), y40 = (h - (40 / top) * h).toFixed(1), y30 = (h - (30 / top) * h).toFixed(1);
+      const color = esc(p.color || '#94a3b8');
+      return '<div class="wc-perf" style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;' + (stale ? 'opacity:.55' : '') + '">' +
+        '<span style="width:8px;height:8px;border-radius:50%;background:' + color + '"></span>' +
+        '<b class="mono" style="font-size:14px">' + Math.round(p.fps) + ' FPS</b>' +
+        '<span class="mono" title="1% low over the last 10 s">low ' + (Number.isFinite(p.low1) ? Math.round(p.low1) : '–') + '</span>' +
+        '<span style="color:' + color + '">' + esc(p.band) + '</span>' +
+        '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="margin-left:auto" aria-label="FPS, last 60 seconds">' +
+          '<line x1="0" x2="' + w + '" y1="' + y60 + '" y2="' + y60 + '" stroke="#16a34a" stroke-opacity=".35" stroke-dasharray="2 2"/>' +
+          '<line x1="0" x2="' + w + '" y1="' + y40 + '" y2="' + y40 + '" stroke="#ca8a04" stroke-opacity=".35" stroke-dasharray="2 2"/>' +
+          '<line x1="0" x2="' + w + '" y1="' + y30 + '" y2="' + y30 + '" stroke="#dc2626" stroke-opacity=".35" stroke-dasharray="2 2"/>' +
+          (pts ? '<polyline fill="none" stroke="' + color + '" stroke-width="1.5" points="' + pts + '"/>' : '') +
+        '</svg>' +
+      '</div>' +
+      (p.status ? '<div class="wc-perf-status" style="font-size:11px;color:var(--faint);margin-top:2px">' + esc(p.status) + '</div>' : '');
+    }
+
+    function renderWorkerCard(lane) {
+      const s = laneStats(lane);
+      const failed = failedCount(lane);
+      const suite = [lane.packageId ? 'P' + lane.packageId : '', lane.category || ''].filter(Boolean).join(' · ');
+      const now = lane.current
+        ? '<div class="wc-now" data-tip="' + esc(lane.current.id + ' ' + (lane.current.title || '')) + '"><span class="mono">' + esc(lane.current.id) + '</span>' + esc(lane.current.title) + '</div>'
+        : '<div class="wc-now idle">' + (s.isDone ? 'All assigned tests finished' : 'Waiting for the next test') + '</div>';
+      return '<section class="lane' + (state.focus === lane.id ? ' selected' : '') + (highlightId === lane.id ? ' mine' : '') +
+          '" data-lane="' + lane.id + '" tabindex="0" role="button" aria-label="Open worker W' + lane.id + ' details">' +
+        '<div class="wc-top">' +
+          '<span class="lane-id">W' + lane.id + '</span>' +
+          '<span class="lane-name">' + esc(laneName(lane)) + '</span>' +
+          '<span class="wc-state ' + s.tone + '">' + s.label + '</span>' +
+        '</div>' +
+        '<div class="wc-suite">' + esc(suite || 'Worker ' + lane.id) + '</div>' +
+        now +
+        '<div class="wc-pct"><b>' + Math.round(s.pct(s.done)) + '%</b><span>' + s.done + ' of ' + s.total + ' done</span></div>' +
+        meterHtml(lane, s) +
+        perfHtml(lane) +
+        '<div class="wc-foot">' +
+          '<span class="mono" title="Time spent in tests">' + fmtElapsed(s.spent) + '</span>' +
+          (failed > 0 ? '<span class="f">' + failed + ' failed</span>' : '<span>0 failed</span>') +
+          '<button type="button" class="btn ghost danger sm icon" data-control data-stop-worker="' + lane.id + '"' + (s.isDone ? ' disabled' : '') +
+            ' title="Stop this worker" aria-label="Stop worker W' + lane.id + '">' + icon('stop') + '</button>' +
+        '</div>' +
+      '</section>';
+    }
+
+    /** "All tests" view: one column per worker with every test it was given and its live status. */
+    function renderWorkerTests(lane) {
+      const s = laneStats(lane);
+      const failed = failedCount(lane);
+      const suite = [lane.packageId ? 'P' + lane.packageId : '', lane.category || ''].filter(Boolean).join(' · ');
+      return '<section class="lane' + (highlightId === lane.id ? ' mine' : '') + '" data-lane="' + lane.id + '">' +
+        '<div class="wc-top">' +
+          '<span class="lane-id">W' + lane.id + '</span>' +
+          '<span class="lane-name">' + esc(laneName(lane)) + '</span>' +
+          '<span class="wc-state ' + s.tone + '">' + s.label + '</span>' +
+        '</div>' +
+        '<div class="lane-sum">' +
+          '<span>' + esc(suite || 'Worker ' + lane.id) + '</span>' +
+          '<span class="mono">' + s.done + '/' + s.total + '</span>' +
+          '<span class="mono" title="Time spent in tests">' + fmtElapsed(s.spent) + '</span>' +
+          (failed > 0 ? '<span class="f">' + failed + ' failed</span>' : '') +
+          '<button type="button" class="btn ghost danger sm icon" data-control data-stop-worker="' + lane.id + '"' + (s.isDone ? ' disabled' : '') +
+            ' title="Stop this worker" aria-label="Stop worker W' + lane.id + '">' + icon('stop') + '</button>' +
+        '</div>' +
+        meterHtml(lane, s) +
+        testList(lane) +
+      '</section>';
+    }
+
+    function setView(view) {
+      state.view = view === 'tests' ? 'tests' : 'cards';
+      localStorage.setItem('sgap.liveView', state.view);
+      document.body.classList.toggle('all-tests', state.view === 'tests');
+      for (const btn of document.querySelectorAll('#view-switch [data-view]')) {
+        btn.setAttribute('aria-pressed', String(btn.dataset.view === state.view));
+      }
+      render(true);
+    }
+
+    function renderSide(workers) {
+      const failed = [];
+      const recent = [];
+      for (const lane of workers) {
+        for (const test of lane.tests || []) {
+          const st = statusOf(test);
+          if (!matchesQuery(test)) continue;
+          if (st === 'failed' || st === 'timedOut' || st === 'interrupted') failed.push({ lane, test });
+          if (st !== 'running' && st !== 'queued') {
+            recent.push({ lane, test, at: test.startedAt ? test.startedAt + (Number(test.durationMs) || 0) : 0 });
+          }
+        }
+      }
+      const n = document.getElementById('att-n');
+      n.textContent = String(failed.length);
+      n.classList.toggle('bad', failed.length > 0);
+      document.getElementById('attention').innerHTML = failed.length === 0
+        ? '<div class="empty">Nothing needs attention. Failed tests show up here.</div>'
+        : failed.map(({ lane, test }) =>
+          '<button type="button" class="att-item" data-open-test="' + esc(testKey(lane, test)) + '" data-lane-id="' + lane.id + '">' +
+            '<div class="l1"><span class="mono">' + esc(test.id) + '</span><span>' + esc(laneName(lane)) + '</span><span class="w">W' + lane.id + '</span></div>' +
+            '<div class="l2">' + esc((test.error || test.title || '').split('\n')[0]) + '</div>' +
+          '</button>').join('');
+      recent.sort((a, b) => b.at - a.at);
+      const word = { passed: 'Passed', failed: 'Failed', timedOut: 'Timed out', interrupted: 'Interrupted', skipped: 'Skipped' };
+      document.getElementById('activity').innerHTML = recent.length === 0
+        ? '<div class="empty">No finished tests yet in this run.</div>'
+        : recent.slice(0, 8).map(({ lane, test }) => {
+          const st = statusOf(test);
+          return '<button type="button" class="act-item ' + esc(st) + '" data-open-test="' + esc(testKey(lane, test)) + '" data-lane-id="' + lane.id + '">' +
+            '<span class="dot"></span>' +
+            '<span class="t"><span class="mono">' + esc(test.id) + '</span>' + esc(laneName(lane)) + '</span>' +
+            '<span class="s">' + (word[st] || st) + '</span></button>';
+        }).join('');
+    }
+
+    function renderDrawer(workers) {
+      const drawer = document.getElementById('drawer');
+      const lane = workers.find((w) => w.id === state.focus);
+      drawer.classList.toggle('open', Boolean(lane));
+      drawer.setAttribute('aria-hidden', String(!lane));
+      if (!lane) return;
+      const s = laneStats(lane);
+      document.getElementById('dr-title').textContent = 'W' + lane.id + ' · ' + laneName(lane);
+      document.getElementById('dr-sub').textContent =
+        [lane.packageId ? 'Package ' + lane.packageId : '', lane.category || '', s.label].filter(Boolean).join(' · ');
+      const body = document.getElementById('dr-body');
+      const scroll = body.scrollTop;
+      const stat = (cls, label, value) => '<div class="dr-stat ' + cls + '"><span>' + label + '</span><b>' + value + '</b></div>';
+      body.innerHTML =
+        '<div class="dr-stats">' +
+          stat('', 'Done', s.done + '/' + s.total) +
+          stat('p', 'Passed', lane.passed || 0) +
+          stat('f', 'Failed', failedCount(lane)) +
+          stat('r', 'Time', fmtElapsed(s.spent)) +
+        '</div>' +
+        meterHtml(lane, s) +
+        '<div class="dr-now"><span class="k">Now running</span>' +
+          (lane.current ? '<span class="mono">' + esc(lane.current.id) + '</span>' + esc(lane.current.title) : (s.isDone ? 'Finished' : 'Idle')) +
+        '</div>' +
+        '<div class="dr-section">Tests' + (state.filter !== 'all' ? ' · ' + currentFilter().label.toLowerCase() : '') + '</div>' +
+        testList(lane);
+      body.scrollTop = scroll;
+      document.getElementById('dr-foot').innerHTML =
+        '<button type="button" class="btn danger sm" data-control data-stop-worker="' + lane.id + '"' + (s.isDone ? ' disabled' : '') + '>' +
+          icon('stop') + '<span>Stop worker</span></button>';
+    }
+
+    function testList(lane) {
       const filter = currentFilter();
       const tests = (lane.tests || []).filter((test) => filter.match(statusOf(test)) && matchesQuery(test));
       const rows = tests.map((test) => {
@@ -422,30 +1043,8 @@
           (hasError ? '<div class="err">' + esc(test.error) + '</div>' : '') +
           '</li>';
       }).join('');
-      const empty = (lane.tests || []).length === 0 ? 'No tests reported yet' : 'No tests match';
-      const now = lane.current
-        ? '<div class="lane-now">Now · <span class="mono">' + esc(lane.current.id) + '</span> ' + esc(lane.current.title) + '</div>'
-        : '<div class="lane-now idle">' + (isDone ? 'Finished' : 'Idle') + '</div>';
-      return '<section class="lane' + tone + (highlightId === lane.id ? ' mine' : '') + (isStopped ? ' stopped' : '') + '" data-lane="' + lane.id + '">' +
-        '<div class="lane-head">' +
-          '<div class="lane-row">' +
-            '<span class="lane-id">W' + lane.id + '</span>' +
-            '<span class="lane-name">' + esc(laneName(lane)) + '</span>' +
-            (lane.category || lane.packageId
-              ? '<span class="lane-cat">' + esc((lane.packageId ? 'P' + lane.packageId + ' · ' : '') + (lane.category || '')) + '</span>'
-              : '') +
-            (isStopped ? '<span class="tag">stopped</span>' : '') +
-            '<span class="lane-count mono">' + done + '/' + total + '</span>' +
-            '<button type="button" class="btn ghost danger sm icon" data-control data-stop-worker="' + lane.id + '"' + (isDone ? ' disabled' : '') +
-              ' title="Stop this worker" aria-label="Stop worker W' + lane.id + '">' + icon('stop') + '</button>' +
-          '</div>' +
-          now +
-          '<div class="meter"><i class="ok" style="width:' + pct(lane.passed || 0) + '%"></i>' +
-            '<i class="bad" style="width:' + pct(failedCount(lane)) + '%"></i>' +
-            '<i class="live" style="width:' + pct(lane.running || 0) + '%"></i></div>' +
-        '</div>' +
-        '<ul class="tests">' + (rows || '<li class="empty">' + empty + '</li>') + '</ul>' +
-      '</section>';
+      const empty = (lane.tests || []).length === 0 ? 'No tests reported yet' : 'No tests match this filter';
+      return '<ul class="tests">' + (rows || '<li class="empty">' + empty + '</li>') + '</ul>';
     }
 
     function render(force) {
@@ -455,34 +1054,66 @@
       renderTop(data, workers);
       setStatus('Live · ' + new Date(data.updatedAt || Date.now()).toLocaleTimeString());
 
-      const key = JSON.stringify([workers, state.filter, state.query, state.focus, [...state.open]]);
+      const key = JSON.stringify([workers, state.filter, state.query, state.focus, [...state.open], state.view]);
       if (!force && key === state.lastKey) return;
       state.lastKey = key;
 
       const main = document.getElementById('lanes');
-      const scroll = {};
-      main.querySelectorAll('.lane').forEach((el) => {
-        const list = el.querySelector('.tests');
-        if (list) scroll[el.dataset.lane] = list.scrollTop;
-      });
-      const visible = state.focus === undefined ? workers : workers.filter((lane) => lane.id === state.focus);
-      main.classList.toggle('single', visible.length === 1);
-      main.innerHTML = visible.length === 0
+      const scroll = main.scrollTop;
+      const listScroll = new Map([...main.querySelectorAll('.lane[data-lane] .tests')].map((el) => [el.closest('.lane').dataset.lane, el.scrollTop]));
+      const visible = workers.filter(laneMatches);
+      const allTests = state.view === 'tests';
+      document.body.classList.toggle('live', workers.length > 0);
+      document.body.classList.toggle('idle', workers.length === 0);
+      main.classList.toggle('all-tests', allTests);
+      main.innerHTML = workers.length === 0
         ? '<div class="empty">Waiting for worker sessions…</div>'
-        : visible.map(renderLane).join('');
-      main.querySelectorAll('.lane').forEach((el) => {
-        const list = el.querySelector('.tests');
-        if (list && scroll[el.dataset.lane] !== undefined) list.scrollTop = scroll[el.dataset.lane];
-      });
+        : visible.length === 0
+          ? '<div class="empty">No workers have tests matching this filter.</div>'
+          : visible.map(allTests ? renderWorkerTests : renderWorkerCard).join('');
+      main.scrollTop = scroll;
+      for (const el of main.querySelectorAll('.lane[data-lane] .tests')) {
+        const prev = listScroll.get(el.closest('.lane').dataset.lane);
+        if (prev !== undefined) el.scrollTop = prev;
+      }
+      renderSide(workers);
+      renderDrawer(workers);
     }
 
     function setFilter(key) { state.filter = key; render(true); }
     function setFocus(id) { state.focus = id > 0 ? id : undefined; render(true); }
 
     document.getElementById('stop-all').addEventListener('click', () => void requestStop({ all: true }));
-    document.getElementById('tabs').addEventListener('click', (ev) => {
+    for (const id of ['tabs', 'summary']) {
+      document.getElementById(id).addEventListener('click', (ev) => {
       const btn = ev.target.closest('[data-filter]');
-      if (btn) setFilter(btn.dataset.filter);
+        if (btn) setFilter(state.filter === btn.dataset.filter && btn.dataset.filter !== 'all' ? 'all' : btn.dataset.filter);
+      });
+    }
+    document.getElementById('dr-close').addEventListener('click', () => setFocus(0));
+    document.addEventListener('click', (ev) => {
+      const stop = ev.target.closest('[data-stop-worker]');
+      if (stop) {
+        const id = Number(stop.dataset.stopWorker);
+        if (Number.isFinite(id)) void requestStop({ workers: [id] });
+        return;
+      }
+      const open = ev.target.closest('[data-open-test]');
+      if (open) {
+        state.open.add(open.dataset.openTest);
+        setFocus(Number(open.dataset.laneId));
+        const row = document.querySelector('#dr-body [data-toggle="' + CSS.escape(open.dataset.openTest) + '"]');
+        if (row) row.scrollIntoView({ block: 'center' });
+        return;
+      }
+      const row = ev.target.closest('#drawer [data-toggle], #lanes [data-toggle]');
+      if (row) {
+        const key = row.dataset.toggle;
+        if (state.open.has(key)) state.open.delete(key); else state.open.add(key);
+        render(true);
+        return;
+      }
+      if (state.focus !== undefined && !ev.target.closest('.drawer, .lane, .kpi, .rail, .modal, .tip, .utility')) setFocus(0);
     });
     document.getElementById('chips').addEventListener('click', (ev) => {
       const btn = ev.target.closest('[data-focus]');
@@ -490,18 +1121,22 @@
       const id = Number(btn.dataset.focus);
       setFocus(state.focus === id ? 0 : id);
     });
-    document.getElementById('lanes').addEventListener('click', (ev) => {
-      const stop = ev.target.closest('[data-stop-worker]');
-      if (stop) {
-        const id = Number(stop.dataset.stopWorker);
-        if (Number.isFinite(id)) void requestStop({ workers: [id] });
-        return;
-      }
-      const row = ev.target.closest('[data-toggle]');
-      if (row) {
-        const key = row.dataset.toggle;
-        if (state.open.has(key)) state.open.delete(key); else state.open.add(key);
-        render(true);
+    const lanesEl = document.getElementById('lanes');
+    lanesEl.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-stop-worker]') || state.view === 'tests') return;
+      const card = ev.target.closest('.lane');
+      if (card) setFocus(state.focus === Number(card.dataset.lane) ? 0 : Number(card.dataset.lane));
+    });
+    document.getElementById('view-switch').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-view]');
+      if (btn) setView(btn.dataset.view);
+    });
+    setView(state.view);
+    lanesEl.addEventListener('keydown', (ev) => {
+      const card = ev.target.closest('.lane');
+      if (card && (ev.key === 'Enter' || ev.key === ' ') && ev.target === card) {
+        ev.preventDefault();
+        setFocus(Number(card.dataset.lane));
       }
     });
     const search = document.getElementById('search');
@@ -509,6 +1144,10 @@
     document.addEventListener('keydown', (ev) => {
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       if (document.querySelector('.modal.open')) return;
+      if (qaIsOpen()) {
+        if (ev.key === 'Escape') { ev.preventDefault(); setQaOpen(false); }
+        return;
+      }
       const active = document.activeElement;
       if (active && active !== search && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)) return;
       if (document.activeElement === search) {
@@ -517,6 +1156,7 @@
       }
       const k = ev.key.toLowerCase();
       if (k === '/') { ev.preventDefault(); search.focus(); return; }
+      if (k === 'escape' && state.focus !== undefined) { setFocus(0); return; }
       if (k === 'escape') { state.query = ''; search.value = ''; state.filter = 'all'; state.focus = undefined; render(true); return; }
       const byKey = { a: 'all', r: 'running', f: 'failed', p: 'passed', q: 'queued' }[k];
       if (byKey) { setFilter(byKey); return; }
@@ -537,13 +1177,17 @@
               : job ? job.id + ' · ' + job.state : 'No run active',
             false, true);
           renderTop(state.data, []);
+          const sub = document.getElementById('page-sub');
+          if (sub) sub.textContent = job ? job.id + ' · ' + job.state : 'No live workers. Open the test runner to start.';
+          document.body.classList.add('idle');
+          document.body.classList.remove('live');
+          renderDrawer([]);
           document.getElementById('lanes').innerHTML = '<div class="empty">' + (
             job && job.state === 'queued' ? esc(job.id) + ' is queued: ' + esc(job.queueReason || 'waiting for capacity') + '.'
               : job && job.state === 'running' ? esc(job.id) + ' is between packages; its lanes appear when the next package starts.'
               : job ? esc(job.id) + ' has ended. Results are in Allure; pick a live run under Runs or start a new one.'
-              : 'No run active. Open the Test runner, pick families and games, then Run.') + '</div>';
+              : 'No run active. Click New run, pick tests and games, then Run.') + '</div>';
           state.lastKey = '';
-          if (!qa.touched && qa.online) setQaOpen(true);
           return;
         }
         render(false);
@@ -626,34 +1270,7 @@
       preset: '', families: new Set(), games: new Set(), caseId: '',
       opts: { screenshots: true, trace: false, dryRun: false },
       runs: [], me: null, capacity: null, selected: window.SGAP_RUN_ID || '', pinned: Boolean(window.SGAP_RUN_ID), seen: new Map(),
-      agent: null, remote: false, where: '',
     };
-    try { qa.where = localStorage.getItem('sgap.runOn') || ''; } catch { /* storage blocked */ }
-    /** "mine" = the SGAP Agent on the caller's PC runs it; "server" = this host. The host's own browser always runs here. */
-    function runOn() {
-      if (!SERVED || !qa.remote) return 'server';
-      if (qa.where === 'mine' || qa.where === 'server') return qa.where;
-      return qa.agent ? 'mine' : 'server';
-    }
-    function renderWhere() {
-      const box = document.getElementById('qa-where');
-      box.hidden = !(SERVED && qa.remote);
-      if (box.hidden) return;
-      const where = runOn();
-      box.querySelectorAll('[data-where]').forEach((tab) => {
-        const on = tab.dataset.where === where;
-        tab.classList.toggle('on', on);
-        tab.setAttribute('aria-checked', String(on));
-      });
-      const mine = box.querySelector('[data-where="mine"]');
-      mine.classList.toggle('off', !qa.agent);
-      mine.querySelector('span').innerHTML = 'My PC' + (qa.agent ? ' <span class="m">' + esc(qa.agent.machine) + '</span>' : '');
-      mine.dataset.tip = qa.agent
-        ? 'Browsers, terminal and the Allure report open on ' + qa.agent.machine + ' (your SGAP Agent).'
-        : 'No SGAP Agent is running on your PC. Use "Set up my PC" once, or start the "SGAP Agent" window.';
-      box.querySelector('[data-where="server"]').dataset.tip = 'Runs on the server PC; you watch it here.';
-      document.getElementById('qa-setup').hidden = Boolean(qa.agent);
-    }
     /** Path of a run-scoped monitor endpoint; null when the panel has no run selected. */
     function runApi(p) {
       if (!SERVED) return p;
@@ -661,7 +1278,7 @@
     }
     const ACTIVE_RUN = new Set(['queued', 'running']);
     function canStop(run) {
-      return Boolean(run && qa.me && ACTIVE_RUN.has(run.state) && (run.owner === qa.me.name || qa.me.role === 'admin'));
+      return Boolean(run && ACTIVE_RUN.has(run.state));
     }
     function selectRun(id, pin) {
       if (pin) qa.pinned = true;
@@ -683,8 +1300,11 @@
     }
     function renderRuns() {
       const box = document.getElementById('runs');
-      if (!SERVED) { box.hidden = true; return; }
       box.hidden = false;
+      // A run's own monitor (not the panel) only shows its status strip, not the list of runs.
+      box.querySelector('.card-head').hidden = !SERVED;
+      document.getElementById('run-list').hidden = !SERVED;
+      if (!SERVED) return;
       const cap = qa.capacity;
       document.getElementById('cap').innerHTML = cap
         ? '<b>' + cap.browsersInUse + '/' + cap.maxBrowsers + '</b> browsers in use · ' + (cap.freeMB / 1024).toFixed(1) + ' GB RAM free · ' +
@@ -693,15 +1313,14 @@
       document.getElementById('cap').title = cap ? 'Limited by ' + cap.limitedBy.by + ': ' + cap.limitedBy.detail : '';
       const list = document.getElementById('run-list');
       if (qa.runs.length === 0) {
-        list.innerHTML = '<div class="run-empty">No runs yet. Open the Test runner, pick tests and games, then Run.</div>';
+        list.innerHTML = '<div class="run-empty">No runs yet. Click New run, pick tests and games, then Run.</div>';
         return;
       }
       const pill = { running: 'run', queued: 'queued', passed: 'pass', failed: 'fail' };
       list.innerHTML = qa.runs.slice(0, 60).map((run) => {
         const mine = qa.me && run.owner === qa.me.name;
         const games = (run.games || []).length;
-        const sub = (run.where === 'agent' ? 'on ' + run.machine + ' · ' : '') +
-          (run.state === 'queued' ? (run.queueReason || 'Waiting for capacity') : run.note || ((run.currentPackage ? 'package ' + run.currentPackage + ' · ' : '') + games + ' game' + (games === 1 ? '' : 's')));
+        const sub = (run.state === 'queued' ? (run.queueReason || 'Waiting for capacity') : run.note || ((run.currentPackage ? 'package ' + run.currentPackage + ' · ' : '') + games + ' game' + (games === 1 ? '' : 's')));
         return '<div class="run-row' + (run.id === qa.selected ? ' sel' : '') + '" data-run="' + esc(run.id) + '" role="button" tabindex="0">' +
           '<span class="rid">' + esc(run.id) + '</span>' +
           '<span class="who">' + esc(run.owner) + (mine ? '<span class="you">you</span>' : '') + '</span>' +
@@ -709,7 +1328,7 @@
           '<span><span class="pill ' + (pill[run.state] || '') + '">' + esc(run.state) + '</span></span>' +
           '<span class="el">' + runElapsed(run) + '</span>' +
           '<span class="acts">' +
-            (run.where === 'agent' ? '' : '<a class="btn ghost sm icon" href="/runs/' + esc(run.id) + '/observe" target="_blank" rel="noreferrer" title="Observer for ' + esc(run.id) + '" aria-label="Observer">' + icon('observer') + '</a>') +
+            '<a class="btn ghost sm icon" href="/runs/' + esc(run.id) + '/observe" target="_blank" rel="noreferrer" title="Observer for ' + esc(run.id) + '" aria-label="Observer">' + icon('observer') + '</a>' +
             (canStop(run) ? '<button type="button" class="btn ghost sm icon" data-stop-run="' + esc(run.id) + '" data-control title="Stop ' + esc(run.id) + '" aria-label="Stop ' + esc(run.id) + '">' + icon('stop') + '</button>' : '') +
           '</span></div>';
       }).join('');
@@ -746,19 +1365,26 @@
     async function qaFetch(path, init) {
       const res = await fetch(QA_API + path, Object.assign({ cache: 'no-store' }, init || {}));
       const data = await res.json().catch(() => ({}));
-      if (res.status === 401 && data.login && SERVED) {
-        location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
-      }
       if (!res.ok) throw new Error(data.error || res.statusText);
       return data;
     }
     function qaLink(href) {
       return /^https?:/.test(href) ? href : QA_API + href;
     }
+    /** The New run builder replaces the live stage until Back, Escape or a started run closes it. */
     function setQaOpen(open) {
       document.getElementById('qa').hidden = !open;
+      document.body.classList.toggle('builder', open);
+      document.getElementById('crumb-page').textContent = open ? 'New run' : 'Test runner';
       document.getElementById('qa-toggle').setAttribute('aria-expanded', String(open));
       document.getElementById('qa-toggle').classList.toggle('on', open);
+      if (open) {
+        renderQaForm();
+        document.querySelector('.stage').scrollTop = 0;
+      }
+    }
+    function qaIsOpen() {
+      return !document.getElementById('qa').hidden;
     }
     function qaFamilies() {
       return qa.catalog ? qa.catalog.groups.flatMap((g) => g.families.map((f) => Object.assign({ group: g.id }, f))) : [];
@@ -785,30 +1411,112 @@
       }
       renderQaForm();
     }
-    /** Case runs the selection will execute: game-scope per game, package-scope per package, environment-scope once. */
-    function qaPlannedRuns() {
-      const preset = qaPreset();
-      const gameCount = qa.games.size;
-      const pkgCount = new Set([...qa.games].map((g) => (qaPackageOf(g) || {}).id)).size;
-      const fams = preset && !preset.families ? [] : qaFamilies().filter((f) => qa.families.has(f.id));
+    /** Case runs a selection executes: game-scope per game, package-scope per package, environment-scope once. */
+    function plannedRuns(preset, families, caseId, games) {
+      const gameCount = games.size;
+      const pkgCount = new Set([...games].map((g) => (qaPackageOf(g) || {}).id)).size;
+      const fams = preset && !preset.families ? [] : qaFamilies().filter((f) => families.has(f.id));
       const per = (f, n) => (f.scope === 'environment' ? 1 : f.scope === 'package' ? pkgCount : gameCount) * n;
-      if (qa.caseId) {
-        const fam = fams.find((f) => f.cases.includes(qa.caseId));
+      if (caseId) {
+        const fam = fams.find((f) => f.cases.includes(caseId));
         return fam ? per(fam, 1) : gameCount;
       }
       if (preset && !preset.families) return preset.cases.length * gameCount;
       return fams.reduce((sum, f) => sum + per(f, f.cases.length), 0);
+    }
+    function qaPlannedRuns() {
+      const urlGame = qaUrlGame();
+      return plannedRuns(qaPreset(), qa.families, qa.caseId, urlGame ? new Set([urlGame.id]) : qa.games);
+    }
+    /** The one game a Game URL run opens when it is not a ticked Test runner game, else null. */
+    function qaUrlGame() {
+      const check = qaUrlRaw() ? qa.urlCheck : null;
+      if (!check || !check.ok) return null;
+      if (check.gameId && qaCatalogGame(check.gameId)) return null;
+      if (check.gameId) return { id: check.gameId, name: check.gameName || check.gameId, registered: true };
+      if (check.lan && qa.games.size === 1) return null;
+      return { id: 'unregistered', name: check.gameKey || check.host, registered: false };
+    }
+    function presetGames(preset) {
+      return new Set(qa.catalog.packages.filter((p) => (preset.defaultPackages || []).includes(p.id)).flatMap((p) => p.games.map((g) => g.gameId)));
+    }
+    function qaSelectedFamilies() {
+      return qaFamilies().filter((f) => qa.families.has(f.id) && f.cases.length > 0);
+    }
+    function qaIncludesPen() {
+      const preset = qaPreset();
+      return preset ? (preset.families || []).includes('PEN') : qa.families.has('PEN');
+    }
+    const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many || one + 's');
+    function ago(ms) {
+      const min = Math.floor((Date.now() - ms) / 60000);
+      if (min < 1) return 'just now';
+      if (min < 60) return min + 'm ago';
+      const h = Math.floor(min / 60);
+      return h < 24 ? h + 'h ago' : Math.floor(h / 24) + 'd ago';
+    }
+    /** Latest distinct real (non dry-run) selections, newest first. */
+    function recentSelections() {
+      const seen = new Set();
+      const out = [];
+      for (const run of qa.runs) {
+        if (run.dryRun || run.external || !(run.games || []).length) continue;
+        const key = run.label + '|' + run.games.join(',');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(run);
+        if (out.length === 5) break;
+      }
+      return out;
+    }
+    function renderQaQuick() {
+      const box = document.getElementById('qa-quick');
+      if (!qa.catalog) { box.innerHTML = ''; return; }
+      const automated = (ids) => ids.filter((id) => qaFamilies().some((f) => f.id === id && f.cases.length > 0)).length;
+      const card = (id, on, title, desc, meta, pen) =>
+        '<button type="button" class="qa-preset' + (on ? ' on' : '') + '" data-preset-card="' + esc(id) + '" aria-pressed="' + on + '">' +
+          '<span class="check">' + icon('check') + '</span>' +
+          '<span class="t">' + esc(title) + '</span><span class="d">' + esc(desc) + '</span><span class="m">' + meta +
+          (pen ? '<span class="badge">PEN</span>' : '') + '</span></button>';
+      const cards = qa.catalog.suites.map((s) => {
+        const games = presetGames(s);
+        const planned = plannedRuns(s, new Set(s.families || []), '', games);
+        const scope = s.families ? plural(automated(s.families), 'family', 'families') : plural(s.cases.length, 'case');
+        return card(s.id, qa.preset === s.id, s.label, s.description || '',
+          '<b>' + planned + '</b><span>' + plural(planned, 'case run').replace(/^\d+ /, '') + ' · ' + plural(games.size, 'game') + ' · ' + scope + '</span>',
+          (s.families || []).includes('PEN'));
+      });
+      cards.push(card('', !qa.preset, 'Custom', 'Pick test families and games yourself. Changing any family switches to Custom.',
+        '<span>' + (qa.preset ? 'Starts from the current selection' : plural(qaSelectedFamilies().length, 'family', 'families') + ' · ' + plural(qa.games.size, 'game')) + '</span>', false));
+      const recent = recentSelections();
+      const chips = recent.map((run) =>
+        '<button type="button" class="qa-rr" data-rerun="' + esc(run.id) + '" title="Load the selection of ' + esc(run.id) + ' (' + esc(run.label) + ')">' +
+          icon('rerun') + '<span class="l">' + esc(run.label) + '</span><span class="g">' + plural(run.games.length, 'game') + '</span>' +
+          '<span class="dot ' + esc(run.state) + '" title="' + esc(run.id + ' ' + run.state) + '"></span>' +
+          '<span class="a">' + (run.queuedAt ? ago(run.queuedAt) : esc(run.id)) + '</span></button>').join('');
+      box.innerHTML = '<div class="qa-presets">' + cards.join('') + '</div>' +
+        (recent.length ? '<div class="qa-rerun"><span class="lbl">Re-run</span>' + chips + '</div>' : '');
+      qa.quickKey = recent.map((r) => r.id + r.state).join(',');
+    }
+    function loadRunSelection(id) {
+      const run = qa.runs.find((r) => r.id === id);
+      if (!run || !qa.catalog) return;
+      const known = qa.catalog.suites.find((s) => s.id === run.suite);
+      const valid = new Set(qa.catalog.packages.flatMap((p) => p.games.map((g) => g.gameId)));
+      qa.preset = known ? known.id : '';
+      qa.families = new Set(known ? known.families || [] : (run.families || []).filter((fid) => qaFamilies().some((f) => f.id === fid && f.cases.length > 0)));
+      qa.games = new Set((run.games || []).filter((g) => valid.has(g)));
+      qa.caseId = run.caseId && qaCaseList().includes(run.caseId) ? run.caseId : '';
+      renderQaForm();
+      toast({ kind: 'info', title: 'Loaded ' + run.id, text: run.label + ' · ' + plural(qa.games.size, 'game') + '. Review it, then Run.' });
     }
     function renderQaForm() {
       const form = document.getElementById('qa-form');
       if (!qa.catalog) return;
       const preset = qaPreset();
       const locked = Boolean(preset && !preset.families);
-      document.getElementById('qa-desc').textContent = preset
-        ? preset.description || ''
-        : 'Tick test families and games, then run. Pentesting runs only when PEN is ticked.';
-      const presetOptions = '<option value="">Custom — tick families below</option>' + qa.catalog.suites.map((s) =>
-        '<option value="' + esc(s.id) + '"' + (s.id === qa.preset ? ' selected' : '') + '>' + esc(s.label) + '</option>').join('');
+      document.getElementById('qa-desc').textContent = 'Start from a preset or a recent run, adjust tests and games, then Run. Nothing starts until you confirm.';
+      renderQaQuick();
       const cases = qaCaseList();
       const caseOptions = '<option value="">All selected cases (' + cases.length + ')</option>' +
         cases.map((c) => '<option value="' + esc(c) + '"' + (c === qa.caseId ? ' selected' : '') + '>' + esc(c) + ' only</option>').join('');
@@ -816,85 +1524,122 @@
         const fams = g.families.map((f) => {
           const manual = f.cases.length === 0;
           const off = locked || manual;
-          return '<label class="qa-fam' + (off ? ' off' : '') + '" data-tip="' + esc(f.id + ' — ' + f.label + (manual ? ' (manual only, no automated cases)' : ': ' + f.cases.length + ' automated case(s), scope ' + f.scope)) + '">' +
-            '<input type="checkbox" data-fam="' + esc(f.id) + '"' + (qa.families.has(f.id) && !manual ? ' checked' : '') + (off ? ' disabled' : '') + ' />' +
-            '<b>' + esc(f.id) + '</b><span class="fl">' + esc(f.label) + '</span>' +
-            '<span class="n">' + (manual ? 'manual' : f.cases.length) + '</span></label>';
+          return '<label class="qa-chip' + (g.id === 'security' ? ' sec' : '') + (off ? ' off' : '') + '" data-tip="' + esc(f.id + ' — ' + f.label + (manual ? ' (manual only, no automated cases)' : ': ' + f.cases.length + ' automated case(s), scope ' + f.scope)) + '">' +
+            '<input type="checkbox" data-fam="' + esc(f.id) + '"' + (qa.families.has(f.id) && !manual && !locked ? ' checked' : '') + (off ? ' disabled' : '') + ' />' +
+            '<b>' + esc(f.id) + '</b><span>' + esc(f.label) + '</span><span class="n">' + (manual ? 'manual' : f.cases.length) + '</span></label>';
         }).join('');
         const tools = g.id === 'regression'
-          ? '<div class="gtools"><button type="button" class="btn ghost sm" data-fam-all="regression"' + (locked ? ' disabled' : '') + '>All Regression</button>' +
-            '<button type="button" class="btn ghost sm" data-fam-none="regression"' + (locked ? ' disabled' : '') + '>None</button></div>'
+          ? '<span class="gtools"><button type="button" class="btn ghost sm" data-fam-all="regression"' + (locked ? ' disabled' : '') + '>All</button>' +
+            '<button type="button" class="btn ghost sm" data-fam-none="regression"' + (locked ? ' disabled' : '') + '>None</button></span>'
           : '';
-        return '<fieldset class="qa-group g-' + esc(g.id) + '"><legend>' + esc(g.label) + '</legend>' +
-          '<p class="gdesc">' + esc(g.description || '') + '</p>' + tools +
-          '<div class="qa-fams">' + fams + '</div></fieldset>';
+        return '<div class="qa-group g-' + esc(g.id) + '"><div class="gh"><b>' + esc(g.label) + '</b><span class="gd">' + esc(g.description || '') + '</span>' + tools + '</div>' +
+          '<div class="qa-chips">' + fams + '</div></div>';
       }).join('');
+      const totalGames = qa.catalog.packages.reduce((n, p) => n + p.games.length, 0);
       const pkgs = qa.catalog.packages.map((p) => {
         const picked = p.games.filter((g) => qa.games.has(g.gameId)).length;
-        return '<div class="qa-pkgbox"><label><input type="checkbox" data-pkg="' + esc(p.id) + '" />Package ' + esc(p.id) +
-          '<span class="n">' + picked + '/' + p.games.length + '</span></label>' +
-          '<div class="qa-games">' + p.games.map((g) =>
-            '<label class="' + (qa.games.has(g.gameId) ? 'on' : '') + '"><input type="checkbox" data-game="' + esc(g.gameId) + '"' + (qa.games.has(g.gameId) ? ' checked' : '') + ' />' + esc(g.name) + '</label>').join('') +
+        return '<div class="qa-pkg' + (picked ? ' some' : '') + '"><label><input type="checkbox" data-pkg="' + esc(p.id) + '" />Package ' + esc(p.id) +
+          '<span class="n">' + picked + '/' + p.games.length + '</span></label><div class="qa-chips">' +
+          p.games.map((g) => '<label class="qa-chip"><input type="checkbox" data-game="' + esc(g.gameId) + '"' + (qa.games.has(g.gameId) ? ' checked' : '') + ' /><span>' + esc(g.name) + '</span></label>').join('') +
           '</div></div>';
       }).join('');
       const opt = (key, label, hint) =>
-        '<label><input type="checkbox" data-opt="' + key + '"' + (qa.opts[key] ? ' checked' : '') + ' /><span>' + esc(label) + '</span><small>' + esc(hint) + '</small></label>';
-      const step = (n, label, tools) =>
-        '<div class="qa-step"><span class="num">' + n + '</span><span class="field-label">' + label + '</span>' + (tools ? '<span class="tools">' + tools + '</span>' : '') + '</div>';
+        '<label class="qa-switch"><input type="checkbox" data-opt="' + key + '"' + (qa.opts[key] ? ' checked' : '') + ' />' +
+        '<span class="t">' + esc(label) + '</span><span class="tg" aria-hidden="true"></span><small>' + esc(hint) + '</small></label>';
+      const sec = (n, title, sub, tools, body) =>
+        '<section class="qa-sec"><div class="qa-sec-title"><span class="num">' + n + '</span><h2>' + title + '</h2>' +
+        (sub ? '<span class="sub">' + esc(sub) + '</span>' : '') + (tools ? '<span class="tools">' + tools + '</span>' : '') + '</div>' + body + '</section>';
+      const picked = qaSelectedFamilies().length;
       form.innerHTML =
-        '<div class="qa-layout">' +
-          '<div class="qa-col">' +
-            '<div>' + step(1, 'Tests') +
-              '<div class="qa-row">' +
-                '<label class="qa-field"><span class="field-label">Preset</span><select id="qa-preset">' + presetOptions + '</select></label>' +
-                '<label class="qa-field"><span class="field-label">Case</span><select id="qa-case">' + caseOptions + '</select></label>' +
-              '</div>' +
-            '</div>' +
-            '<div class="qa-groups">' + groups + '</div>' +
-          '</div>' +
-          '<div class="qa-col">' +
-            '<div>' + step(2, 'Games',
-              '<button type="button" class="btn ghost sm" data-games="all">All</button>' +
-              '<button type="button" class="btn ghost sm" data-games="none">None</button>') +
-              '<div class="qa-pkgs">' + pkgs + '</div>' +
-            '</div>' +
-            '<div>' + step(3, 'Evidence') +
+        sec(1, 'Tests', locked ? preset.label : plural(picked, 'family', 'families') + ' selected',
+          '<select id="qa-case" aria-label="Single case">' + caseOptions + '</select>',
+          (locked ? '<p class="note">' + esc(preset.label) + ' runs a fixed list of ' + plural(preset.cases.length, 'case') + '. Choose Custom above to pick families.</p>' : '') + groups) +
+        sec(2, 'Games', qa.games.size + ' of ' + totalGames + ' selected',
+          '<button type="button" class="btn ghost sm" data-games="all">All</button><button type="button" class="btn ghost sm" data-games="none">None</button>',
+          '<div class="qa-pkgs">' + pkgs + '</div>') +
+        sec(3, 'Evidence', 'The monitor records progress, network, console and balance either way.', '',
               '<div class="qa-opts">' +
-                opt('screenshots', 'Capture failure screenshots', 'Playwright screenshot on failure. Canvas checks always take theirs.') +
+            opt('screenshots', 'Failure screenshots', 'Playwright screenshot on failure. Canvas checks always take theirs.') +
                 opt('trace', 'Record trace', 'Keep a Playwright trace for failed tests. Heavier under 4 workers.') +
-                opt('dryRun', 'Dry run', 'Only write lane configs; nothing is launched.') +
-                '<div class="hint">The monitor stays live either way: progress, network, console, WebSocket, events, errors, balance.</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
+            opt('dryRun', 'Dry run', 'Only write lane configs; no browsers start.') +
+          '</div>');
       form.querySelectorAll('[data-pkg]').forEach((box) => {
         const pkg = qa.catalog.packages.find((p) => p.id === box.dataset.pkg);
-        const picked = pkg.games.filter((g) => qa.games.has(g.gameId)).length;
-        box.checked = picked > 0 && picked === pkg.games.length;
-        box.indeterminate = picked > 0 && picked < pkg.games.length;
+        const count = pkg.games.filter((g) => qa.games.has(g.gameId)).length;
+        box.checked = count > 0 && count === pkg.games.length;
+        box.indeterminate = count > 0 && count < pkg.games.length;
       });
       renderQaJob();
+    }
+    function renderQaSummary() {
+      const box = document.getElementById('qa-sum');
+      const runBtn = document.getElementById('qa-run');
+      if (!qa.catalog) {
+        box.innerHTML = '<div class="qa-sum-msg info need">' + icon('alert') + '<span>' + (qa.online ? 'Loading the test catalog…' : 'Runner offline — start it with: npx pnpm qa') + '</span></div>';
+        runBtn.disabled = true;
+        return;
+      }
+      const preset = qaPreset();
+      const locked = Boolean(preset && !preset.families);
+      const fams = locked ? [] : qaSelectedFamilies();
+      const planned = qaPlannedRuns();
+      const pkgs = qa.catalog.packages
+        .map((p) => ({ id: p.id, picked: p.games.filter((g) => qa.games.has(g.gameId)).length, total: p.games.length }))
+        .filter((p) => p.picked > 0);
+      const problems = [];
+      if (!qa.online) problems.push('Runner offline — start it with: npx pnpm qa');
+      if (!locked && fams.length === 0) problems.push('Pick at least one test family.');
+      const urlRaw = document.getElementById('qa-url').value.trim();
+      const urlCheck = urlRaw ? qa.urlCheck : null;
+      const urlGame = qaUrlGame();
+      if (urlRaw && !urlCheck) problems.push('Checking the Game URL…');
+      else if (urlCheck && !urlCheck.ok) problems.push('Fix or clear the Game URL.');
+      else if (urlRaw && !urlCheck.gameId && urlCheck.lan && qa.games.size > 1) {
+        problems.push('A Game URL opens one session: tick the one game it runs, or none to discover it as unregistered.');
+      }
+      if (!urlRaw && qa.games.size === 0) problems.push('Pick at least one game.');
+      const none = '<div class="v muted">None selected</div>';
+      const tests = locked
+        ? '<div class="v">' + esc(preset.label) + ' · ' + plural(preset.cases.length, 'case') + '</div>'
+        : fams.length
+        ? '<div class="qa-sum-tags">' + fams.map((f) => '<span' + (f.group === 'security' ? ' class="sec"' : '') + '>' + esc(f.id) + '</span>').join('') + '</div>'
+        : none;
+      const games = urlGame
+        ? '<div class="qa-sum-tags"><span>' + esc(urlGame.name) + (urlGame.registered ? ' · from link' : ' · unregistered') + '</span></div>'
+        : pkgs.length
+        ? '<div class="qa-sum-tags">' + pkgs.map((p) => '<span>P' + esc(p.id) + ' · ' + p.picked + '/' + p.total + '</span>').join('') + '</div>'
+        : none;
+      const evidence = [qa.opts.screenshots ? 'Failure screenshots' : '', qa.opts.trace ? 'Trace' : ''].filter(Boolean).join(' · ') || 'Monitor only';
+      const msg = (kind, text) => '<div class="qa-sum-msg ' + kind + '">' + icon('alert') + '<span>' + esc(text) + '</span></div>';
+      box.innerHTML =
+        '<div class="qa-sum-k">Run summary</div>' +
+        '<div class="qa-sum-total"><b>' + planned + '</b><span>' + (planned === 1 ? 'case run' : 'case runs') + '</span></div>' +
+        '<div class="qa-sum-sel">' + esc((preset ? preset.label : 'Custom selection') + ' · ' + (urlGame ? '1 game from the Game URL' : plural(qa.games.size, 'game') + ' in ' + plural(pkgs.length, 'package'))) + '</div>' +
+        '<div class="qa-sum-rows">' +
+          '<div class="qa-sum-row"><div class="k">Tests' + (qa.caseId ? ' · ' + esc(qa.caseId) + ' only' : '') + '</div>' + tests + '</div>' +
+          '<div class="qa-sum-row"><div class="k">Games</div>' + games + '</div>' +
+          '<div class="qa-sum-row"><div class="k">Evidence</div><div class="v">' + esc(evidence) + '</div></div>' +
+        '</div>' +
+        (urlGame && !urlGame.registered ? msg('info', 'Unregistered game: DISC-001 learns it first. Ready cases run; the rest skip with a reason (never a fake pass).') : '') +
+        (qaIncludesPen() ? msg('warn', 'Includes PEN (Security / Pentesting). Staging test accounts only.') : '') +
+        (problems.length ? msg('info need', problems[0]) : qa.opts.dryRun ? msg('info', 'Dry run writes lane configs only; no browsers start.') : '');
+      if (!runBtn.classList.contains('is-loading')) runBtn.disabled = problems.length > 0;
+      runBtn.querySelector('span').textContent = qa.opts.dryRun ? 'Start dry run' : 'Run ' + plural(planned, 'case run');
     }
     function qaSelectionText() {
       const preset = qaPreset();
       if (preset && !preset.families) return preset.label;
-      const picked = qaFamilies().filter((f) => qa.families.has(f.id) && f.cases.length > 0);
+      const picked = qaSelectedFamilies();
       const by = (group) => picked.filter((f) => f.group === group).map((f) => f.id).join(', ');
       const other = by('other');
       return 'Regression: ' + (by('regression') || '—') + ' · Security: ' + (by('security') || '— (PEN not selected)') + (other ? ' · Other: ' + other : '');
     }
+    /** Status strip under the Runs list for the run in view, plus the builder summary. */
     function renderQaJob() {
+      renderQaSummary();
       const job = qa.job;
       const running = Boolean(job && ACTIVE_RUN.has(job.state));
       const el = document.getElementById('qa-state');
-      const preset = qaPreset();
-      const hasFamilies = (preset && !preset.families) || qaFamilies().some((f) => qa.families.has(f.id) && f.cases.length > 0);
-      const runBtn = document.getElementById('qa-run');
-      if (!runBtn.classList.contains('is-loading')) {
-        // Runs are independent executions: starting another never waits on the one in view.
-        runBtn.disabled = !qa.online || !hasFamilies || qa.games.size === 0 || (runOn() === 'mine' && !qa.agent);
-      }
       const stopBtn = document.getElementById('qa-stop');
       stopBtn.disabled = !canStop(job);
       stopBtn.querySelector('span').textContent = job && canStop(job) ? 'Stop ' + job.id : 'Stop';
@@ -905,34 +1650,27 @@
         el.textContent = 'Runner offline — start it with: npx pnpm qa';
         return;
       }
-      if (!job || (!running && qa.touchedSinceJob)) {
-        if (runOn() === 'mine' && !qa.agent) {
-          el.classList.add('bad');
-          el.textContent = 'No SGAP Agent on your PC yet. Click "Set up my PC" (one time), or start the "SGAP Agent" window — or choose Server PC.';
-          return;
-        }
-        const pkgs = new Set([...qa.games].map((g) => (qaPackageOf(g) || {}).id));
-        el.textContent = qaSelectionText() + ' · ' + qa.games.size + ' game(s) in ' + pkgs.size + ' package(s) · ' +
-          qaPlannedRuns() + ' case run(s)';
+      if (!job) {
+        el.textContent = 'Select a run to see its status and log.';
         return;
       }
       el.classList.add(job.state);
       const pkgCount = (job.packages || []).length;
-      const where = (job.where === 'agent' ? ' · on ' + job.machine : '') +
-        (job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '');
-      const report = job.where === 'agent'
-        ? ' · report on ' + esc(job.machine) + ' (Allure history there)'
-        : ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>';
+      const where = job.currentPackage ? ' · package ' + job.currentPackage + ' (' + (job.packageIndex || 1) + '/' + pkgCount + ')' : '';
+      const report = ' · <a target="_blank" rel="noreferrer" href="' + esc(qaLink(qa.catalog.links.allure)) + '">Allure history</a>';
       const elapsed = runElapsed(job);
       const who = (job.id ? job.id + ' · ' : '') + (job.owner && (!qa.me || job.owner !== qa.me.name) ? job.owner + ' · ' : '');
       const what = job.label + (job.dryRun ? ' (dry run)' : '') + ' · ' + (job.games || []).length + ' game(s)';
+      const doneLabel = job.state === 'calibration'
+        ? 'Needs calibration (nothing ready ran)'
+        : job.state.charAt(0).toUpperCase() + job.state.slice(1);
       el.innerHTML = job.state === 'queued'
         ? 'Queued · ' + esc(who + what) + ' · ' + esc(job.queueReason || 'waiting for capacity')
         : running
         ? 'Running · ' + esc(who + what) + esc(where) + ' · ' + elapsed
-        : esc(job.state.charAt(0).toUpperCase() + job.state.slice(1)) + ' · ' + esc(who + what) + esc(job.where === 'agent' ? ' · on ' + job.machine : '') +
+        : esc(doneLabel) + ' · ' + esc(who + what) +
           ' · ' + pkgCount + ' package(s) in ' + elapsed +
-          (job.dryRun ? '' : report) +
+          (job.dryRun || !qa.catalog ? '' : report) +
           (job.logFile ? ' · log <span class="mono">' + esc(job.logFile) + '</span>' : '');
     }
     async function qaPoll() {
@@ -942,21 +1680,19 @@
           qa.online = true;
           if (!qa.catalog) await qaLoadCatalog();
         }
-        qa.runs = list.runs || [];
+        qa.runs = (list.runs || []).filter((r) => r.kind !== 'pad');
         qa.me = list.me || null;
         qa.capacity = list.capacity || null;
-        qa.agent = list.agent || null;
-        qa.remote = Boolean(list.remote);
-        renderWhere();
         // Toast when one of my runs finishes, whichever run is in view.
         for (const run of qa.runs) {
           const was = qa.seen.get(run.id);
           if (was && ACTIVE_RUN.has(was) && !ACTIVE_RUN.has(run.state) && qa.me && run.owner === qa.me.name) {
-            const kind = run.state === 'passed' ? 'success' : run.state === 'stopped' ? 'warn' : 'error';
-            toast({ kind, title: run.id + ' ' + run.state, text: run.label + ' · ' + runElapsed(run) });
+            const kind = run.state === 'passed' ? 'success' : run.state === 'stopped' || run.state === 'calibration' ? 'warn' : 'error';
+            const title = run.id + ' ' + (run.state === 'calibration' ? 'needs calibration' : run.state);
+            toast({ kind, title, text: (run.state === 'calibration' ? 'None of the selected cases could run yet — see the discovery panel. ' : '') + run.label + ' · ' + runElapsed(run) });
           }
           if (was === 'queued' && run.state === 'running' && qa.me && run.owner === qa.me.name) {
-            toast({ kind: 'info', title: run.id + ' started', text: run.where === 'agent' ? 'Running on ' + run.machine + '.' : 'Capacity freed up; it left the queue.' });
+            toast({ kind: 'info', title: run.id + ' started', text: 'Capacity freed up; it left the queue.' });
           }
           qa.seen.set(run.id, run.state);
         }
@@ -983,7 +1719,124 @@
       }
       renderRuns();
       renderQaJob();
+      refreshDiscovery();
+      if (qaIsOpen() && qa.catalog && recentSelections().map((r) => r.id + r.state).join(',') !== qa.quickKey) renderQaQuick();
     }
+    /** DISC-001 report of a Game URL run, with assisted calibration (confirm / reject / absent). */
+    const disc = { runId: '', at: 0, data: null };
+    async function refreshDiscovery(force) {
+      const job = qa.job;
+      const panel = document.getElementById('disc-panel');
+      if (!job || !job.launchUrl) { panel.hidden = true; return; }
+      panel.hidden = false;
+      if (!force && disc.runId === job.id && Date.now() - disc.at < 5000) return;
+      disc.runId = job.id;
+      disc.at = Date.now();
+      disc.data = await qaFetch('/api/qa/runs/' + encodeURIComponent(job.id) + '/discovery').catch(() => null);
+      renderDiscovery();
+    }
+    function renderDiscovery() {
+      const body = document.getElementById('disc-body');
+      const badge = document.getElementById('disc-badge');
+      const d = disc.data;
+      const active = qa.job && ACTIVE_RUN.has(qa.job.state);
+      if (!d || !d.report) {
+        badge.textContent = active ? 'discovering' : 'no report';
+        badge.className = 'disc-badge';
+        body.innerHTML = '<div class="facts">' + (active ? 'DISC-001 is learning this game (inspect, safe panels, a few normal spins; never buy or start autoplay)…' : 'This run wrote no discovery report.') + '</div>';
+        return;
+      }
+      const r = d.report;
+      const g = r.game;
+      const env = r.environment;
+      const label = { ready: 'ready', calibration: 'calibration required', unsupported: 'N/A', blocked: 'blocked' };
+      badge.textContent = label[g.classification] || g.classification;
+      badge.className = 'disc-badge ' + g.classification;
+      const facts = [
+        g.gameKey + (g.build ? ' ' + g.build : ''),
+        g.registered ? 'registered: ' + g.registered : 'unregistered',
+        r.rendering.renderer + (r.rendering.phaser ? ' · Phaser ' + r.rendering.phaser : '') + (r.rendering.spine ? ' + Spine' : ''),
+        'device ' + (env.device.loaded || 'not set') + (env.device.mode === 'preserve' ? ' (from link)' : ' (QA override)'),
+        (env.viewport ? env.viewport.width + '×' + env.viewport.height : '?') + ' @' + env.devicePixelRatio + 'x' + (env.gameSize ? ' · game ' + env.gameSize.width + '×' + env.gameSize.height : ''),
+        env.browser.name + ' ' + env.browser.version,
+        env.initialize ? 'initialize HTTP ' + env.initialize.status + ' at ' + (env.initialize.ms / 1000).toFixed(1) + 's' : 'no initialize call',
+        r.runsInIframe ? 'renders in an iframe' : 'renders in the page',
+      ];
+      const decisions = d.decisions || {};
+      const btn = (target, decision, text) =>
+        '<button type="button" data-learn="' + esc(target) + '" data-decision="' + decision + '"' +
+        ((decisions[target] || {}).decision === decision ? ' class="on" title="Click again to clear"' : '') + '>' + text + '</button>';
+      const count = (s) => (d.summary && typeof d.summary[s] === 'number' ? d.summary[s] : d.cases.filter((c) => c.status === s).length);
+      const readyN = count('ready');
+      const calN = count('calibration');
+      const naN = count('unsupported');
+      const blockedN = count('blocked');
+      const outcome = g.blocked
+        ? '0 cases will run. This run is blocked — not a pass.'
+        : readyN
+        ? readyN + ' case' + (readyN === 1 ? '' : 's') + ' will run. ' + (calN ? calN + ' need calibration and skip with a reason.' : '') + (naN || blockedN ? ' ' + (naN + blockedN) + ' are N/A or blocked, never a fake pass.' : '')
+        : '0 cases will run. This run stays calibration (not a pass, not a failed case). Confirm Present or Absent below, then run again.';
+      const payload = r.payload || {};
+      const fields = payload.fields ? Object.keys(payload.fields) : [];
+      const features = payload.features ? Object.keys(payload.features) : [];
+      const panelLine = (r.panelChecks || []).length
+        ? (r.panelChecks || []).map((p) => p.target + (p.verified ? ' verified' : ' not verified') + (p.closed ? '' : ', left open')).join(' · ')
+        : 'no panel checks';
+      const learned = [
+        (r.controls || []).length + ' control(s)',
+        (payload.spinsLearned || 0) + ' learning spin(s)',
+        panelLine,
+        fields.length ? 'payload ' + fields.join(', ') : '',
+        features.length ? 'features ' + features.join(', ') : '',
+      ].filter(Boolean).join(' · ');
+      const next = g.blocked
+        ? 'Keep the worker window visible and paste a fresh authorized URL.'
+        : readyN === 0
+        ? 'Confirm controls that look right. Mark Absent what this game does not have. Do not Confirm a panel discovery did not verify.'
+        : 'Ready cases execute against this learned profile. A later paste of the same game reuses ' + (r.calibrationFile || ('.sgap/learned/' + g.gameKey + '.json')) + '.';
+      const deviceHint = env.device.mode === 'preserve' && (r.capabilities || []).some((a) => a.capability === 'scratchCard' && a.status === 'ready')
+        ? 'SCG-002 (both layouts) needs Device: switch per test on the next run.'
+        : '';
+      const cases = d.cases.length
+        ? '<details open><summary>Selected cases: ' + readyN + ' will run · ' + calN + ' calibration · ' + naN + ' N/A · ' + blockedN + ' blocked</summary>' +
+          d.cases.map((c) => '<div class="row"><span>' + esc(c.caseId) + '</span><span class="st ' + c.status + '">' + esc(label[c.status] || c.status) + '</span><span class="why">' + esc(c.reason) + '</span></div>').join('') + '</details>'
+        : '';
+      const controls = (r.controls || []).map((c) =>
+        '<div class="row"><span><b>' + esc(c.name) + '</b> · ' + esc(c.confidence) + ' · L' + c.level + ' ' + esc(c.method) + (c.point ? ' @ ' + c.point.x + ',' + c.point.y : '') + ' · ' + esc(c.calibration) + '</span>' +
+        '<span class="acts">' + btn(c.name, 'confirmed', 'Confirm') + btn(c.name, 'rejected', 'Reject') + '</span>' +
+        '<span class="why">' + esc((c.evidence || []).join(' · ')) + '</span></div>').join('');
+      const gaps = (r.capabilities || []).filter((a) => a.status !== 'ready').map((a) =>
+        '<div class="row"><span>' + esc(a.capability) + ' <span class="st ' + a.status + '">' + esc(label[a.status] || a.status) + '</span></span>' +
+        '<span class="acts">' + (a.status === 'blocked' ? '' : btn(a.capability, 'confirmed', 'Present') + btn(a.capability, 'absent', 'Absent (N/A)')) + '</span>' +
+        '<span class="why">' + esc(a.reason) + '</span></div>').join('');
+      body.innerHTML =
+        '<div class="facts">' + facts.map(esc).join(' · ') + '</div>' +
+        (g.blocked ? '<div class="blocked">BLOCKED — ' + esc(g.blocked) + '</div>' : '') +
+        '<div class="outcome">' + esc(outcome.trim()) + '</div>' +
+        '<div class="facts">Learned: ' + esc(learned) + '</div>' +
+        '<div class="next">Next: ' + esc(next) + (deviceHint ? ' ' + esc(deviceHint) : '') + '</div>' +
+        cases +
+        '<details' + (controls ? '' : ' hidden') + '><summary>Discovered controls (' + (r.controls || []).length + ')</summary>' + controls + '</details>' +
+        '<details><summary>Not ready (' + (r.capabilities || []).filter((a) => a.status !== 'ready').length + ' capabilities)</summary>' + gaps + '</details>' +
+        '<div class="facts">Confirm / Absent keep this profile (no URL or token). Decisions apply to the next discovery of ' + esc(g.gameKey) + '.</div>';
+    }
+    document.getElementById('disc-body').addEventListener('click', async (ev) => {
+      const button = ev.target.closest('[data-learn]');
+      if (!button || !disc.data || !disc.data.report) return;
+      const report = disc.data.report;
+      const current = ((disc.data.decisions || {})[button.dataset.learn] || {}).decision;
+      await qaFetch('/api/qa/learned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameKey: report.game.gameKey,
+          target: button.dataset.learn,
+          decision: current === button.dataset.decision ? 'clear' : button.dataset.decision,
+          build: report.game.build || undefined,
+        }),
+      }).catch((error) => toast({ kind: 'error', title: 'Calibration not saved', text: String(error.message || error) }));
+      refreshDiscovery(true);
+    });
     async function qaLoadCatalog() {
       try {
         qa.catalog = await qaFetch('/api/qa/catalog');
@@ -998,14 +1851,12 @@
       }
     }
 
-    document.getElementById('qa-toggle').addEventListener('click', () => {
-      qa.touched = true;
-      setQaOpen(document.getElementById('qa').hidden);
-    });
+    document.getElementById('qa-toggle').addEventListener('click', () => setQaOpen(!qaIsOpen()));
+    document.getElementById('qa-back').addEventListener('click', () => setQaOpen(false));
     function qaTouched() {
       qa.touchedSinceJob = true;
     }
-    document.getElementById('qa-form').addEventListener('change', (ev) => {
+    document.getElementById('qa').addEventListener('change', (ev) => {
       const t = ev.target;
       qaTouched();
       if (t.id === 'qa-preset') { applyPreset(t.value); return; }
@@ -1033,7 +1884,29 @@
         renderQaJob();
       }
     });
-    document.getElementById('qa-form').addEventListener('click', (ev) => {
+    document.getElementById('qa').addEventListener('click', (ev) => {
+      const card = ev.target.closest('[data-preset-card]');
+      if (card) {
+        qaTouched();
+        if (card.dataset.presetCard) applyPreset(card.dataset.presetCard);
+        else { qa.preset = ''; qa.caseId = ''; renderQaForm(); }
+        return;
+      }
+      const rerun = ev.target.closest('[data-rerun]');
+      if (rerun) { qaTouched(); loadRunSelection(rerun.dataset.rerun); return; }
+      if (ev.target.closest('#qa-reset')) {
+        qaTouched();
+        qa.preset = '';
+        qa.caseId = '';
+        qa.families = new Set();
+        qa.games = new Set();
+        qa.opts = { screenshots: true, trace: false, dryRun: false };
+        document.getElementById('qa-url').value = '';
+        document.getElementById('qa-url-device').value = 'preserve';
+        showQaUrlCheck(null);
+        renderQaForm();
+        return;
+      }
       const all = ev.target.closest('[data-fam-all]');
       const none = ev.target.closest('[data-fam-none]');
       const games = ev.target.closest('[data-games]');
@@ -1050,23 +1923,85 @@
       }
       renderQaForm();
     });
+    const qaUrlHint = document.getElementById('qa-url-check').textContent;
+    function qaUrlRaw() {
+      return document.getElementById('qa-url').value.trim();
+    }
+    function qaCatalogGame(gameId) {
+      return qa.catalog ? qa.catalog.packages.flatMap((p) => p.games).find((g) => g.gameId === gameId) : undefined;
+    }
+    function showQaUrlCheck(check) {
+      qa.urlCheck = check;
+      const linked = check && check.ok && check.gameId ? qaCatalogGame(check.gameId) : undefined;
+      const box = document.getElementById('qa-url-check');
+      box.className = 'qa-url-check' + (check ? (check.ok ? ' ok' : ' bad') : '');
+      const game = !check || !check.ok ? ''
+        : linked ? ' · game: ' + linked.name + ' (from the link)'
+        : check.gameId ? ' · game: ' + (check.gameName || check.gameId) + ' (registered manifest, not in a Test runner package)'
+        : check.lan && qa.games.size === 1 ? ' · game: the one you ticked'
+        : ' · unregistered game "' + check.gameKey + '": SGAP learns it first (DISC-001 — inspect, open safe panels, a few normal spins; never buy or start autoplay) and then runs the cases it verified; the rest report CALIBRATION REQUIRED, N/A or BLOCKED';
+      box.textContent = !check
+        ? qaUrlHint
+        : check.ok
+        ? 'Opens ' + check.redacted + game +
+          (check.lan ? ' · LAN/localhost dev server' : '') + (check.hasToken ? ' · session token kept out of logs and reports (trace is off for this run)' : '') +
+          '. No launcher: wallet top-up and bet-limit steps are skipped; launcher-only cases report skipped.'
+        : check.reasons.join(' ');
+      const device = document.getElementById('qa-url-device');
+      device.hidden = !(check && check.ok);
+      device.options[0].textContent = check && check.device ? 'Device: keep the link\'s device=' + check.device : 'Device: as the link loads (no device parameter)';
+      if (linked) {
+        qa.games = new Set([linked.gameId]);
+        renderQaForm();
+      } else {
+        renderQaSummary();
+      }
+    }
+    let qaUrlTimer = 0;
+    document.getElementById('qa-url').addEventListener('input', () => {
+      clearTimeout(qaUrlTimer);
+      qaUrlTimer = setTimeout(async () => {
+        const raw = qaUrlRaw();
+        if (!raw) { showQaUrlCheck(null); return; }
+        const check = await qaFetch('/api/qa/launch-url/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: raw }),
+        }).catch((error) => ({ ok: false, reasons: [String(error.message || error)] }));
+        if (qaUrlRaw() === raw) showQaUrlCheck(check);
+      }, 300);
+    });
     document.getElementById('qa-run').addEventListener('click', async () => {
       const preset = qaPreset();
       const families = qaFamilies().filter((f) => qa.families.has(f.id) && f.cases.length > 0).map((f) => f.id);
-      const games = qa.catalog.packages.flatMap((p) => p.games.map((g) => g.gameId)).filter((g) => qa.games.has(g));
+      const urlGame = qaUrlGame();
+      const games = urlGame ? [urlGame.id] : qa.catalog.packages.flatMap((p) => p.games.map((g) => g.gameId)).filter((g) => qa.games.has(g));
       if (games.length === 0 || (!preset && families.length === 0)) return;
-      const names = games.map((g) => qa.catalog.packages.flatMap((p) => p.games).find((x) => x.gameId === g).name);
+      const names = urlGame
+        ? [urlGame.name + (urlGame.registered ? '' : ' (unregistered — learned first)')]
+        : games.map((g) => qa.catalog.packages.flatMap((p) => p.games).find((x) => x.gameId === g).name);
       const withPen = preset ? (preset.families || []).includes('PEN') : families.includes('PEN');
-      const where = runOn();
-      if (where === 'mine' && !qa.agent) return;
       if (!qa.opts.dryRun) {
+        const deviceEl = document.getElementById('qa-url-device');
+        const urlLines = qaUrlRaw() && qa.urlCheck && qa.urlCheck.ok
+          ? [
+              'Game URL: ' + qa.urlCheck.redacted,
+              'Device: ' + deviceEl.selectedOptions[0].textContent,
+              ...(urlGame && !urlGame.registered
+                ? ['Unregistered: DISC-001 learns this game first (inspect, safe panels, a few normal spins; never buy or start autoplay). Cases it verifies run; the rest skip as calibration / N/A / blocked — never as a pass.']
+                : []),
+              ...(families.includes('SCG') && deviceEl.value === 'preserve'
+                ? ['SCG-002 needs both layouts. Pick Device: switch per test if you want that case to run.']
+                : []),
+            ]
+          : [];
         const ok = await confirmBox({
           title: 'Run ' + (preset ? preset.label : 'selected tests') + (qa.caseId ? ' — ' + qa.caseId + ' only' : ''),
           lines: [
             qaSelectionText(),
             'Games: ' + names.join(', '),
-            qaPlannedRuns() + ' case run(s)',
-          ].concat(SERVED && qa.remote ? ['Runs on: ' + (where === 'mine' ? 'your PC (' + qa.agent.machine + ')' : 'the server PC')] : []),
+            qaPlannedRuns() + ' case run(s) planned (after learning, only Ready cases execute)',
+          ].concat(urlLines),
           warning: withPen ? 'Includes PEN (Security / Pentesting) — staging test accounts only.' : '',
           confirmLabel: 'Run',
         });
@@ -1078,7 +2013,7 @@
       const body = Object.assign(
         preset ? { suite: preset.id } : { families },
         { games, caseId: qa.caseId, dryRun: qa.opts.dryRun, screenshots: qa.opts.screenshots, trace: qa.opts.trace },
-        SERVED && qa.remote ? { where } : {},
+        qaUrlRaw() ? { launchUrl: qaUrlRaw(), launchDevice: document.getElementById('qa-url-device').value } : {},
       );
       try {
         const started = await qaFetch('/api/qa/run', {
@@ -1090,11 +2025,10 @@
         const run = started.run || {};
         qa.runs = [run].concat(qa.runs.filter((r) => r.id !== run.id));
         qa.seen.set(run.id, run.state);
+        setQaOpen(false);
         if (run.id) selectRun(run.id, true);
-        toast(run.where === 'agent'
-          ? { kind: 'success', title: run.id + ' sent to ' + run.machine, text: 'Your SGAP Agent starts it in a few seconds; browsers open on your PC.' }
-          : run.state === 'queued'
-          ? { kind: 'warn', title: run.id + ' queued', text: run.queueReason || 'Waiting for capacity on the server.' }
+        toast(run.state === 'queued'
+          ? { kind: 'warn', title: run.id + ' queued', text: run.queueReason || 'Waiting for capacity on this PC.' }
           : { kind: 'success', title: (run.id ? run.id + ' ' : '') + (qa.opts.dryRun ? 'dry run started' : 'started'), text: names.length + ' game(s) · ' + qaPlannedRuns() + ' case run(s)' });
         runBtn.classList.remove('is-loading');
         await qaPoll();
@@ -1114,23 +2048,6 @@
       await stopRun(qa.job.id);
       btn.classList.remove('is-loading');
     });
-    document.getElementById('qa-where').addEventListener('click', (ev) => {
-      const tab = ev.target.closest('[data-where]');
-      if (tab) {
-        qa.where = tab.dataset.where;
-        try { localStorage.setItem('sgap.runOn', qa.where); } catch { /* storage blocked */ }
-        renderWhere();
-        renderQaJob();
-        return;
-      }
-      if (ev.target.closest('#qa-setup')) {
-        toast({
-          kind: 'info',
-          title: 'Downloading SGAP-setup.cmd',
-          text: 'Open it from Downloads (if Windows warns: More info, then Run anyway). One-time install, about 10 minutes; it asks for your SGAP sign-in, then opens the "SGAP Agent" window.',
-        });
-      }
-    });
     document.getElementById('qa-log-toggle').addEventListener('click', (ev) => {
       const logEl = document.getElementById('qa-log');
       const btn = ev.currentTarget;
@@ -1143,7 +2060,7 @@
     // Stopping happens per run (Runs list / runner); "Stop all" is for a run's own monitor only.
     if (SERVED) document.getElementById('stop-all').hidden = true;
     renderRuns();
-    if (params.get('qa-open') === '1') { qa.touched = true; setQaOpen(true); }
+    if (params.get('qa-open') === '1') setQaOpen(true);
     qaLoadCatalog().then(qaPoll);
     setInterval(qaPoll, 1500);
     tick();

@@ -26,6 +26,7 @@ import type {
   Observation,
   ObservationInput,
   ObservationSeverity,
+  ResourceObservation,
 } from './types.js';
 
 export const INJECTED_HEADER = 'x-sgap-injected';
@@ -62,6 +63,11 @@ export interface ObservationRecorderOptions {
   readonly ignoreOrigins?: readonly string[];
   /** Called for every stored observation (streaming to the monitor). */
   readonly sink?: (observation: Observation) => void;
+  /**
+   * No reads inside the game frame or host page (HUD texts, host balance): traffic,
+   * console, websocket and events only. For FPS runs, where a scene walk costs frames.
+   */
+  readonly passive?: boolean;
 }
 
 interface PendingRequest {
@@ -160,7 +166,7 @@ export class ObservationRecorder {
     this.unsubscribeJournal = onInteraction(this.page, this.onInteractionEntry);
 
     const sampleMs = this.options.sampleMs ?? 500;
-    if (sampleMs > 0 && this.options.iframeSelector !== undefined) {
+    if (sampleMs > 0 && this.options.iframeSelector !== undefined && this.options.passive !== true) {
       this.samplerDone = this.sampleLoop(sampleMs);
     }
   }
@@ -216,6 +222,18 @@ export class ObservationRecorder {
       data: options?.data,
       relatedSeq: options?.relatedSeq,
     }) as GameEventObservation;
+  }
+
+  /** Record one static asset response for the resource inventory. URL and headers must already be redacted. */
+  resource(input: Omit<ResourceObservation, 'seq' | 'kind' | 'severity' | 'summary'>): ResourceObservation {
+    const path = input.url.replace(/^https?:\/\/[^/]+/u, '');
+    const size = input.bytes >= 1024 ? `${(input.bytes / 1024).toFixed(1)} KB` : `${input.bytes} B`;
+    return this.push({
+      ...input,
+      kind: 'resource',
+      severity: input.status >= 400 ? 'warn' : 'info',
+      summary: `${input.assetKind} ${path} → ${input.status} ${size}${input.fromCache ? ' (cache)' : ''}`,
+    }) as ResourceObservation;
   }
 
   /** Take a balance reading now (HUD + host), tagged with what prompted it. */
@@ -646,7 +664,7 @@ export class ObservationRecorder {
 
   private async readHud(): Promise<{ hud?: number; texts: readonly PhaserTextHit[] }> {
     const selector = this.options.iframeSelector;
-    if (selector === undefined || this.page.isClosed()) {
+    if (selector === undefined || this.options.passive === true || this.page.isClosed()) {
       return { texts: [] };
     }
     const texts = await listPhaserTexts(this.page, selector).catch(() => [] as PhaserTextHit[]);
@@ -661,7 +679,7 @@ export class ObservationRecorder {
   }
 
   private async readHost(): Promise<number | undefined> {
-    if (this.page.isClosed()) {
+    if (this.options.passive === true || this.page.isClosed()) {
       return undefined;
     }
     const text = await this.page

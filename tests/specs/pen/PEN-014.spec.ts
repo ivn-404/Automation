@@ -1,7 +1,7 @@
 /**
  * PEN-014 — Balance reconciles exactly over many rounds.
  *
- * Manual Test Case ID: PEN-014 (docs/PERSONALTESTING.md §3)
+ * Manual Test Case ID: PEN-014 (docs/catalogs/PERSONALTESTING.md §3)
  * Intent: after N buy/settle rounds, finalBalance == initial − Σbets + Σwins with no
  * drift or rounding leak. Uses fractional bets to surface precision errors. Needs a
  * joined session.

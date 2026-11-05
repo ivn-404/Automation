@@ -1,7 +1,7 @@
 /**
  * PEN-007 — Out-of-range gridIndex is rejected.
  *
- * Manual Test Case ID: PEN-007 (docs/PERSONALTESTING.md §2)
+ * Manual Test Case ID: PEN-007 (docs/catalogs/PERSONALTESTING.md §2)
  * Intent: StartRound with a gridIndex outside the valid set (-1, 99, 2.5, "0") must
  * be rejected with no round dealt, or clamped to a valid grid dimension (3/4/5) —
  * never index into undefined server arrays. Needs a joined session.

@@ -18,7 +18,8 @@ import { debugCapturePath, savePng } from '../../src/eye/store.js';
 import type { PlaywrightPlatform } from '../../src/platform/playwright-platform.js';
 import { createGameRuntime } from '../../src/runtime/index.js';
 import { recallHealedRatio } from '../../src/eye/learned-ratios.js';
-import { ensurePortrait, locateControlByVision } from './canvas-healing.js';
+import { drainLeftoverFeatureSpins } from '../../src/platform/index.js';
+import { ensurePortrait, locateControlByVision, waitForOpenRound } from './canvas-healing.js';
 import { betTrafficFor, reportCanvasFailure } from './failure-report.js';
 
 async function attachSafe(name: string, body: Buffer, contentType: string): Promise<void> {
@@ -149,6 +150,13 @@ export async function recoverMissedCanvasClick(
     console.log(
       `[sgap-eye] miss action=${actionName} ${ratioNote} → ${observation.screenId} via=${observation.via} handled=${observation.handled}`,
     );
+    if (observation.resumedFeature === true) {
+      // Continue resumes the leftover free spins; the HUD only accepts the retried
+      // action once they have played out.
+      console.log(`[sgap-heal] ${actionName}: session-continue on miss — draining leftover free spins`);
+      await drainLeftoverFeatureSpins(page, driver, manifest, 16);
+      await waitForOpenRound(page);
+    }
   }
 
   const runtime = createGameRuntime({

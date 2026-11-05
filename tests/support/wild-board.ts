@@ -63,6 +63,7 @@ export function readWildBoard(
     tumblesPath: manifest.reelValidation?.tumblesPath,
     featureItemsPath: manifest.reelValidation?.featureItemsPath,
     rowOrder: manifest.reelValidation?.rowOrder,
+    areaLayout: manifest.reelValidation?.areaLayout,
     symbols,
     gameId: manifest.gameId,
   });

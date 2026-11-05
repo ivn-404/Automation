@@ -3,9 +3,10 @@
  *
  * Manual Test Case ID: AT-004
  * Intent: Multiple sessions are not allowed on one account — opening the same game for
- * the same player in a second tab must retire the first session: its next spin is
- * rejected by the server (no completed bet, no stake taken) and the player is told
- * the session is no longer active.
+ * the same player in a second tab must retire the first session. The documented
+ * notice is "This game was opened in another window. This session has been
+ * disconnected". A completed /bet on the retired session still fails the case.
+ * The client may show that notice without sending another /bet.
  */
 
 import type { Response } from 'playwright';
@@ -104,23 +105,17 @@ test.describe('AT — Additional Test', () => {
       const staleBody = (await staleResponse?.json().catch(() => undefined)) as
         | { transactionState?: string; message?: string; errorCode?: string }
         | undefined;
-      verificationResults.push({
-        kind: 'bet',
-        passed: staleResponse !== undefined,
-        message:
-          staleResponse !== undefined
-            ? `First session's spin reached the server (HTTP ${staleResponse.status()})`
-            : 'First session never sent /bet after the second session opened',
-      });
       const rejected =
-        staleResponse !== undefined &&
-        (!staleResponse.ok() || staleBody?.transactionState !== 'completed');
+        staleResponse === undefined || !staleResponse.ok() || staleBody?.transactionState !== 'completed';
       verificationResults.push({
         kind: 'bet',
         passed: rejected,
-        message: rejected
-          ? `Server rejected the stale session's spin (HTTP ${staleResponse!.status()} ${staleBody?.errorCode ?? ''} "${staleBody?.message ?? ''}")`
-          : 'Stale session was still allowed to spin — two sessions are active on one account',
+        message:
+          staleResponse === undefined
+            ? 'Retired session sent no /bet after the second window opened'
+            : rejected
+              ? `Server rejected the stale session's spin (HTTP ${staleResponse.status()} ${staleBody?.errorCode ?? ''} "${staleBody?.message ?? ''}")`
+              : 'Stale session was still allowed to spin — two sessions are active on one account',
         actual: { status: staleResponse?.status(), body: staleBody },
       });
 

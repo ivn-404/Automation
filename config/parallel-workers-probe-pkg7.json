@@ -1,0 +1,34 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 7 probes after the slot manifests: PROBE-002 (HUD bands + buy panel), PROBE-005 (two-tier buy panel map) and PROBE-001 (/bet mapping).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "oppals",
+      "gameName": "Oppals",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "packageId": "7",
+      "testMatch": ["probe/**/PROBE-002.spec.ts", "probe/**/PROBE-005.spec.ts", "probe/**/PROBE-001.spec.ts"],
+      "playerId": "Oppals_PB17",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "amazonians",
+      "gameName": "Amazonians",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "packageId": "7",
+      "testMatch": ["probe/**/PROBE-002.spec.ts", "probe/**/PROBE-005.spec.ts", "probe/**/PROBE-001.spec.ts"],
+      "playerId": "Amazonians_PB17",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

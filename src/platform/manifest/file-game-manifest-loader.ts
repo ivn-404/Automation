@@ -81,7 +81,7 @@ export class FileGameManifestLoader implements IGameManifestLoader {
   }
 }
 
-const PACKAGE_REEL_FIELDS = ['areaPath', 'tumblesPath', 'featureItemsPath', 'rowOrder', 'symbols'] as const;
+const PACKAGE_REEL_FIELDS = ['areaPath', 'tumblesPath', 'featureItemsPath', 'rowOrder', 'areaLayout', 'symbols'] as const;
 
 /**
  * A manifest's `reelValidation` only has to carry what is specific to the title

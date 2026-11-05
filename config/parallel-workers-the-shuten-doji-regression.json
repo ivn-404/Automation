@@ -1,0 +1,36 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "The Shuten Doji (Package 3, third title) 1-worker full regression on display 2 while Rainbow Fist occupies display 1. Isolated via SGAP_RUN_DIR so this launch does not kill the live Rainbow worker. AT-002/004/005 included so we can classify product vs automation.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP", "TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "3",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "tm/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_REG1",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

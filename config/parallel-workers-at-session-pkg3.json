@@ -1,0 +1,52 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "Package 3 recheck of AT-002 / AT-004 / AT-005 with the specs rewritten on 2026-10-21 (currency code on HUD; one session per account with the disconnect modal). The 2026-10-13..15 failures predate the rewrite.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "REGRESSION",
+      "categories": ["AT"],
+      "packageId": "3",
+      "testMatch": ["at/**/AT-002.spec.ts", "at/**/AT-004.spec.ts", "at/**/AT-005.spec.ts"],
+      "playerId": "War Freaks_AT3",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "REGRESSION",
+      "categories": ["AT"],
+      "packageId": "3",
+      "testMatch": ["at/**/AT-002.spec.ts", "at/**/AT-004.spec.ts", "at/**/AT-005.spec.ts"],
+      "playerId": "Rainbow Fist_AT3",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "REGRESSION",
+      "categories": ["AT"],
+      "packageId": "3",
+      "testMatch": ["at/**/AT-002.spec.ts", "at/**/AT-004.spec.ts", "at/**/AT-005.spec.ts"],
+      "playerId": "The Shuten Doji_AT3",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

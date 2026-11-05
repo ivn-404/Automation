@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks only: AT-001 after package-3 helpOrder on the Symbols & Payouts catalog.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-001.spec.ts"],
+      "playerId": "War Freaks_AT1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

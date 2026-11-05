@@ -1,5 +1,5 @@
 /**
- * Shared setup for the PEN (penetration) specs from docs/PERSONALTESTING.md.
+ * Shared setup for the PEN (penetration) specs from docs/catalogs/PERSONALTESTING.md.
  *
  * Opens the game through the normal launcher, captures the live scratch-hub URL
  * (with its access_token) and the exact JoinScratch arguments the game sends, then
@@ -11,6 +11,9 @@
  */
 
 import type { Page, TestInfo } from '@playwright/test';
+
+import { allure } from 'allure-playwright';
+import { bindPenPage, recordPenExchange } from './pen-evidence.js';
 
 import { test, expect } from '../fixtures/index.js';
 import type { SgapSession } from '../fixtures/index.js';
@@ -68,6 +71,7 @@ export interface PenSession {
  */
 export async function startPenSession(args: PenSessionArgs): Promise<PenSession> {
   const { sgapSession, sgapDriver, page, testInfo, manualTestId } = args;
+  bindPenPage(page);
   const scratch = sgapSession.scratchCard;
   test.skip(!(await scratch.isAvailable()), `${sgapSession.manifest.gameId} has no scratchCard config`);
 
@@ -112,9 +116,29 @@ export async function startPenSession(args: PenSessionArgs): Promise<PenSession>
     console.log('[pen] drawer open (expected during a hub outage):', (error as Error).message);
   }
 
+  const adoptWatched = (): void => {
+    let watcher: ReturnType<SgapSession['scratchCard']['hubWatcher']>;
+    try {
+      watcher = sgapSession.scratchCard.hubWatcher();
+    } catch {
+      return;
+    }
+    if (hubUrl.length === 0) {
+      hubUrl = watcher.connectedUrl() ?? '';
+    }
+    if (joinArgs.length === 0) {
+      const watched = watcher.latestArgs('JoinScratch');
+      if (watched !== undefined) {
+        joinArgs = watched;
+      }
+    }
+  };
+
+  adoptWatched();
   const deadline = Date.now() + 10_000;
-  while (hubUrl.length === 0 && Date.now() < deadline) {
+  while ((hubUrl.length === 0 || joinArgs.length === 0) && Date.now() < deadline) {
     await page.waitForTimeout(250);
+    adoptWatched();
   }
   test.skip(hubUrl.length === 0, `${sgapSession.manifest.gameId}: scratch hub socket never opened`);
 
@@ -157,9 +181,19 @@ export async function safeInvoke(
   session: PenSession,
   target: string,
   args: readonly unknown[],
-  options?: { readonly invocationId?: string; readonly timeoutMs?: number },
+  options?: { readonly invocationId?: string; readonly timeoutMs?: number; readonly evidence?: boolean },
 ): Promise<HubCompletion> {
-  return session.client.invoke(target, args, options).catch((error: Error) => ({ error: error.message }));
+  const completion = await session.client
+    .invoke(target, args, options)
+    .catch((error: Error) => ({ error: error.message }));
+  if (options?.evidence !== false) {
+    await recordPenExchange({
+      title: `Hub ${target}`,
+      request: { target, arguments: args },
+      response: completion,
+    });
+  }
+  return completion;
 }
 
 /** StartRound(bet, gridIndex) through our client. `round` is undefined on a server error. */
@@ -192,7 +226,7 @@ export async function cashout(
 
 /** Re-reads the authoritative balance by re-invoking JoinScratch (used after error paths). */
 export async function readBalance(session: PenSession): Promise<number | undefined> {
-  const completion = await safeInvoke(session, 'JoinScratch', session.joinArgs);
+  const completion = await safeInvoke(session, 'JoinScratch', session.joinArgs, { evidence: false });
   if (completion.error !== undefined) {
     return undefined;
   }
@@ -210,6 +244,10 @@ export async function expectPenChecks(
   results: readonly VerificationResult[],
   evidence?: unknown,
 ): Promise<void> {
+  const verdict = results.map((result) => `${result.passed ? 'PASS' : 'FAIL'} ${result.message}`).join('\n');
+  await allure.step('Result', async () => {
+    await allure.attachment('checks.txt', verdict, 'text/plain');
+  });
   await testInfo.attach('pen-checks.json', {
     body: JSON.stringify(results, null, 2),
     contentType: 'application/json',
@@ -292,12 +330,11 @@ export type TokenTamper = 'alg-none' | 'flipped-claim' | 'expired';
  * we cannot re-sign (no key), so `flipped-claim` / `expired` also break the signature —
  * a server that accepts any of them is failing to validate the JWT.
  */
-export function tamperToken(hubUrl: string, variant: TokenTamper): string {
-  const url = new URL(hubUrl);
-  const token = url.searchParams.get('access_token');
-  const [header, payload, signature] = (token ?? '').split('.');
-  if (header === undefined || payload === undefined) {
-    return hubUrl;
+/** A JWT with a broken signature. Undefined when `token` is not a three-part JWT. */
+export function tamperJwt(token: string, variant: TokenTamper): string | undefined {
+  const [header, payload, signature] = token.split('.');
+  if (header === undefined || payload === undefined || signature === undefined) {
+    return undefined;
   }
   const decode = (segment: string): Record<string, unknown> =>
     JSON.parse(Buffer.from(segment, 'base64url').toString('utf8')) as Record<string, unknown>;
@@ -306,7 +343,7 @@ export function tamperToken(hubUrl: string, variant: TokenTamper): string {
 
   let nextHeader = decode(header);
   let nextPayload = decode(payload);
-  let nextSignature = signature ?? '';
+  let nextSignature = signature;
   if (variant === 'alg-none') {
     nextHeader = { ...nextHeader, alg: 'none' };
     nextSignature = '';
@@ -316,7 +353,17 @@ export function tamperToken(hubUrl: string, variant: TokenTamper): string {
   } else {
     nextPayload = { ...nextPayload, exp: Math.floor(Date.now() / 1000) - 3600 };
   }
-  url.searchParams.set('access_token', `${encode(nextHeader)}.${encode(nextPayload)}.${nextSignature}`);
+  return `${encode(nextHeader)}.${encode(nextPayload)}.${nextSignature}`;
+}
+
+export function tamperToken(hubUrl: string, variant: TokenTamper): string {
+  const url = new URL(hubUrl);
+  const token = url.searchParams.get('access_token');
+  const tampered = token === null ? undefined : tamperJwt(token, variant);
+  if (tampered === undefined) {
+    return hubUrl;
+  }
+  url.searchParams.set('access_token', tampered);
   return url.toString();
 }
 

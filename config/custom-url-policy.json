@@ -1,0 +1,6 @@
+{
+  "notes": "Hosts a pasted game URL may open (Test runner / PAD Tester 'Game URL'). A host matches when it equals an allowedHosts entry or ends with an allowedHostSuffixes entry; allowPrivateLan admits 10.x, 172.16-31.x and 192.168.x dev servers.",
+  "allowedHostSuffixes": [".dijoker.com"],
+  "allowedHosts": ["localhost", "127.0.0.1", "[::1]"],
+  "allowPrivateLan": true
+}

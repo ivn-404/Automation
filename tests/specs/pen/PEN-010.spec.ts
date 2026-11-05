@@ -1,7 +1,7 @@
 /**
  * PEN-010 — Replaying a Cashout frame does not double-credit.
  *
- * Manual Test Case ID: PEN-010 (docs/PERSONALTESTING.md §3)
+ * Manual Test Case ID: PEN-010 (docs/catalogs/PERSONALTESTING.md §3)
  * Intent: capture a winning Cashout and replay the raw frame (same invocationId,
  * then a fresh one). The win must be credited at most once. Needs a joined session.
  */

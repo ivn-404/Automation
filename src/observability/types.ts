@@ -6,7 +6,7 @@
  * filter problems without knowing the payload shape.
  */
 
-export type ObservationKind = 'network' | 'console' | 'websocket' | 'event' | 'balance';
+export type ObservationKind = 'network' | 'console' | 'websocket' | 'event' | 'balance' | 'resource';
 
 export type ObservationSeverity = 'info' | 'warn' | 'error';
 
@@ -94,12 +94,37 @@ export interface BalanceObservation extends ObservationBase {
   readonly relatedSeq?: number;
 }
 
+/** One static asset response (script, image, audio, atlas…) for the resource inventory. */
+export interface ResourceObservation extends ObservationBase {
+  readonly kind: 'resource';
+  readonly url: string;
+  readonly host: string;
+  /** game, game-third-party or launcher. */
+  readonly origin: string;
+  /** image, audio, script, json… from MIME type and extension. */
+  readonly assetKind: string;
+  readonly method?: string;
+  readonly resourceType?: string;
+  readonly status: number;
+  readonly bytes: number;
+  readonly transferBytes?: number;
+  readonly fromCache: boolean;
+  readonly cacheSource?: string;
+  readonly durationMs?: number;
+  readonly mime?: string;
+  readonly sha256?: string;
+  readonly bodyStatus?: string;
+  readonly requestHeaders?: Readonly<Record<string, string>>;
+  readonly responseHeaders?: Readonly<Record<string, string>>;
+}
+
 export type Observation =
   | NetworkObservation
   | ConsoleObservation
   | WebSocketObservation
   | GameEventObservation
-  | BalanceObservation;
+  | BalanceObservation
+  | ResourceObservation;
 
 /** Distributive omit so each union member keeps its own fields. */
 export type ObservationInput = Observation extends infer T

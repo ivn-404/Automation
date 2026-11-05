@@ -1,0 +1,32 @@
+{
+  "id": "package-5",
+  "extends": "base",
+  "notes": "Package 5 HUD from Titanic Transport PROBE-002 (2026-10-15). The buy control is the rectangle under the spin ring at about 0.518, 0.808 (103x56), lower than the Package 1 pink pill. Spin stays the large image at 0.518, 0.900. Two buy-option points are filled in after the panel is read.",
+  "controls": {
+    "buyFeature": {
+      "phaser": {
+        "x0": 0.4,
+        "x1": 0.64,
+        "y0": 0.76,
+        "y1": 0.86,
+        "minW": 70,
+        "minH": 28,
+        "maxW": 160,
+        "pick": "largest"
+      }
+    },
+    "buyFeatureConfirm": {
+      "vision": {
+        "hue": "green",
+        "band": { "y0": 0.88, "y1": 0.98, "x0": 0.2, "x1": 0.8 },
+        "minAreaRatio": 0.015,
+        "maxAreaRatio": 0.12
+      },
+      "candidates": [
+        { "x": 0.5, "y": 0.929 },
+        { "x": 0.5, "y": 0.92 },
+        { "x": 0.48, "y": 0.929 }
+      ]
+    }
+  }
+}

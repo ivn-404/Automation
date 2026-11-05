@@ -582,6 +582,7 @@ export function attachBackendReaderCapture(
         tumblesPath: options.manifest.reelValidation?.tumblesPath,
         featureItemsPath: payloadHints.featureItemsPath,
         rowOrder: options.manifest.reelValidation?.rowOrder,
+        areaLayout: options.manifest.reelValidation?.areaLayout,
         symbols: options.manifest.reelValidation?.symbols,
       });
       const stopBoard = read.boards[0];

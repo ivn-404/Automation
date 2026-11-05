@@ -1,0 +1,61 @@
+{
+  "workers": 3,
+  "layout": "1 2 3",
+  "notes": "PROBE-001 on Package 4: one click per HUD control, pass only on the matching /bet payload; also writes bet-shape.json for the package-4 payload path mapping.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "That's Bait_PRB4",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Genghis Bao_PRB4",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Sk8leton_PRB4",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "Gnome Mansland (Package 6, new release 2026-10-27) regression: the Package 6 suite over three players (CSF/AT/BC/BF/AP, TM/FS/UIDS/SM/ES/CP, and the unbounded FS-008 retrigger hunt on its own lane so it cannot block the rest).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP"],
+      "packageId": "6",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts"
+      ],
+      "playerId": "Gnome Mansland_REG1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "REGRESSION",
+      "categories": ["TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "6",
+      "testMatch": [
+        "tm/**/*.spec.ts",
+        "fs/FS-00[1-7]*.spec.ts",
+        "fs/FS-009*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "Gnome Mansland_REG2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "gnome-mansland",
+      "gameName": "Gnome Mansland",
+      "category": "FS-008",
+      "categories": ["FS"],
+      "packageId": "6",
+      "testMatch": ["fs/FS-008*.spec.ts"],
+      "playerId": "Gnome Mansland_REG3",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

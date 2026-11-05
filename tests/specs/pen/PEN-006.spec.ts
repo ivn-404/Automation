@@ -1,7 +1,7 @@
 /**
  * PEN-006 — Type confusion on the bet argument.
  *
- * Manual Test Case ID: PEN-006 (docs/PERSONALTESTING.md §2)
+ * Manual Test Case ID: PEN-006 (docs/catalogs/PERSONALTESTING.md §2)
  * Intent: StartRound with a wrongly-typed bet (string, boolean, object, null, and
  * the JSON-inexpressible NaN/Infinity via a raw frame) must be rejected cleanly —
  * no crash, no dropped auth, no round dealt. Needs a joined session.

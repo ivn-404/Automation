@@ -16,6 +16,7 @@ import { publishAllureReport } from './generate-allure-report.mjs';
 import {
   clearLockfile,
   killPidTree,
+  setLockfileMeta,
   stopSgapLeftovers,
   writeLockfile,
 } from './lib/sgap-process-guard.mjs';
@@ -213,8 +214,50 @@ function assignmentLabel(lane) {
   return lane.category;
 }
 
-function projectName(lane) {
-  return `w${lane.id}-${lane.category}`;
+function gamesForLane(lane) {
+  if (Array.isArray(lane.games) && lane.games.length > 0) {
+    return lane.games;
+  }
+  if (typeof lane.gameId === 'string' && lane.gameId.length > 0) {
+    return [{ gameId: lane.gameId, gameName: lane.gameName ?? lane.gameId, playerId: lane.playerId }];
+  }
+  return [];
+}
+
+function projectName(lane, gameId) {
+  const base = `w${lane.id}-${lane.category}`;
+  const games = gamesForLane(lane);
+  if (games.length > 1 && typeof gameId === 'string' && gameId.length > 0) {
+    return `${base}-${gameId}`;
+  }
+  return base;
+}
+
+function projectFlags(lane) {
+  const games = gamesForLane(lane);
+  if (games.length > 1) {
+    return games.map((game) => `--project=${projectName(lane, game.gameId)}`);
+  }
+  return [`--project=${projectName(lane)}`];
+}
+
+function reportTypeLabel(category) {
+  const key = String(category ?? '').trim().toUpperCase();
+  if (key === 'REGRESSION') {
+    return 'Regression Test';
+  }
+  if (key === 'SMOKE' || key === 'STAB') {
+    return key === 'SMOKE' ? 'Smoke Test' : 'Stability';
+  }
+  return String(category ?? 'Test').replace(/_/g, ' ');
+}
+
+function reportTypeSlug(category) {
+  return String(category ?? 'test')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'test';
 }
 
 function formatCell(bounds) {
@@ -258,7 +301,7 @@ function runLane(lane, env) {
   const args = [
     playwrightCli,
     'test',
-    `--project=${projectName(lane)}`,
+    ...projectFlags(lane),
     '--workers=1',
     ...(headed ? ['--headed'] : []),
     ...extraArgs,
@@ -275,6 +318,8 @@ function runLane(lane, env) {
         SGAP_ALLURE_DIR: path.join(allureResultsRoot(), `w${lane.id}`),
         SGAP_WORKER_ID: String(lane.id),
         ...(lane.gameId ? { SGAP_GAME_ID: lane.gameId } : {}),
+        // Lanes compiling into one shared transform cache at the same moment hit EPERM on Windows.
+        PWTEST_CACHE_DIR: env.PWTEST_CACHE_DIR ?? path.join(resultsRoot(), 'pw-cache', `w${lane.id}`),
       },
       stdio: 'inherit',
       windowsHide: false,
@@ -445,7 +490,11 @@ console.log(' lanes    :');
 for (const lane of parallelConfig.lanes) {
   const bounds = windowBoundsForLane(lane, screens);
   const { monitor, slot } = lanePlacement(lane);
-  const game = lane.gameName ?? lane.gameId ?? process.env.SGAP_GAME_ID ?? 'sugar-wonderland';
+  const games = gamesForLane(lane);
+  const game =
+    games.length > 1
+      ? games.map((entry) => entry.gameName ?? entry.gameId).join(' → ')
+      : lane.gameName ?? lane.gameId ?? process.env.SGAP_GAME_ID ?? 'sugar-wonderland';
   console.log(
     `   [Worker ${lane.id}][${game}][${lane.category}][${lane.playerId}]  ${assignmentLabel(lane)}  M${monitor + 1}${slot === 0 ? 'L' : 'R'}  ${formatCell(bounds)}`,
   );
@@ -457,30 +506,49 @@ let monitorClose = async () => undefined;
 let monitorUrl = '';
 if (monitorEnabled) {
   monitorHandle = createWorkerMonitorServer({
-    lanes: parallelConfig.lanes.map((lane) => ({
-      id: lane.id,
-      category: lane.category,
-      categories: lane.categories,
-      playerId: lane.playerId,
-      project: projectName(lane),
-      gameId: lane.gameId,
-      gameName: lane.gameName,
-      packageId: lane.packageId,
-    })),
+    lanes: parallelConfig.lanes.map((lane) => {
+      const games = gamesForLane(lane);
+      return {
+        id: lane.id,
+        category: lane.category,
+        categories: lane.categories,
+        playerId: lane.playerId,
+        project: projectName(lane),
+        gameId: games.map((game) => game.gameId).join(',') || lane.gameId,
+        gameName:
+          games.length > 1
+            ? games.map((game) => game.gameName ?? game.gameId).join(' → ')
+            : lane.gameName,
+        packageId: lane.packageId,
+      };
+    }),
     onStop: stopWorkersFromMonitor,
   });
   const bound = await monitorHandle.listen(Number(process.env.SGAP_MONITOR_PORT ?? 3847));
   monitorUrl = bound.url;
   monitorClose = bound.close;
+  setLockfileMeta({
+    monitorUrl,
+    config: path.relative(process.cwd(), configPath).replace(/\\/g, '/'),
+    lanes: parallelConfig.lanes.length,
+    games: [...new Set(parallelConfig.lanes.flatMap((lane) => gamesForLane(lane).map((game) => game.gameId)))],
+    tester: tester || undefined,
+    kind: typeof parallelConfig.kind === 'string' ? parallelConfig.kind : undefined,
+  });
+  writeLockfile(children.map((entry) => entry.pid));
   console.log(` monitor  : ${bound.url}`);
   console.log(` reader   : ${bound.url}/reader`);
   console.log(` observe  : ${bound.url}/observe  (Monitor Worker)`);
 }
 
+const reportType = reportTypeLabel(parallelConfig.lanes[0]?.category ?? 'REGRESSION');
+const reportSlug = reportTypeSlug(parallelConfig.lanes[0]?.category ?? 'regression');
+
 const env = {
   ...process.env,
   SGAP_LAUNCHER_MODE: launcherMode,
   SGAP_PARALLEL_WORKERS: '1',
+  SGAP_REPORT_TYPE: process.env.SGAP_REPORT_TYPE ?? reportType,
   SGAP_GAME_ID: process.env.SGAP_GAME_ID ?? 'sugar-wonderland',
   SGAP_CLICK_TRACKER: process.env.SGAP_CLICK_TRACKER ?? '1',
   SGAP_BROWSER_VIEW: browserView,
@@ -500,8 +568,7 @@ const resultsPromise = shuttingDown
   : Promise.all(parallelConfig.lanes.map((lane) => runLane(lane, env)));
 
 // Managed runs are watched through the control panel; overlay windows from several
-// concurrent runs would pile up on the host's screen. An SGAP agent runs on the
-// tester's own PC and asks for them (SGAP_MONITOR_OVERLAY=1).
+// concurrent runs would pile up on the screen (force with SGAP_MONITOR_OVERLAY=1).
 const overlayWindows =
   process.env.SGAP_MONITOR_OVERLAY === '1' || (!isManagedRun() && process.env.SGAP_MONITOR_OVERLAY !== '0');
 if (!shuttingDown && monitorEnabled && monitorUrl && overlayWindows) {
@@ -511,21 +578,27 @@ if (!shuttingDown && monitorEnabled && monitorUrl && overlayWindows) {
       url: monitorUrl,
       chromeExe,
       screens,
+      kind: 'overlay',
     });
-    if (monitorChrome?.pid) {
+    if (monitorChrome?.reused) {
+      console.log(` overlay  : reusing worker monitor (pid ${monitorChrome.pid})`);
+    } else if (monitorChrome?.pid) {
       console.log(` overlay  : Chrome worker monitor (pid ${monitorChrome.pid})`);
     } else if (!chromeExe) {
       console.log(' overlay  : skipped (Chromium not found) — open the monitor URL in Chrome');
     }
-    if (process.env.SGAP_OBSERVE !== '0' && process.env.SGAP_OBSERVE_WINDOW !== '0') {
+    if (process.env.SGAP_OBSERVE_WINDOW === '1') {
       setTimeout(() => {
         const observeChrome = launchMonitorChrome({
           url: `${monitorUrl}/observe`,
           chromeExe,
           screens,
           offset: 48,
+          kind: 'observe',
         });
-        if (observeChrome?.pid) {
+        if (observeChrome?.reused) {
+          console.log(` observe  : reusing Monitor Worker window (pid ${observeChrome.pid})`);
+        } else if (observeChrome?.pid) {
           console.log(` observe  : Monitor Worker window (pid ${observeChrome.pid})`);
         }
       }, 1500);
@@ -576,7 +649,25 @@ console.log('');
 
 // Managed runs publish one combined report per run (scripts/run-suite-queue.mjs).
 if (process.env.SGAP_SKIP_ALLURE !== '1' && !isManagedRun()) {
-  await publishAllureReport();
+  await publishAllureReport({
+    runId: reportSlug,
+    label: `${reportType} · ${new Date().toISOString().slice(0, 10)}`,
+    owner: tester || 'sgap',
+  });
+} else if (process.env.SGAP_SKIP_ALLURE !== '1' && parallelConfig.kind === 'pad') {
+  // PAD Tester runs are managed but start this runner directly, without run-suite-queue.
+  const sources = parallelConfig.lanes
+    .map((lane) => path.join(allureResultsRoot(), `w${lane.id}`))
+    .filter((dir) => existsSync(dir));
+  if (sources.length > 0) {
+    await publishAllureReport({
+      sources,
+      runId: process.env.SGAP_RUN_ID,
+      latestShortcut: false,
+      owner: process.env.SGAP_RUN_OWNER,
+      label: `PAD · ${parallelConfig.lanes.map((lane) => lane.gameName ?? lane.gameId).join(', ')}`,
+    });
+  }
 }
 
 await monitorClose();

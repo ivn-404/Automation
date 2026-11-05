@@ -1,0 +1,55 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 4 rerun of the cases that failed in the caps run, after the buy-confirm listener fix (tests/support/canvas-bet-flow.ts) and the measured Package 4 ratios (buyFeatureConfirm on all three; Sk8leton HUD row). One worker per game.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "category": "REGRESSION",
+      "categories": ["AT", "FS"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-006.spec.ts",
+        "fs/**/FS-007.spec.ts"
+      ],
+      "playerId": "That's Bait_FIX4",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "genghis-bao",
+      "gameName": "Genghis Bao",
+      "category": "REGRESSION",
+      "categories": ["AT"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-006.spec.ts"
+      ],
+      "playerId": "Genghis Bao_FIX4",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["AT", "ES", "FS"],
+      "packageId": "4",
+      "testMatch": [
+        "at/**/AT-006.spec.ts",
+        "es/**/ES-007.spec.ts",
+        "fs/**/FS-00[2-9].spec.ts"
+      ],
+      "playerId": "Sk8leton_FIX4",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

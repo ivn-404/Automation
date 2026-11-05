@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks (Package 3 representative): buy-confirm root-cause rerun. Surface package-3.json moves BUY FEATURE confirm to y~0.91 so the click is not the panel bet stepper.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["BF"],
+      "testMatch": ["bf/**/BF-001.spec.ts", "bf/**/BF-002.spec.ts", "bf/**/BF-007.spec.ts"],
+      "playerId": "War Freaks_STAB1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

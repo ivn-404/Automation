@@ -1,0 +1,29 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "Titanic Transport follow-up in suite order: autoplay, free-spin count after buy, scratch drawer, then the launch-screen max-win check against initialize. No PEN.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "REGRESSION",
+      "categories": ["AP", "FS", "SCG", "ES"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": [
+        "ap/**/AP-001.spec.ts",
+        "fs/**/FS-002.spec.ts",
+        "scg/**/SCG-001.spec.ts",
+        "es/**/ES-008.spec.ts"
+      ],
+      "playerId": "Titanic Transport_REG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

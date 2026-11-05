@@ -122,20 +122,33 @@ test.describe('AT — Additional Test', () => {
         await page.waitForTimeout(500);
       }
       await testInfo.attach('failed-bet.png', { body: await page.screenshot(), contentType: 'image/png' });
-      verificationResults.push({
-        kind: 'balance',
-        passed: hudBefore !== undefined && hudAfter !== undefined && Math.abs(hudAfter - hudBefore) < 0.005,
-        message:
-          hudBefore !== undefined && hudAfter !== undefined && Math.abs(hudAfter - hudBefore) < 0.005
-            ? `Stake refunded on the HUD after the failed bet (${hudAfter})`
-            : `HUD balance not refunded after the failed bet (before=${hudBefore}, after=${hudAfter})`,
-        expected: hudBefore,
-        actual: hudAfter,
-      });
+      const refunded = (value: number | undefined) =>
+        hudBefore !== undefined && value !== undefined && Math.abs(value - hudBefore) < 0.005;
+      const refundedWithDialog = refunded(hudAfter);
 
       await page.unroute(betPattern);
       observe?.event('fault-injection-removed', `${failedRequests} request(s) failed by the test`);
       const dismissed = await dismissErrorDialog(page, sgapDriver);
+      // Some titles put the stake back only once the error dialog is closed.
+      if (!refundedWithDialog) {
+        const afterDismissBy = Date.now() + REFUND_WINDOW_MS;
+        while (Date.now() < afterDismissBy) {
+          hudAfter = await slotHudBalance(page, sgapDriver.iframeSelector);
+          if (refunded(hudAfter)) break;
+          await page.waitForTimeout(500);
+        }
+      }
+      verificationResults.push({
+        kind: 'balance',
+        passed: refunded(hudAfter),
+        message: refundedWithDialog
+          ? `Stake refunded on the HUD after the failed bet (${hudAfter})`
+          : refunded(hudAfter)
+            ? `Stake refunded on the HUD once the error dialog was closed (${hudAfter})`
+            : `HUD balance not refunded after the failed bet, even after closing the error dialog (before=${hudBefore}, after=${hudAfter})`,
+        expected: hudBefore,
+        actual: hudAfter,
+      });
       observe?.event('error-dialog-dismissed', dismissed ? 'closed' : 'would not close', {
         severity: dismissed ? 'info' : 'warn',
       });

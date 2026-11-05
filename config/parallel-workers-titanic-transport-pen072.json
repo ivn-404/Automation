@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "PEN-072 only. Fresh player so an unresolved buy on PEN70 does not block the ledger checks.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["pen/**/PEN-072.spec.ts"],
+      "playerId": "Titanic Transport_PEN82",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

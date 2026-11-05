@@ -42,6 +42,31 @@ function capCheck(label: string, win: number, stake: number, maxWin: number): Ve
   };
 }
 
+/** A round the server flags as max win (`metadata.maxWinFlagPath`) must have reached the cap. */
+function flagCheck(
+  label: string,
+  raw: unknown,
+  flagPath: string | undefined,
+  win: number,
+  stake: number,
+  maxWin: number,
+): VerificationResult | undefined {
+  if (flagPath === undefined || getByPath(raw, flagPath) !== true) {
+    return undefined;
+  }
+  const cap = maxWin * stake;
+  const ok = Number.isFinite(win) && win >= cap - 0.005;
+  return {
+    kind: 'bet',
+    passed: ok,
+    message: ok
+      ? `${label}: ${flagPath}=true at win ${win} = cap ${cap}`
+      : `${label}: ${flagPath}=true ended the round at win ${win}, below the Max Win cap ${cap} (${maxWin}× bet ${stake})`,
+    expected: `${cap}`,
+    actual: win,
+  };
+}
+
 test.describe('ES — Edge & Stability', () => {
   requireCapabilities('maxWin');
   test(`${MANUAL_TEST_ID} Max Win cap logic works`, async ({
@@ -87,11 +112,16 @@ test.describe('ES — Edge & Stability', () => {
         actual: maxWin,
       });
 
+      const flagPath = sgapSession.manifest.metadata?.maxWinFlagPath;
       for (let spin = 1; spin <= BASE_SPINS; spin += 1) {
         const bet = await spinForBet(sgapSession, sgapDriver, page);
-        verificationResults.push(
-          capCheck(`Base spin ${spin}`, Number(bet.win?.amount ?? 'NaN'), Number(bet.bet?.amount ?? 'NaN'), maxWin),
-        );
+        const win = Number(bet.win?.amount ?? 'NaN');
+        const stake = Number(bet.bet?.amount ?? 'NaN');
+        verificationResults.push(capCheck(`Base spin ${spin}`, win, stake, maxWin));
+        const flagged = flagCheck(`Base spin ${spin}`, bet.raw, flagPath, win, stake, maxWin);
+        if (flagged !== undefined) {
+          verificationResults.push(flagged);
+        }
       }
 
       if (await sgapSession.buyFeature.isAvailable()) {
@@ -110,6 +140,10 @@ test.describe('ES — Edge & Stability', () => {
             capCheck(index === 0 ? 'Feature buy' : `Free spin ${index}`, Number(round.win?.amount ?? 'NaN'), stake, maxWin),
           );
         });
+        const flagged = flagCheck('Feature round', buy.raw, flagPath, Number(buy.win?.amount ?? 'NaN'), stake, maxWin);
+        if (flagged !== undefined) {
+          verificationResults.push(flagged);
+        }
         const accumulated = Math.max(
           0,
           ...rounds.map((round) => Number(getByPath(round.raw, 'fsTotalAccumulatedWin') ?? 0)).filter(Number.isFinite),

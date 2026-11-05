@@ -185,7 +185,7 @@ export async function slotHudCurrencies(page: Page, iframeSelector: string): Pro
 /** Numeric value painted right under the HUD `BALANCE` label. */
 export async function slotHudBalance(page: Page, iframeSelector: string): Promise<number | undefined> {
   const texts = await listPhaserTexts(page, iframeSelector);
-  const label = texts.find((hit) => hit.text.toUpperCase() === 'BALANCE');
+  const label = texts.find((hit) => /^BALANCE\b/iu.test(hit.text.trim()));
   if (label === undefined) {
     return undefined;
   }

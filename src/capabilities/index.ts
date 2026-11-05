@@ -18,6 +18,7 @@ export {
   type CapabilityStatus,
   type FeatureCapability,
 } from './game-capabilities.js';
+export { BLOCKED_PREFIX, CALIBRATION_PREFIX, assessmentSkipReason, isDiscoveredManifest } from './assessment.js';
 export {
   clearPackageProfileCache,
   packageProfileFor,

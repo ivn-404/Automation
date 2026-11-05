@@ -5,6 +5,42 @@
   "iframeSelectorKey": "gameIframe",
   "controllers": [
     {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
       "id": "scratchCard",
       "enabled": true
     }
@@ -17,9 +53,133 @@
   "canvasActions": {
     "canvasSelector": "canvas",
     "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.526,
+        "y": 0.879
+      },
+      "buyFeature": {
+        "x": 0.526,
+        "y": 0.787
+      },
+      "buyFeatureOption1": {
+        "x": 0.487,
+        "y": 0.344
+      },
+      "buyFeatureOption2": {
+        "x": 0.489,
+        "y": 0.465
+      },
+      "buyFeatureConfirm": {
+        "x": 0.5,
+        "y": 0.929
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.921,
+        "y": 0.248
+      },
+      "betMinus": {
+        "x": 0.728,
+        "y": 0.796
+      },
+      "betPlus": {
+        "x": 0.914,
+        "y": 0.796
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.906,
+        "y": 0.884
+      },
+      "amplifyBet": {
+        "x": 0.745,
+        "y": 0.879
+      },
+      "menu": {
+        "x": 0.146,
+        "y": 0.884
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.308,
+        "y": 0.879
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.308,
+        "y": 0.879
+      },
       "scratchCard": {
         "x": 0.222,
         "y": 0.733
+      },
+      "autoplaySpins10": {
+        "x": 0.172,
+        "y": 0.458
       }
     }
   },
@@ -141,8 +301,26 @@
     "portraitViewport": "390x844",
     "orientationLock": "portrait",
     "stagingStatus": "active",
-    "notes": "Scratch-only manifest (SCG). Game space 428x926; HUD SCRATCH button from Phaser discovery; scratch drawer is the shared 428x860 panel. Slot controllers (spin, bet, buy…) are not configured for this title.",
+    "notes": "Package 5 slot. PROBE-002 (2026-10-23) measured spin, turbo, amplifyBet, betPlus, betMinus, autoplay and menu from the Phaser scene graph; PROBE-001 passed. PROBE-005 (2026-10-23) opened the buy panel from the BUY pill at 0.526,0.787. Two choices: buyFeatureOption1 Aztec Treasure Surprise v.1 at 100x (Random Scatter 3-7, start multiplier 1x); buyFeatureOption2 v.2 at 500x (start multiplier 2x). Confirm is the bottom BUY FEATURE pill at 0.500,0.929; close is the glyph at 0.921,0.248 (same panel as Titanic Transport). Scratch drawer is the shared 428x860 panel. Max win is 5,000x (Package5.pdf). Buy tier 1 (100x, \"Start Multipliers: 1x\") opens with every cell unmarked (0) by design; only tiers of 2x and above pre-mark the board (tier 2 opens all 2). Confirmed with the game owner 2026-10-26.",
     "packageId": "package-5",
-    "normalModeMultiplier": "true"
+    "normalModeMultiplier": "true",
+    "normalModeMultiplierMode": "position",
+    "normalModePositionTumblesPath": "slot.tumbles",
+    "normalModeMultiplierPath": "slot.tumbles[].symbols.out[].win.multiplier",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true",
+    "buyFeatureMultiplier": "100",
+    "maxWinMultiplier": "5000",
+    "buyFeatureSelections": "2",
+    "buyFeatureOption2Multiplier": "500",
+    "buyFeatureOption2StartMultiplier": "2",
+    "buyFeatureOption1StartMultiplier": "1",
+    "buyFeatureOption1StartGridValue": "0",
+    "buyFeatureOption1Scatters": "3",
+    "buyFeatureOption2Scatters": "3"
   }
 }

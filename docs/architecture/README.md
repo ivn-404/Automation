@@ -37,11 +37,11 @@ Older docs stay valid. Use them when you need detail:
 
 | Topic | Doc |
 |---|---|
-| Philosophy / conflict rules | `docs/AI_PROJECT_CONTEXT.md` |
-| Folder map | `docs/REPOSITORY_STRUCTURE.md` |
-| Manifest fields | `docs/GAME_MANIFEST.md` |
-| Driver / iframe | `docs/GAME_DRIVER.md` |
-| Probe before catalog | `docs/PROBE_GATE.md` |
+| Philosophy / conflict rules | [handbook/AI_PROJECT_CONTEXT.md](../handbook/AI_PROJECT_CONTEXT.md) |
+| Folder map | [layers/REPOSITORY_STRUCTURE.md](./layers/REPOSITORY_STRUCTURE.md) |
+| Manifest fields | [layers/GAME_MANIFEST.md](./layers/GAME_MANIFEST.md) |
+| Driver / iframe | [layers/GAME_DRIVER.md](./layers/GAME_DRIVER.md) |
+| Probe before catalog | [guides/PROBE_GATE.md](../guides/PROBE_GATE.md) |
 
 ---
 

@@ -4,8 +4,10 @@
  * Manual Test Case ID: BF-004
  * Intent: Buy is disabled when balance is insufficient.
  *
- * Setup (staging): DiJoker host chrome "Balance … Update" → 100 USD, refresh game,
- * then attempt buy with the default buy-feature cost — purchase must not go through.
+ * Setup (staging): one spin reads the game's stake, then DiJoker host chrome
+ * "Balance … Update" → half the default buy cost (stake × buyFeatureMultiplier),
+ * refresh game, attempt buy — purchase must not go through. A fixed 100 USD is
+ * exactly the buy cost on games that buy at 100× a 1.00 bet.
  */
 
 import { test, expect } from '../../fixtures/index.js';
@@ -15,7 +17,10 @@ import {
   InMemoryExecutionTracker,
   createDefaultExecutionReporters,
 } from '../../../src/reporting/index.js';
-import { sawBuyPurchaseWithin } from '../../support/canvas-bet-flow.js';
+import { sawBuyPurchaseWithin, spinForBet } from '../../support/canvas-bet-flow.js';
+import { expectedBuyCost, parseResponseStake } from '../../support/buy-feature-verify.js';
+import { isBuyPurchaseResponse } from '../../../src/network/index.js';
+import { matchesBetUrl } from '../../../src/network/bet-url.js';
 import { setLauncherBalanceAndRefreshGame } from '../../support/launcher-balance.js';
 import { getLauncherMode } from '../../fixtures/local-launcher-html.js';
 import type { VerificationResult } from '../../../src/core/models/index.js';
@@ -39,7 +44,6 @@ test.describe('BF — Buy Feature', () => {
       { type: 'manualTestId', description: MANUAL_TEST_ID },
       { type: 'category', description: 'BF' },
       { type: 'gameId', description: sgapSession.manifest.gameId },
-      { type: 'launcherBalance', description: '100' },
     );
 
     let verificationResults: VerificationResult[] = [];
@@ -49,6 +53,25 @@ test.describe('BF — Buy Feature', () => {
       await expect(sgapSession.buyFeature.isAvailable()).resolves.toBe(true);
 
       await sgapDriver.gameCanvas().waitFor({ state: 'visible' });
+      await settleCanvasToBaseGame(
+        page,
+        sgapDriver,
+        sgapSession.manifest,
+        sgapSession.platform.getInitializeBody(),
+      );
+
+      const stakeResponse = page.waitForResponse(
+        (response) => response.ok() && matchesBetUrl(response.url()),
+        { timeout: 60_000 },
+      );
+      await spinForBet(sgapSession, sgapDriver, page);
+      const stake = parseResponseStake(await stakeResponse) ?? 1;
+      const buyCost = expectedBuyCost(stake, sgapSession.manifest);
+      const balance = Math.max(stake, Math.floor((buyCost / 2) * 100) / 100);
+      testInfo.annotations.push(
+        { type: 'launcherBalance', description: String(balance) },
+        { type: 'buyCost', description: `${buyCost} (stake ${stake})` },
+      );
 
       if (getLauncherMode() === 'staging') {
         await setLauncherBalanceAndRefreshGame({
@@ -56,7 +79,7 @@ test.describe('BF — Buy Feature', () => {
           platform: sgapSession.platform,
           driver: sgapDriver,
           manifest: sgapSession.manifest,
-          amount: 100,
+          amount: balance,
         });
       }
 
@@ -67,22 +90,31 @@ test.describe('BF — Buy Feature', () => {
         sgapSession.platform.getInitializeBody(),
       );
 
-      const hostShows100 = await page
-        .getByText(/Balance:\s*100(?:\.0+)?\b/i)
+      const hostLabel = await page
+        .getByText(/Balance:\s*[\d,]+(?:\.\d+)?/i)
         .first()
-        .isVisible()
-        .catch(() => false);
+        .textContent({ timeout: 5_000 })
+        .catch(() => null);
+      const hostBalance = Number((hostLabel?.match(/Balance:\s*([\d,]+(?:\.\d+)?)/i)?.[1] ?? '').replace(/,/g, ''));
+      const hostShowsBalance = Number.isFinite(hostBalance) && Math.abs(hostBalance - balance) < 0.01;
       verificationResults.push({
         kind: 'balance',
-        passed: getLauncherMode() !== 'staging' || hostShows100,
-        message: hostShows100
-          ? 'Launcher balance set to 100 USD'
-          : 'Launcher balance label did not show 100 after Update',
+        passed: getLauncherMode() !== 'staging' || hostShowsBalance,
+        message: hostShowsBalance
+          ? `Launcher balance set to ${balance} USD (buy cost ${buyCost})`
+          : `Launcher balance label did not show ${balance} after Update`,
       });
 
       await clearCanvasOverlays(sgapDriver, sgapSession.manifest, 4);
 
       // Default buy-feature value only — open panel and confirm; must not purchase.
+      let straySpin = false;
+      const watchStray = (response: import('@playwright/test').Response): void => {
+        if (response.ok() && matchesBetUrl(response.url()) && !isBuyPurchaseResponse(response)) {
+          straySpin = true;
+        }
+      };
+      page.on('response', watchStray);
       const buyWatch = sawBuyPurchaseWithin(page, 6_000);
       await sgapSession.buyFeature.openPanel({ timeoutMs: 15_000 }).catch(() => undefined);
       await sgapDriver
@@ -92,13 +124,21 @@ test.describe('BF — Buy Feature', () => {
         .clickCanvas('buyFeatureConfirmAlt', { timeoutMs: 10_000, singleInput: true })
         .catch(() => undefined);
       const sawBuy = await buyWatch;
+      page.off('response', watchStray);
+      // A confirm tap that reaches the base Spin means no buy panel covered the HUD: BUY did not open.
+      const panelBlocked = straySpin && !sawBuy;
+      if (panelBlocked) {
+        testInfo.annotations.push({ type: 'buyPanel', description: 'did not open (confirm tap reached base Spin)' });
+      }
 
       verificationResults.push({
         kind: 'bet',
         passed: !sawBuy,
         message: sawBuy
-          ? 'Buy purchase fired with 100 USD balance (expected disabled / insufficient)'
-          : 'Buy purchase blocked with insufficient balance (default buy cost)',
+          ? `Buy purchase fired with ${balance} USD balance below the ${buyCost} buy cost (expected disabled / insufficient)`
+          : panelBlocked
+            ? `BUY did not open its panel with ${balance} USD balance below the ${buyCost} buy cost`
+            : `Buy purchase blocked with ${balance} USD balance below the ${buyCost} buy cost`,
       });
 
       await sgapDriver

@@ -4,6 +4,7 @@
  */
 
 import { getByPath } from '../../shared/json-path.js';
+import type { ReelAreaLayout } from '../../core/models/index.js';
 import type { ReelCell, ReelGrid, ReelSymbolDef, ReelValidationConfig } from './types.js';
 
 function symbolNameFor(symbols: readonly ReelSymbolDef[], id: number): string {
@@ -47,12 +48,21 @@ function parseAreaMatrix(value: unknown, path: string): number[][] {
   return matrix;
 }
 
+/** Payload area → column-major `[col][row]`, whatever nesting the package sends. */
+export function toColumnMajor(matrix: number[][], layout: ReelAreaLayout | undefined): number[][] {
+  if (layout !== 'rows') {
+    return matrix;
+  }
+  const columns = matrix[0]?.length ?? 0;
+  return Array.from({ length: columns }, (_, col) => matrix.map((row) => row[col]!));
+}
+
 /**
  * Prefer final tumble area when tumbles exist; otherwise use areaPath.
  */
 export function resolveReelAreaMatrix(
   body: unknown,
-  config: Pick<ReelValidationConfig, 'areaPath' | 'tumblesPath' | 'rowOrder'>,
+  config: Pick<ReelValidationConfig, 'areaPath' | 'tumblesPath' | 'rowOrder' | 'areaLayout'>,
 ): { matrix: number[][]; sourcePath: string } {
   const tumblesPath = config.tumblesPath ?? 'slot.tumbles';
   const tumbles = getByPath(body, tumblesPath);
@@ -90,6 +100,7 @@ export function resolveReelAreaMatrix(
     sourcePath = areaPath;
   }
 
+  matrix = toColumnMajor(matrix, config.areaLayout);
   if (config.rowOrder === 'bottom-to-top') {
     matrix = matrix.map((column) => [...column].reverse());
   }

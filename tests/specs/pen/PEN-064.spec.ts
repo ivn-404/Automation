@@ -1,7 +1,7 @@
 /**
  * PEN-064 — Transport is TLS-only and unauthenticated connections are refused.
  *
- * Manual Test Case ID: PEN-064 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-064 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: the hub must be reachable only over wss:// and must reject a connection with no
  * access_token. Foreign-origin behavior is recorded as evidence (this API authenticates
  * with a query-string token, so Origin enforcement is informational, not a gate).

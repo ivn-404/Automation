@@ -362,10 +362,11 @@ export async function clearInterferingScreens(
   const allowTemplates = options.allowTemplates === true;
   const gameId = options.manifest.gameId;
   let last: EyeObservation = { screenId: 'base-idle', policy: 'leave', via: 'idle', handled: false };
+  let resumedFeature = false;
 
   for (let pass = 1; pass <= maxPasses; pass += 1) {
     const { screen, via, score } = await detectScreen(options.page, allowTemplates);
-    last = { screenId: screen.id, policy: screen.policy, via, score, handled: false };
+    last = { screenId: screen.id, policy: screen.policy, via, score, handled: false, resumedFeature };
 
     // Canvas-drawn session Continue is invisible to getByText — detect via colour.
     if (screen.id === 'base-idle' || via === 'idle') {
@@ -377,11 +378,13 @@ export async function clearInterferingScreens(
           blocker,
         );
         if (dismissed.dismissed) {
+          resumedFeature ||= blocker.kind === 'session-continue';
           last = {
             screenId: 'ongoing-spin-round',
             policy: 'continue',
             via: 'template',
             handled: true,
+            resumedFeature,
           };
           log(`ongoing-spin-round via=vision kind=${blocker.kind} handled=true intent=${intent}`);
           await options.page.waitForTimeout(500);
@@ -432,7 +435,7 @@ export async function clearInterferingScreens(
     if (screen.id === 'base-idle') {
       const blocker = await detectCanvasBlocker(options.driver);
       if (blocker.kind === 'none') {
-        return { screenId: screen.id, policy: screen.policy, via, handled: true };
+        return { screenId: screen.id, policy: screen.policy, via, handled: true, resumedFeature };
       }
     }
   }

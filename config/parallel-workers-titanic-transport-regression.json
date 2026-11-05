@@ -1,0 +1,36 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Titanic Transport full regression families. PEN is not included.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP", "TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "5",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "tm/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "Titanic Transport_REG1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

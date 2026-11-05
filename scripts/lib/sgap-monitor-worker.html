@@ -6,13 +6,16 @@
   <title>SGAP Observer</title>
   <link rel="stylesheet" href="/ui.css" />
   <style>
-    /* Observer layout (tokens and components come from /ui.css). */
-    .layout { flex: 1; display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
-    aside { border-right: 1px solid var(--line); overflow: auto; padding: var(--s2); background: var(--bg-raised); }
-    .side-head { display: flex; align-items: center; gap: var(--s2); padding: 6px 6px var(--s2); }
-    .session { padding: 8px 10px; border-radius: var(--r-md); cursor: pointer; border: 1px solid transparent; margin-bottom: 4px; }
-    .session:hover { background: var(--hover); }
-    .session.on { background: var(--surface); border-color: var(--accent-line); }
+    /* Observer layout (shell, palette and components come from /ui.css). */
+    .layout { flex: 1; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; min-height: 0; }
+    .layout > .panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    #sessions { flex: 1; overflow: auto; padding: 8px; }
+    .session {
+      padding: 10px 12px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; margin-bottom: 4px;
+      transition: background 0.14s var(--ease), border-color 0.14s var(--ease);
+    }
+    .session:hover { background: var(--surface); }
+    .session.on { background: var(--surface); border-color: var(--accent-line); box-shadow: inset 2px 0 0 var(--accent); }
     .session .row1 { display: flex; gap: 8px; align-items: baseline; }
     .session .code { font: 600 var(--fs-md) var(--mono); }
     .session .game { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: var(--fs-md); }
@@ -25,18 +28,18 @@
     .cnt-e { color: var(--fail); }
     .cnt-w { color: var(--run); }
 
-    section.main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-    .head { padding: var(--s3) var(--s5) 0; }
-    .head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
-    .head .meta { color: var(--muted); font-size: var(--fs-md); }
-    .nav { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s3) var(--s5); border-bottom: 1px solid var(--line); }
-    .search { width: 240px; }
+    .head { display: flex; align-items: baseline; gap: var(--s3); min-width: 0; }
+    .head h2 { margin: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .head .meta { color: var(--faint); font-size: 12px; white-space: nowrap; }
+    .nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 52px; padding: 8px 16px; border-bottom: 1px solid var(--line-soft); }
+    .nav .chip:first-of-type { margin-left: auto; }
 
-    .content { flex: 1; overflow: auto; padding: 6px 12px 24px; }
-    table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
-    th { text-align: left; color: var(--faint); font-weight: 600; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px; position: sticky; top: 0; background: var(--bg); z-index: 1; border-bottom: 1px solid var(--line); }
-    td { padding: 5px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; }
+    .content { flex: 1; overflow: auto; padding: 0 8px 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: var(--faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 8px; position: sticky; top: 0; background: var(--sidebar); z-index: 1; border-bottom: 1px solid var(--line); }
+    td { padding: 7px 8px; border-top: 1px solid var(--line-soft); vertical-align: top; }
     tr.row { cursor: pointer; }
+    tr.row td { transition: background 0.12s var(--ease); }
     tr.row:hover td { background: var(--hover); }
     tr.error td { color: var(--fail); }
     tr.warn td { color: var(--run); }
@@ -44,64 +47,85 @@
     td.t { white-space: nowrap; color: var(--faint); width: 1%; }
     td.k { white-space: nowrap; width: 1%; }
     .kind { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); }
-    .kind.network { color: var(--accent); }
-    .kind.console { color: #c792ea; }
-    .kind.websocket { color: #89ddff; }
-    .kind.event { color: #c3e88d; }
-    .kind.balance { color: #ffcb6b; }
+    .kind { border: 0; background: var(--elevated); border-radius: 6px; padding: 2px 7px; }
+    .kind.network { color: var(--accent-strong); background: var(--accent-soft); }
+    .kind.console { color: #c4b5fd; }
+    .kind.websocket { color: #8cc8e8; }
+    .kind.event { color: var(--pass); background: var(--pass-soft); }
+    .kind.balance { color: var(--run); background: var(--run-soft); }
     .summary { word-break: break-word; }
     .injected { color: var(--run); font-size: 11px; text-transform: uppercase; margin-left: 6px; }
     pre { margin: 6px 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, Consolas, monospace; color: var(--muted); max-height: 420px; overflow: auto; }
     .dl { display: grid; grid-template-columns: 140px 1fr; gap: 2px 12px; font-size: 13px; }
     .dl dt { color: var(--faint); }
     .dl dd { margin: 0; word-break: break-all; }
-    .sub { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 8px; }
+    .dsub { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 8px; }
     .num { text-align: right; white-space: nowrap; }
     .diff-bad { color: var(--fail); font-weight: 600; }
     .diff-ok { color: var(--pass); }
     pre { background: var(--json-bg); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
-    @media (max-width: 860px) {
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-      aside { max-height: 34vh; border-right: 0; border-bottom: 1px solid var(--line); }
-      .head, .nav { padding-left: var(--s3); padding-right: var(--s3); }
-      .search { width: 100%; }
+    .kind.resource { color: var(--muted); }
+    @media (max-width: 1023px) {
+      .layout { grid-template-columns: 1fr; grid-template-rows: minmax(160px, 34vh) minmax(0, 1fr); }
     }
+    /* Embedded in another page (PAD Tester): no navigation or page title, narrower test list. */
+    body.embed .rail, body.embed .page-head, body.embed .crumbs, body.embed .access { display: none !important; }
+    body.embed { grid-template-columns: minmax(0, 1fr) !important; }
+    body.embed .workspace { margin-left: 0 !important; padding: 8px !important; }
+    body.embed .layout { grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 8px; }
   </style>
 </head>
-<body>
-  <header class="top">
-    <div class="bar">
-      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Observer</span></div>
+<body class="haulix">
+  <aside class="rail" aria-label="Navigation">
+    <div class="rail-panel">
+      <div class="mark-row"><div class="mark" data-icon="logo" title="SGAP"></div><span class="rail-name">SGAP</span></div>
       <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <button type="button" class="rail-pin" id="rail-pin" aria-pressed="false" title="Pin the navigation open">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="utility">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>QA Workspace</span><span>/</span><b>Observer</b></nav>
       <div class="spacer"></div>
+      <input class="search" id="search" type="search" placeholder="Filter observations  /" aria-label="Filter observations" autocomplete="off" />
       <span class="status idle" id="status">Connecting…</span>
       <button type="button" class="access" id="access" hidden></button>
+    </header>
+    <div class="page-head">
+      <div>
+        <h1>Observer</h1>
+        <p class="sub">Network, console, WebSocket, events and balance for each test</p>
+      </div>
     </div>
-  </header>
-  <div class="layout">
-    <aside>
-      <div class="side-head"><span class="field-label">Tests</span><span class="spacer"></span>
-        <button type="button" class="chip on" id="follow" title="Jump to the newest running test">Follow</button>
-      </div>
-      <div id="sessions"><div class="empty">No observed tests yet.</div></div>
-    </aside>
-    <section class="main">
-      <div class="head"><h2 id="title">—</h2><div class="meta" id="meta"></div></div>
-      <div class="nav">
-        <div class="tabs" id="tabs"></div>
-        <input class="search" id="search" type="search" placeholder="Filter  /" autocomplete="off" />
-        <button type="button" class="chip" id="problems" title="Errors and warnings only">Problems only</button>
-        <button type="button" class="chip" id="noise" title="Include console.log/info and every websocket frame in the timeline">Show noise</button>
-      </div>
-      <div class="content" id="content"><div class="empty">Pick a test on the left.</div></div>
-    </section>
+    <div class="layout">
+      <section class="panel" aria-label="Observed tests">
+        <div class="panel-head"><h3>Tests</h3><span class="sub" id="session-count"></span><span class="spacer"></span>
+          <button type="button" class="chip on" id="follow" title="Jump to the newest running test">Follow</button>
+        </div>
+        <div id="sessions"><div class="empty">No observed tests yet.</div></div>
+      </section>
+      <section class="panel" aria-label="Observations">
+        <div class="panel-head head"><h2 id="title">—</h2><div class="meta" id="meta"></div></div>
+        <div class="nav">
+          <div class="tabs" id="tabs"></div>
+          <button type="button" class="chip" id="problems" title="Errors and warnings only">Problems only</button>
+          <button type="button" class="chip" id="noise" title="Include console.log/info and every websocket frame in the timeline">Show noise</button>
+        </div>
+        <div class="content" id="content"><div class="empty">Pick a test on the left.</div></div>
+      </section>
+    </div>
   </div>
   <script src="/ui.js"></script>
   <script>
-    if (window.SGAP) SGAP.mountChrome();
+    const params = new URLSearchParams(location.search);
+    const EMBED = params.get('embed') === '1';
+    if (EMBED) document.body.classList.add('embed');
+    else if (window.SGAP) SGAP.mountChrome();
     const TABS = [
       ['timeline', 'Timeline'], ['network', 'Network'], ['console', 'Console'],
-      ['websocket', 'WebSocket'], ['event', 'Events'], ['balance', 'Balance'],
+      ['websocket', 'WebSocket'], ['event', 'Events'], ['balance', 'Balance'], ['resource', 'Assets'],
     ];
     const state = {
       sessions: [], selected: null, observations: [], lastSeq: 0,
@@ -148,6 +172,7 @@
           if (o.kind === 'console' && o.severity === 'info') return false;
           if (o.kind === 'websocket' && (o.event === 'sent' || o.event === 'received') && o.severity === 'info') return false;
           if (o.kind === 'balance' && o.trigger === 'sample' && !o.diff) return false;
+          if (o.kind === 'resource' && o.severity === 'info') return false;
         }
         return matches(o);
       });
@@ -160,22 +185,28 @@
         rows.push(dl([['method', o.method], ['url', o.url], ['status', o.status], ['failure', o.failure], ['duration', o.durationMs === undefined ? '' : `${o.durationMs} ms`],
           ['resource', o.resourceType], ['frame', o.frame], ['tags', (o.tags || []).join(', ')], ['injected', o.injected ? 'yes — answered by a test route, not the backend' : 'no'],
           ['started', clock(o.startedAt)]]));
-        if (o.requestBody !== undefined && o.requestBody !== null) rows.push(`<div class="sub">Request payload</div><pre>${esc(pretty(o.requestBody))}</pre>`);
-        if (o.responseBody !== undefined && o.responseBody !== null) rows.push(`<div class="sub">Response body</div><pre>${esc(pretty(o.responseBody))}</pre>`);
-        if (o.requestHeaders) rows.push(`<div class="sub">Request headers</div><pre>${esc(pretty(o.requestHeaders))}</pre>`);
-        if (o.responseHeaders) rows.push(`<div class="sub">Response headers</div><pre>${esc(pretty(o.responseHeaders))}</pre>`);
+        if (o.requestBody !== undefined && o.requestBody !== null) rows.push(`<div class="dsub">Request payload</div><pre>${esc(pretty(o.requestBody))}</pre>`);
+        if (o.responseBody !== undefined && o.responseBody !== null) rows.push(`<div class="dsub">Response body</div><pre>${esc(pretty(o.responseBody))}</pre>`);
+        if (o.requestHeaders) rows.push(`<div class="dsub">Request headers</div><pre>${esc(pretty(o.requestHeaders))}</pre>`);
+        if (o.responseHeaders) rows.push(`<div class="dsub">Response headers</div><pre>${esc(pretty(o.responseHeaders))}</pre>`);
       } else if (o.kind === 'console') {
         rows.push(dl([['level', o.level], ['frame', o.frame], ['location', o.location]]));
         rows.push(`<pre>${esc(o.text)}</pre>`);
-        if (o.stack) rows.push(`<div class="sub">Stack</div><pre>${esc(o.stack)}</pre>`);
+        if (o.stack) rows.push(`<div class="dsub">Stack</div><pre>${esc(o.stack)}</pre>`);
       } else if (o.kind === 'websocket') {
         rows.push(dl([['socket', `ws#${o.socketId}`], ['url', o.url], ['event', o.event], ['bytes', o.bytes], ['targets', (o.targets || []).join(', ')]]));
-        if (o.payload !== undefined) rows.push(`<div class="sub">Payload</div><pre>${esc(pretty(o.payload))}</pre>`);
+        if (o.payload !== undefined) rows.push(`<div class="dsub">Payload</div><pre>${esc(pretty(o.payload))}</pre>`);
       } else if (o.kind === 'event') {
         rows.push(dl([['event', o.name], ['detail', o.detail], ['related', relatedText(o.relatedSeq)]]));
         if (o.data !== undefined) rows.push(`<pre>${esc(pretty(o.data))}</pre>`);
       } else if (o.kind === 'balance') {
         rows.push(dl([['HUD', money(o.hud)], ['server', money(o.server)], ['host', money(o.host)], ['Δ hud − server', o.diff], ['trigger', o.trigger], ['related', relatedText(o.relatedSeq)]]));
+      } else if (o.kind === 'resource') {
+        rows.push(dl([['url', o.url], ['type', o.assetKind], ['mime', o.mime], ['status', o.status], ['bytes', o.bytes], ['transfer bytes', o.transferBytes],
+          ['cache', o.fromCache ? `hit (${o.cacheSource ?? '?'})` : `network (${o.cacheSource ?? '?'})`], ['duration', o.durationMs === undefined ? '' : `${o.durationMs} ms`],
+          ['origin', o.origin], ['body', o.bodyStatus], ['sha256', o.sha256]]));
+        if (o.requestHeaders) rows.push(`<div class="dsub">Request headers</div><pre>${esc(pretty(o.requestHeaders))}</pre>`);
+        if (o.responseHeaders) rows.push(`<div class="dsub">Response headers</div><pre>${esc(pretty(o.responseHeaders))}</pre>`);
       }
       return rows.join('');
     }
@@ -226,6 +257,10 @@
           const diff = o.diff === undefined || o.diff === null ? '—' : `<span class="${o.diff === 0 ? 'diff-ok' : 'diff-bad'}">${o.diff}</span>`;
           return rowHtml(o, `<td class="t mono">${clock(o.at)}</td><td class="num mono">${money(o.hud)}</td><td class="num mono">${money(o.server)}</td><td class="num mono">${money(o.host)}</td><td class="num mono">${diff}</td><td class="summary">${esc(o.trigger)}${o.relatedSeq ? ` — ${esc(relatedText(o.relatedSeq))}` : ''}</td>`);
         }).join('')}</tbody></table>`;
+      } else if (state.tab === 'resource') {
+        const list = state.observations.filter((o) => o.kind === 'resource' && matches(o));
+        html = `<table><thead><tr><th>time</th><th>type</th><th>status</th><th>url</th><th class="num">bytes</th><th>cache</th><th class="num">ms</th></tr></thead><tbody>${list.map((o) => rowHtml(o,
+          `<td class="t mono">${clock(o.at)}</td><td class="mono">${esc(o.assetKind)}</td><td class="mono">${esc(o.status)}</td><td class="summary mono">${esc(o.url.replace(/^https?:\/\/[^/]+/, ''))}</td><td class="num mono">${esc(o.bytes)}</td><td>${o.fromCache ? 'hit' : 'network'}</td><td class="num mono">${esc(o.durationMs ?? '')}</td>`)).join('')}</tbody></table>`;
       }
       const atBottom = content.scrollHeight - content.scrollTop - content.clientHeight < 40;
       content.innerHTML = html || '<div class="empty">Nothing here.</div>';
@@ -267,6 +302,7 @@
         state.sessions = index.sessions;
         $('status').textContent = `${index.sessions.length} test${index.sessions.length === 1 ? '' : 's'} observed · ${new Date().toLocaleTimeString()}`;
         $('status').classList.remove('bad', 'idle');
+        $('session-count').textContent = String(index.sessions.length);
         if (state.follow) {
           const live = state.sessions.find((s) => s.status === 'running') ?? state.sessions[0];
           if (live && live.id !== state.selected) { await select(live.id); return; }

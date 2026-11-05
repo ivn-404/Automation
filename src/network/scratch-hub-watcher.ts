@@ -92,12 +92,14 @@ export class ScratchHubWatcher {
   private readonly completions: HubCompletion[] = [];
   private socketCount = 0;
   private started = false;
+  private hubUrl = '';
 
   private readonly onWebSocket = (socket: WebSocket): void => {
     if (!matchesUrlPattern(socket.url(), this.hubUrlPattern)) {
       return;
     }
     this.socketCount += 1;
+    this.hubUrl = socket.url();
     const socketId = this.socketCount;
     socket.on('framesent', (frame) => this.readFrames(socketId, String(frame.payload), 'out'));
     socket.on('framereceived', (frame) => this.readFrames(socketId, String(frame.payload), 'in'));
@@ -123,6 +125,22 @@ export class ScratchHubWatcher {
   /** True once the game has opened the scratch hub. */
   isConnected(): boolean {
     return this.socketCount > 0;
+  }
+
+  /** Live hub URL, including the access token. Empty until the game connects. */
+  connectedUrl(): string | undefined {
+    return this.hubUrl.length > 0 ? this.hubUrl : undefined;
+  }
+
+  /** Arguments of the latest invocation of `target`, if the game has sent it. */
+  latestArgs(target: string): readonly unknown[] | undefined {
+    for (let i = this.invocations.length - 1; i >= 0; i -= 1) {
+      const invocation = this.invocations[i];
+      if (invocation?.target === target) {
+        return invocation.args;
+      }
+    }
+    return undefined;
   }
 
   /** True when the game sent `target` at/after `since` (answered or not). */

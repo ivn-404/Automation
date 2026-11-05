@@ -28,4 +28,6 @@ export interface EyeObservation {
   readonly via: 'host-text' | 'template' | 'ttl' | 'idle';
   readonly score?: number;
   readonly handled: boolean;
+  /** True once a pass dismissed session Continue — the game is resuming a leftover feature. */
+  readonly resumedFeature?: boolean;
 }

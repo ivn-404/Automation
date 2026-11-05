@@ -1,0 +1,104 @@
+{
+  "gameId": "gnome-mansland",
+  "entries": [
+    {
+      "at": "2026-10-28T10:30:13.968Z",
+      "caseId": "PAD-013",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "idleBusyPct": 40.8
+      }
+    },
+    {
+      "at": "2026-10-28T11:31:46.472Z",
+      "caseId": "PAD-039",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "idleAvgFps": 59.9,
+        "idleP95Ms": 16.9,
+        "spinAvgFps": 59.9,
+        "spinP95Ms": 16.9,
+        "spinLow1Fps": 58,
+        "bonusAvgFps": 59.9,
+        "bonusP95Ms": 16.9
+      }
+    },
+    {
+      "at": "2026-10-28T11:33:43.847Z",
+      "caseId": "PAD-040",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "idleAvgFps": 59.9,
+        "idleP95Ms": 16.9,
+        "spinAvgFps": 59.9,
+        "spinP95Ms": 16.9,
+        "spinLow1Fps": 57.6,
+        "bonusAvgFps": 59.8,
+        "bonusP95Ms": 16.8
+      }
+    },
+    {
+      "at": "2026-10-28T11:35:38.653Z",
+      "caseId": "PAD-044",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "warmLoadMs": 9380,
+        "coldLoadMs": 11364
+      }
+    },
+    {
+      "at": "2026-10-28T12:55:23.485Z",
+      "caseId": "PAD-044",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "warmLoadMs": 5197,
+        "coldLoadMs": 5876
+      }
+    },
+    {
+      "at": "2026-10-30T07:56:49.106Z",
+      "caseId": "PAD-039",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "idleAvgFps": 59.9,
+        "idleP95Ms": 17,
+        "spinAvgFps": 59.9,
+        "spinP95Ms": 16.9,
+        "spinLow1Fps": 58,
+        "bonusAvgFps": 59.8,
+        "bonusP95Ms": 16.9
+      }
+    },
+    {
+      "at": "2026-10-30T07:58:44.538Z",
+      "caseId": "PAD-040",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "idleAvgFps": 59.9,
+        "idleP95Ms": 17,
+        "spinAvgFps": 59.9,
+        "spinP95Ms": 17,
+        "spinLow1Fps": 57.6,
+        "bonusAvgFps": 59.9,
+        "bonusP95Ms": 17
+      }
+    },
+    {
+      "at": "2026-10-30T08:12:01.985Z",
+      "caseId": "PAD-044",
+      "build": "unknown",
+      "browser": "chrome 151",
+      "metrics": {
+        "warmLoadMs": 5112,
+        "coldLoadMs": 6427
+      }
+    }
+  ]
+}

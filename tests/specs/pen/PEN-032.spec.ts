@@ -1,7 +1,7 @@
 /**
  * PEN-032 — Malformed SignalR frames fail closed.
  *
- * Manual Test Case ID: PEN-032 (docs/PERSONALTESTING.md §7)
+ * Manual Test Case ID: PEN-032 (docs/catalogs/PERSONALTESTING.md §7)
  * Intent: frames that are not valid protocol (non-JSON, missing the \u001e record
  * separator, wrong shape) must be rejected cleanly — the server may drop the socket,
  * but it must never execute them, 500-storm, or leave a usable half-authenticated

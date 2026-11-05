@@ -19,10 +19,11 @@ function kindLabel(observation: Observation): string {
   return observation.kind === 'event' ? 'event' : observation.kind === 'websocket' ? 'ws' : observation.kind;
 }
 
-/** One line per observation; pings and plain console.log noise are left out. */
+/** One line per observation; pings, plain console.log noise and loaded assets are left out. */
 export function formatObservationTimeline(observations: readonly Observation[]): string {
   return observations
     .filter((entry) => !(entry.kind === 'console' && entry.severity === 'info'))
+    .filter((entry) => !(entry.kind === 'resource' && entry.severity === 'info'))
     .map((entry) => `${clock(entry.at)} ${mark(entry)} #${String(entry.seq).padStart(4)} ${kindLabel(entry).padEnd(8)} ${entry.summary}`)
     .join('\n');
 }
@@ -60,6 +61,7 @@ export function summarizeObservations(observations: readonly Observation[]): Rec
     websocketProblems: count((entry) => entry.kind === 'websocket' && entry.severity !== 'info'),
     events: count((entry) => entry.kind === 'event'),
     balanceMismatches: count((entry) => entry.kind === 'balance' && entry.diff !== undefined && entry.diff !== 0),
+    resources: count((entry) => entry.kind === 'resource'),
   };
 }
 

@@ -1,7 +1,7 @@
 /**
  * PEN-003 — Oversized bet is rejected or clamped to maxBet.
  *
- * Manual Test Case ID: PEN-003 (docs/PERSONALTESTING.md §2)
+ * Manual Test Case ID: PEN-003 (docs/catalogs/PERSONALTESTING.md §2)
  * Intent: StartRound with a stake far above maxBet (1e9, MAX_SAFE_INTEGER) must be
  * rejected or clamped to maxBet — never booked at the oversized value. Needs a
  * joined session (skips while the hub outage blocks JoinScratch).

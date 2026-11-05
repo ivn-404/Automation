@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "BF-011: buy Titanic Transport option 2 (500x) and check the server cost and start multiplier.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "BF",
+      "categories": ["BF"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["bf/**/BF-011.spec.ts"],
+      "playerId": "Titanic Transport_BF2",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

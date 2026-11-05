@@ -26,6 +26,8 @@ export interface ClickTrackerEnableOptions {
 
 const patchedMousePages = new WeakSet<Page>();
 const activeTrackerPages = new WeakSet<Page>();
+/** Last overlay draw per page — mouse.click is patched and would paint a second, often mismatched, marker. */
+const lastOverlayAt = new WeakMap<Page, number>();
 const frameHandlers = new WeakMap<
   Page,
   {
@@ -230,7 +232,6 @@ const IFRAME_FORWARD_INIT = `
   }
 
   document.addEventListener('pointerdown', forward, true);
-  document.addEventListener('click', forward, true);
 })();
 `;
 
@@ -293,12 +294,15 @@ export async function installClickTracker(
     options?: { delay?: number; button?: 'left' | 'right' | 'middle'; clickCount?: number },
   ) => Promise<void>;
   mouse.click = async (x: number, y: number, clickOptions?) => {
-    await recordClick(page, {
-      label: 'mouse.click',
-      pageX: x,
-      pageY: y,
-      kind: 'mouse',
-    });
+    const drawn = lastOverlayAt.get(page) ?? 0;
+    if (Date.now() - drawn > 150) {
+      await recordClick(page, {
+        label: 'mouse.click',
+        pageX: x,
+        pageY: y,
+        kind: 'mouse',
+      });
+    }
     await originalClick(x, y, clickOptions);
   };
 }
@@ -322,6 +326,7 @@ export async function recordClick(page: Page, record: ClickRecord): Promise<void
     return;
   }
   activeTrackerPages.add(page);
+  lastOverlayAt.set(page, Date.now());
 
   await page
     .evaluate(

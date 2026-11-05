@@ -15,6 +15,7 @@ import { clickHostWithIndicator } from '../../src/driver/click-tracker.js';
 import type { PlaywrightGameDriver } from '../../src/driver/playwright-game-driver.js';
 import { primeCanvasSession } from '../../src/platform/index.js';
 import type { PlaywrightPlatform } from '../../src/platform/playwright-platform.js';
+import { skipWithoutLauncher } from './launch-url.js';
 
 /** Default sandbox wallet after low-balance tests — keeps later specs able to buy/spin. */
 export const STAGING_DEFAULT_WALLET = 20_000;
@@ -67,6 +68,7 @@ export async function setLauncherBalance(
   amount = 100,
   timeoutMs = 20_000,
 ): Promise<void> {
+  skipWithoutLauncher('Setting the host wallet balance');
   const current = await readLauncherBalance(page);
   if (current !== undefined && Math.abs(current - amount) < 0.5) {
     return;
@@ -131,7 +133,7 @@ export async function readLauncherBalance(page: Page): Promise<number | undefine
   const text = await page
     .getByText(/Balance:\s*[\d,]+(?:\.\d+)?/i)
     .first()
-    .textContent()
+    .textContent({ timeout: 2_000 })
     .catch(() => null);
   if (text === null) {
     return undefined;
@@ -161,10 +163,22 @@ export async function readLauncherBetLimit(page: Page): Promise<number | undefin
   const raw = await page
     .getByRole('spinbutton', { name: 'Bet limit' })
     .first()
-    .inputValue()
+    .inputValue({ timeout: 2_000 })
     .catch(() => '');
   const value = Number(String(raw).replace(/,/g, ''));
   return raw !== '' && Number.isFinite(value) ? value : undefined;
+}
+
+/**
+ * Newer host chrome shows "Bet limit: Disabled [Update]" instead of the spinbutton;
+ * a disabled limit means no session wager cap, so there is nothing to restore.
+ */
+export async function isLauncherBetLimitDisabled(page: Page): Promise<boolean> {
+  return page
+    .getByText(/Bet limit:\s*Disabled/i)
+    .first()
+    .isVisible({ timeout: 2_000 })
+    .catch(() => false);
 }
 
 /** Parse host chrome remaining wager cap (e.g. "Remaining: 8"). */
@@ -172,7 +186,7 @@ export async function readLauncherBetRemaining(page: Page): Promise<number | und
   const text = await page
     .getByText(/Remaining:\s*[\d,]+(?:\.\d+)?/i)
     .first()
-    .textContent()
+    .textContent({ timeout: 2_000 })
     .catch(() => null);
   return parseHostNumber(text, /Remaining:\s*([\d,]+(?:\.\d+)?)/i);
 }
@@ -189,6 +203,7 @@ export async function setLauncherBetLimit(
   amount = STAGING_DEFAULT_BET_LIMIT,
   timeoutMs = 20_000,
 ): Promise<void> {
+  skipWithoutLauncher('Setting the host bet limit');
   const existing = await readLauncherBetLimit(page);
   const remainingNow = await readLauncherBetRemaining(page);
   if (
@@ -196,6 +211,10 @@ export async function setLauncherBetLimit(
     Math.abs(existing - amount) < 0.5 &&
     (remainingNow === undefined || remainingNow >= amount - 0.5)
   ) {
+    return;
+  }
+
+  if (await isLauncherBetLimitDisabled(page)) {
     return;
   }
 

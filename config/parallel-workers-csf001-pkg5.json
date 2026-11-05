@@ -1,0 +1,58 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "CSF-001 smoke on Pastry Cub, Aztec Empire and Grave Threats after PROBE-002/005/001.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "category": "REGRESSION",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Pastry Cub_CSF5",
+      "monitor": 0,
+      "slot": 0,
+      "packageId": "5"
+    },
+    {
+      "id": 2,
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Empire",
+      "category": "REGRESSION",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Aztec Empire_CSF5",
+      "monitor": 0,
+      "slot": 1,
+      "packageId": "5"
+    },
+    {
+      "id": 3,
+      "gameId": "grave-threat",
+      "gameName": "Grave Threats",
+      "category": "REGRESSION",
+      "categories": [
+        "CSF"
+      ],
+      "testMatch": [
+        "csf/**/CSF-001.spec.ts"
+      ],
+      "playerId": "Grave Threats_CSF5",
+      "monitor": 1,
+      "slot": 0,
+      "packageId": "5"
+    }
+  ]
+}

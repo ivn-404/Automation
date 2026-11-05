@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Rainbow Fist CSF-001 after not treating the 0.80 green blob as spin.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "STAB",
+      "categories": ["CSF"],
+      "testMatch": ["csf/**/CSF-001.spec.ts"],
+      "playerId": "Rainbow Fist_CSF1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

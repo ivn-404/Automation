@@ -1,0 +1,28 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "Titanic Transport slice after BF-011: bet up, default 100x buy, then a base-game multiplier win. No PEN.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "REGRESSION",
+      "categories": ["BC", "BF", "CSF"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": [
+        "bc/**/BC-001.spec.ts",
+        "bf/**/BF-002.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Titanic Transport_REG2",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

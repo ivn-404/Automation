@@ -1,0 +1,42 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "3G runtime simulation, package 6. DevTools 3G preset only. Next package waits for this one.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "packageId": "6",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Zero Law_3G6",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "packageId": "6",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Boobie Trap_3G6",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

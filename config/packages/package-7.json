@@ -1,0 +1,91 @@
+{
+  "packageId": "package-7",
+  "gameId": "oppals",
+  "gameIds": [
+    "oppals",
+    "amazonians"
+  ],
+  "displayName": "Package 7",
+  "specTitle": "Package 7 Specs",
+  "reelsHint": {
+    "columns": 5,
+    "rows": 3
+  },
+  "winPattern": "ways-243",
+  "areaPath": "slot.area",
+  "areaLayout": "columns",
+  "featureItemsPath": "slot.freeSpin.items",
+  "maxWinMultiplier": 20000,
+  "capabilities": {
+    "freeSpins": true,
+    "scatterTrigger": true,
+    "freeSpinRetrigger": true,
+    "tumble": true,
+    "multiplierWild": true,
+    "scatterMode": true,
+    "maxWin": true
+  },
+  "notes": "From docs/packages/Package 7.pdf (printed spec, no selectable text) plus QA notes of 2026-10-27. 5x3, 243 ways left to right (3+ adjacent reels from the leftmost), max win 20,000x total bet, bet 0.20-150.00, high volatility, no jackpot. Bet levels as printed: 0.2, 1.2(sic, likely 0.4), 0.6, 0.8, 1, 1.2, 1.6, 2, 2.4, 2.8, 3.2, 3.6, 4, 5, 7, 8, 10, 14, 18, 24, 32, 40, 60, 80, 100, 110, 120, 130, 140, 150. Tumble: winners clear, symbols drop, repeats while wins land. Symbol 0 is the scatter: 3/4/5 in the base game award 7/9/11 free spins. Each reel has a multiplier under it: Wild gives its reel +1, Double Wild +2, Random Wild +1 on several random reels; wilds substitute everything but the scatter, and with no win at the end of a round a wild may explode and clear its neighbours. Multipliers are summed, then applied: QA example MULTIPLIERS 5|4|1|1 means 5+4 = 9 and the symbol win is multiplied by 9 (reels still at the base 1 add nothing). Bonus mode: same rules, multipliers stick and keep growing until the last free spin; every scatter that lands awards free spins equal to the number of scatters on that spin (QA: 3 scatters = +3 spins), so the retrigger is a spinsLeft bump, not a reset. Buy Feature 1: 100x base bet, fixed 3 scatters / 7 spins. Buy Feature 2: 200x, random 3/4/5 scatters / 7/9/11 spins. Enhance Bet adds 25% to the bet and disables Buy Feature. Win tiers: big 20x, mega 30x, epic 45x, super 60x. PROBE-001 (2026-10-27, Oppals): slot.area is one array per reel (5 x 3); slot.tumbles[] carries symbols.in (refills per reel), symbols.out.multipliers (reel multipliers in force, 0 = not raised), symbols.out.symbols (ways wins: symbol, pay, multiplier, columns, ways, win = pay x ways x multiplier), symbols.out.type win/explode (explode lists the cleared positions) and wild {type 1 = +1, type 2 = +2, increment, targets = reels}; slot.freeSpin.items, slot.base.win and slot.bonus.win. A reel goes 0 -> 2 on its first +1 and 0 -> 3 on a +2 (1x base plus the increment). The observed spin confirmed the summing rule: reels 0,2,2,3,0 paid a 3-reel win 2+2 = 4x.",
+  "symbols": [
+    {
+      "id": 0,
+      "name": "Scatter",
+      "kind": "scatter",
+      "assetKey": "Symbol0"
+    },
+    {
+      "id": 1,
+      "name": "Symbol 1",
+      "kind": "high",
+      "assetKey": "Symbol1"
+    },
+    {
+      "id": 2,
+      "name": "Symbol 2",
+      "kind": "high",
+      "assetKey": "Symbol2"
+    },
+    {
+      "id": 3,
+      "name": "Symbol 3",
+      "kind": "high",
+      "assetKey": "Symbol3"
+    },
+    {
+      "id": 4,
+      "name": "Symbol 4",
+      "kind": "high",
+      "assetKey": "Symbol4"
+    },
+    {
+      "id": 5,
+      "name": "Symbol 5",
+      "kind": "high",
+      "assetKey": "Symbol5"
+    },
+    {
+      "id": 6,
+      "name": "Symbol 6",
+      "kind": "high",
+      "assetKey": "Symbol6"
+    },
+    {
+      "id": 7,
+      "name": "Symbol 7",
+      "kind": "low",
+      "assetKey": "Symbol7"
+    },
+    {
+      "id": 8,
+      "name": "Symbol 8",
+      "kind": "low",
+      "assetKey": "Symbol8"
+    },
+    {
+      "id": 9,
+      "name": "Symbol 9",
+      "kind": "low",
+      "assetKey": "Symbol9"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "The remaining scratch PEN and STR cases. Slot specs are not included. STR and PEN-019 stay skipped.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": [
+        "pen/**/PEN-018.spec.ts",
+        "pen/**/PEN-019.spec.ts",
+        "pen/**/PEN-022.spec.ts",
+        "pen/**/PEN-023.spec.ts",
+        "pen/**/PEN-024.spec.ts",
+        "pen/**/PEN-025.spec.ts",
+        "pen/**/PEN-026.spec.ts",
+        "pen/**/PEN-029.spec.ts",
+        "pen/**/PEN-035.spec.ts",
+        "pen/**/PEN-036.spec.ts",
+        "pen/**/PEN-038.spec.ts",
+        "pen/**/PEN-050.spec.ts",
+        "pen/**/PEN-053.spec.ts",
+        "pen/**/STR-blocked.spec.ts"
+      ],
+      "playerId": "Sugar Wonderland_PEN20",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

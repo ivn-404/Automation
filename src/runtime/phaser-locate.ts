@@ -335,6 +335,13 @@ export function pickPhaserControl(
     });
   }
 
+  // Package 3 idle HUD exposes a ~90×90 Zone in the spin band that does not
+  // send /bet. The live control is the Image/Sprite on top of it.
+  if (actionName === 'spin') {
+    const painted = inBand.filter((hit) => /image|sprite/i.test(hit.type));
+    inBand = painted.length > 0 ? painted : inBand.filter((hit) => !/zone/i.test(hit.type));
+  }
+
   if (inBand.length === 0) {
     return undefined;
   }

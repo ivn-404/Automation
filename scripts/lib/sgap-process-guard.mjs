@@ -44,6 +44,14 @@ export function killPidTree(pid) {
   return true;
 }
 
+let lockMeta = {};
+const lockStartedAt = new Date().toISOString();
+
+/** Extra fields (monitor URL, lane config) the control panel uses to show CLI-launched runs. */
+export function setLockfileMeta(meta) {
+  lockMeta = { ...lockMeta, ...meta };
+}
+
 export function writeLockfile(childPids) {
   mkdirSync(path.dirname(LOCKFILE), { recursive: true });
   writeFileSync(
@@ -53,7 +61,8 @@ export function writeLockfile(childPids) {
         parent: process.pid,
         children: (childPids ?? []).map(asPid).filter(Boolean),
         cwd: process.cwd(),
-        startedAt: new Date().toISOString(),
+        startedAt: lockStartedAt,
+        ...lockMeta,
       },
       null,
       2,
@@ -88,7 +97,7 @@ export function killLockfileProcesses() {
 }
 
 function collectWindowsLeftoverPids(_excludePid) {
-  const titles = ['[Worker*', '*[Worker *', '*Gamename1*', '*Gamename2*', '*Gamename3*', '*Gamename4*', '*SGAP Worker Monitor*'];
+  const titles = ['[Worker*', '*[Worker *', '*Gamename1*', '*Gamename2*', '*Gamename3*', '*Gamename4*'];
   for (const title of titles) {
     spawnSync('taskkill', ['/F', '/FI', `WINDOWTITLE eq ${title}`], {
       windowsHide: true,
@@ -151,13 +160,10 @@ function alive(pid) {
   }
 }
 
-/**
- * Live runs of the shared control panel (runs/active.json, written by
- * scripts/lib/execution-manager.mjs) and of the SGAP agent (runs/agent/active.json).
- */
+/** Live runs of the control panel (runs/active.json, written by scripts/lib/execution-manager.mjs). */
 export function liveManagedRuns(cwd = process.cwd()) {
   const pids = [];
-  for (const file of [path.join(cwd, 'runs', 'active.json'), path.join(cwd, 'runs', 'agent', 'active.json')]) {
+  for (const file of [path.join(cwd, 'runs', 'active.json')]) {
     try {
       const data = JSON.parse(readFileSync(file, 'utf8'));
       pids.push(...(data.pids ?? []).map(asPid).filter((pid) => pid !== undefined && alive(pid)));

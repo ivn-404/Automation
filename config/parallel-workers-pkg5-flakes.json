@@ -1,0 +1,126 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 5 flake check: previously flaky BC-005/SM-002 (mid-spin taps now timed against the /bet answer), AP-002, AT-003, ES-009, FS-001, FS-008, and BF-012 with tier 1 expecting an unmarked board.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "category": "REGRESSION",
+      "categories": [
+        "BC",
+        "SM",
+        "AP",
+        "AT",
+        "ES",
+        "FS",
+        "BF"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "bc/**/BC-005.spec.ts",
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "at/**/AT-003.spec.ts",
+        "es/**/ES-009.spec.ts",
+        "fs/**/FS-001.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Pastry Cub_FIX5",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Empire",
+      "category": "REGRESSION",
+      "categories": [
+        "BC",
+        "SM",
+        "AP",
+        "AT",
+        "ES",
+        "FS",
+        "BF"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "bc/**/BC-005.spec.ts",
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "at/**/AT-003.spec.ts",
+        "es/**/ES-009.spec.ts",
+        "fs/**/FS-001.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Aztec Empire_FIX5",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "grave-threat",
+      "gameName": "Grave Threats",
+      "category": "REGRESSION",
+      "categories": [
+        "BC",
+        "SM",
+        "AP",
+        "AT",
+        "ES",
+        "FS",
+        "BF"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "bc/**/BC-005.spec.ts",
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "at/**/AT-003.spec.ts",
+        "es/**/ES-009.spec.ts",
+        "fs/**/FS-001.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Grave Threats_FIX5",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "category": "REGRESSION",
+      "categories": [
+        "BC",
+        "SM",
+        "AP",
+        "AT",
+        "ES",
+        "FS",
+        "BF"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "bc/**/BC-005.spec.ts",
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "at/**/AT-003.spec.ts",
+        "es/**/ES-009.spec.ts",
+        "fs/**/FS-001.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "bf/**/BF-012.spec.ts"
+      ],
+      "playerId": "Titanic Transport_FIX5",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

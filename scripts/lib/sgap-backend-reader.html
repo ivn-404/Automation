@@ -7,41 +7,32 @@
   <link rel="stylesheet" href="/ui.css" />
   <style>
     /* Backend Reader layout (tokens and components come from /ui.css). */
-    .summary { display: flex; gap: var(--s3); color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
-    .summary b { color: var(--text); font-weight: 600; }
-    .nav { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; padding: var(--s2) var(--s5) var(--s3); }
-    .legend { display: flex; gap: 2px; flex-wrap: wrap; padding: 3px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-raised); }
-    .legend-item {
-      display: inline-flex; align-items: center; gap: 7px; height: 26px;
-      background: none; border: 0; cursor: pointer; user-select: none;
-      padding: 0 10px; border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-md);
-    }
-    .legend-item:hover { background: var(--hover); color: var(--text); }
-    .legend-item.active { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
-    .legend-item .swatch { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+    .counts { display: flex; gap: 12px; color: var(--faint); font-size: 12px; white-space: nowrap; }
+    .counts b { color: var(--text); font-weight: 600; }
+    .legend { display: flex; gap: 8px; flex-wrap: wrap; }
+    .legend-item { user-select: none; }
+    .legend-item.active { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text); }
+    .legend-item .swatch { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
     .legend-item[data-filter="all"] .swatch { background: var(--accent); }
     .legend-item[data-filter="passed"] .swatch { background: var(--pass); }
     .legend-item[data-filter="failed"] .swatch { background: var(--fail); }
     .legend-item[data-filter="timedOut"] .swatch { background: var(--run); }
     .legend-item[data-filter="running"] .swatch { background: var(--accent); }
-    .legend-item .count { color: var(--faint); font-family: var(--mono); }
-    .legend-item.active .count { color: var(--muted); }
+    .legend-item .count { color: var(--text); font: 600 13px var(--mono); }
 
     /* Sequence list */
-    .layout { flex: 1; display: grid; grid-template-columns: 340px minmax(0, 1fr); min-height: 0; }
-    .list { border-right: 1px solid var(--line); overflow: auto; background: var(--bg); padding: 8px 8px 16px; }
-    .list h2 {
-      margin: 0; padding: 6px 10px 8px; font-size: 12px; font-weight: 600; color: var(--muted);
-      letter-spacing: 0.06em; text-transform: uppercase; position: sticky; top: -8px; background: var(--bg); z-index: 1;
-    }
+    .layout { flex: 1; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; min-height: 0; }
+    .layout > .panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    #seq-list { flex: 1; overflow: auto; padding: 8px; }
     .seq {
       display: block; width: 100%; text-align: left; cursor: pointer;
-      border: 0; border-radius: 6px; background: transparent; color: inherit;
-      padding: 8px 10px 8px 12px; margin-bottom: 2px; box-shadow: inset 3px 0 0 var(--line);
+      border: 0; border-radius: 10px; background: transparent; color: inherit;
+      padding: 10px 12px 10px 14px; margin-bottom: 4px; box-shadow: inset 3px 0 0 var(--line);
+      transition: background 0.14s var(--ease);
     }
-    .seq:hover { background: var(--hover); }
-    .seq.active { background: var(--surface); }
-    .seq .n { color: var(--accent); font-weight: 600; font-family: var(--mono); }
+    .seq:hover { background: var(--surface); }
+    .seq.active { background: var(--surface); box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--accent-line); }
+    .seq .n { color: var(--accent-strong); font-weight: 600; font-family: var(--mono); }
     .seq .lbl { display: block; font-weight: 600; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .seq .meta { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .seq .rec { color: var(--run); font-weight: 600; }
@@ -59,31 +50,31 @@
       border: 1px solid var(--line); color: var(--muted); vertical-align: middle;
     }
     .status-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
-    .status-badge.passed { color: var(--pass); border-color: rgba(74, 217, 145, 0.35); }
+    .status-badge.passed { color: var(--pass); border-color: var(--pass-soft); }
     .status-badge.passed::before { background: var(--pass); }
-    .status-badge.failed, .status-badge.interrupted { color: var(--fail); border-color: rgba(255, 107, 133, 0.4); }
+    .status-badge.failed, .status-badge.interrupted { color: var(--fail); border-color: var(--fail-line); }
     .status-badge.failed::before, .status-badge.interrupted::before { background: var(--fail); }
-    .status-badge.timedOut { color: var(--run); border-color: rgba(255, 200, 87, 0.4); }
+    .status-badge.timedOut { color: var(--run); border-color: var(--run-soft); }
     .status-badge.timedOut::before { background: var(--run); }
-    .status-badge.running { color: var(--accent); border-color: rgba(130, 170, 255, 0.4); }
+    .status-badge.running { color: var(--accent-strong); border-color: var(--accent-line); }
     .status-badge.running::before { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: 0.35; } }
 
     /* Stage */
-    .stage { overflow: auto; background: var(--bg); }
-    .stage-inner { padding: 18px 22px 40px; max-width: 1440px; }
+    .stage { overflow: auto; }
+    .stage-inner { padding: 18px 20px 32px; max-width: 1440px; }
     .empty { color: var(--muted); padding: 48px 16px; text-align: center; }
     .test-error {
       margin: 0 0 16px; padding: 10px 12px; border-radius: 8px;
-      border: 1px solid rgba(255, 107, 133, 0.4); background: rgba(255, 107, 133, 0.08);
-      color: #ffc2cc; font-family: var(--mono); font-size: 13px; line-height: 1.5;
+      border: 1px solid var(--fail-line); background: var(--fail-soft);
+      color: #f4c4c4; font-family: var(--mono); font-size: 13px; line-height: 1.5;
       white-space: pre-wrap; word-break: break-word;
     }
     .hero {
-      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
       margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
     }
-    .hero h1 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+    .hero h1 { margin: 0 0 4px; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
     .hero .sub { color: var(--muted); font-size: 14px; }
     .hero-pills { display: flex; flex-wrap: wrap; gap: 6px; }
     .payload-banner {
@@ -97,7 +88,7 @@
     .spin-group { margin: 0 0 26px; }
     .spin-group > .sg-head { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
     .spin-group > .sg-head h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-    .step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 0 0 12px; }
+    .step { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 0 0 12px; }
     .step.kind-idle { box-shadow: inset 3px 0 0 var(--pass); }
     .step.kind-spin { box-shadow: inset 3px 0 0 var(--run); }
     .step-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -106,8 +97,8 @@
       display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       padding: 2px 8px; border-radius: 999px; margin-right: 8px; vertical-align: middle;
     }
-    .badge.idle { background: rgba(74, 217, 145, 0.15); color: var(--pass); }
-    .badge.spin { background: rgba(255, 200, 87, 0.15); color: var(--run); }
+    .badge.idle { background: var(--pass-soft); color: var(--pass); }
+    .badge.spin { background: var(--run-soft); color: var(--run); }
     .qtag { font-size: 13px; color: var(--muted); }
 
     .step-grid { display: grid; gap: 14px; align-items: start; }
@@ -117,9 +108,10 @@
       .step-grid.idle-3 { grid-template-columns: 1fr 1fr; }
       .step-grid.idle-3 .json-panel { grid-column: 1 / -1; }
     }
+    @media (max-width: 1023px) {
+      .layout { grid-template-columns: 1fr; grid-template-rows: minmax(160px, 34vh) minmax(0, 1fr); }
+    }
     @media (max-width: 760px) {
-      .layout { grid-template-columns: 1fr; }
-      .list { max-height: 240px; border-right: 0; border-bottom: 1px solid var(--line); }
       .step-grid.idle-3 { grid-template-columns: 1fr; }
     }
     .panel-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
@@ -162,38 +154,49 @@
     }
     .seq:focus-visible { box-shadow: var(--ring); }
     @media (max-width: 760px) {
-      .nav { padding: var(--s2) var(--s3) var(--s3); }
-      .stage-inner { padding: var(--s3); }
+      .stage-inner { padding: 12px; }
     }
   </style>
 </head>
-<body>
-  <header class="top">
-    <div class="bar">
-      <div class="brand"><span class="mark" data-icon="logo"></span>SGAP<span>Backend Reader</span></div>
+<body class="haulix">
+  <aside class="rail" aria-label="Navigation">
+    <div class="rail-panel">
+      <div class="mark-row"><div class="mark" data-icon="logo" title="SGAP"></div><span class="rail-name">SGAP</span></div>
       <nav class="appnav" data-appnav aria-label="Pages"></nav>
+      <button type="button" class="rail-pin" id="rail-pin" aria-pressed="false" title="Pin the navigation open">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="workspace">
+    <header class="utility">
+      <nav class="crumbs" aria-label="Breadcrumb"><span>QA Workspace</span><span>/</span><b>Backend Reader</b></nav>
       <div class="spacer"></div>
-      <div class="summary mono"><span><b id="count">0 sequences</b></span><span>keep last <b id="keep">50</b></span></div>
+      <div class="counts mono"><span><b id="count">0 sequences</b></span><span>keep last <b id="keep">50</b></span></div>
       <span class="status idle" id="foot">Connecting…</span>
       <button type="button" class="access" id="access" hidden></button>
-    </div>
-    <div class="nav">
-      <div class="legend" id="legend">
-        <button type="button" class="legend-item active" data-filter="all"><span class="swatch"></span>All <span class="count" id="count-all">0</span></button>
-        <button type="button" class="legend-item" data-filter="passed"><span class="swatch"></span>Passed <span class="count" id="count-passed">0</span></button>
-        <button type="button" class="legend-item" data-filter="failed"><span class="swatch"></span>Failed <span class="count" id="count-failed">0</span></button>
-        <button type="button" class="legend-item" data-filter="timedOut"><span class="swatch"></span>Timed out <span class="count" id="count-timedOut">0</span></button>
-        <button type="button" class="legend-item" data-filter="running"><span class="swatch"></span>Running <span class="count" id="count-running">0</span></button>
-        <button type="button" class="legend-item" data-filter="unknown"><span class="swatch"></span>Unknown <span class="count" id="count-unknown">0</span></button>
+    </header>
+    <div class="page-head">
+      <div>
+        <h1>Backend Reader</h1>
+        <p class="sub">Idle and spin frames checked against the backend grid and payload</p>
       </div>
     </div>
-  </header>
-  <div class="layout">
-    <aside class="list">
-      <h2>Sequences</h2>
-      <div id="seq-list"><div class="empty">Waiting for spins…</div></div>
-    </aside>
-    <main class="stage" id="stage"><div class="empty">Select a sequence to inspect Idle / Spin frames and network payload.</div></main>
+    <div class="legend summary" id="legend" role="toolbar" aria-label="Filter by outcome">
+      <button type="button" class="kpi legend-item active" data-filter="all"><span class="swatch"></span><span>All</span><span class="count" id="count-all">0</span></button>
+      <button type="button" class="kpi legend-item" data-filter="passed"><span class="swatch"></span><span>Passed</span><span class="count" id="count-passed">0</span></button>
+      <button type="button" class="kpi legend-item" data-filter="failed"><span class="swatch"></span><span>Failed</span><span class="count" id="count-failed">0</span></button>
+      <button type="button" class="kpi legend-item" data-filter="timedOut"><span class="swatch"></span><span>Timed out</span><span class="count" id="count-timedOut">0</span></button>
+      <button type="button" class="kpi legend-item" data-filter="running"><span class="swatch"></span><span>Running</span><span class="count" id="count-running">0</span></button>
+      <button type="button" class="kpi legend-item" data-filter="unknown"><span class="swatch"></span><span>Unknown</span><span class="count" id="count-unknown">0</span></button>
+    </div>
+    <div class="layout">
+      <section class="panel" aria-label="Sequences">
+        <div class="panel-head"><h3>Sequences</h3><span class="sub">newest first</span></div>
+        <div id="seq-list"><div class="empty">Waiting for spins…</div></div>
+      </section>
+      <main class="panel stage" id="stage"><div class="empty">Select a sequence to inspect Idle / Spin frames and network payload.</div></main>
+    </div>
   </div>
 
   <div class="modal" id="payload-modal" role="dialog" aria-modal="true">

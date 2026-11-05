@@ -1,7 +1,7 @@
 /**
  * PEN-060 — Cashout ignores a client-supplied payout AND balance.
  *
- * Manual Test Case ID: PEN-060 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-060 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: complements PEN-016. Cashout carries an inflated `winAmount` AND a spoofed
  * `player.balance`. The server must pay only what it dealt and report its own balance,
  * never the client's numbers.

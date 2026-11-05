@@ -1,0 +1,58 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 1 cold-load timing with four workers at once, one released game per window, one run each. Same Fast 3G profile on every window.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Beelze-Bop_LOAD3G1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Sugar Wonderland_LOAD3G2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Mars Triumph_LOAD3G3",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Felice in Space_LOAD3G4",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

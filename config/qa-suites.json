@@ -6,7 +6,7 @@
     "2": ["kobo-ass", "hustle-the-blazing-horse", "jungle-fruity", "bad-beach"],
     "3": ["war-freaks", "rainbow-fist", "the-shuten-doji"],
     "4": ["thats-bait", "genghis-bao", "sk8leton"],
-    "5": ["pastry-cub", "aztec-lost-empire", "grave-threat"],
+    "5": ["pastry-cub", "aztec-lost-empire", "grave-threat", "titanic-transport"],
     "6": ["zero-law", "boobie-trap"],
     "7": ["oppals", "amazonians"],
     "8": ["blockchain-blitz", "trippy-cat", "mad-freaks", "necronomicoin", "sugar-pals"],
@@ -16,7 +16,7 @@
   "familyGroups": {
     "regression": {
       "label": "Regression",
-      "description": "docs/RegressionTestCases.md families. 'All Regression' selects exactly these."
+      "description": "docs/catalogs/RegressionTestCases.md families. 'All Regression' selects exactly these."
     },
     "security": {
       "label": "Security / Pentesting",
@@ -25,6 +25,11 @@
     "other": {
       "label": "Other automated families",
       "description": "Scratch game, menu, wilds and the reel data contract. Selectable on their own; not implied by 'All Regression'."
+    },
+    "performance": {
+      "label": "Performance (PAD Tester)",
+      "description": "FPS and asset diagnostics. Started from the PAD Tester page only: one game, one browser, nothing else running.",
+      "panel": "pad"
     }
   },
   "families": {
@@ -42,6 +47,7 @@
     "CP": { "label": "Currency Precision", "group": "regression", "folder": "cp", "scope": "game", "requires": ["spin", "bet"] },
     "PEN": { "label": "Pentesting", "group": "security", "folder": "pen", "scope": "environment", "requires": [] },
     "SCG": { "label": "Scratch Game", "group": "other", "folder": "scg", "scope": "game", "requires": ["scratchCard"] },
+    "PAD": { "label": "Performance & Asset Diagnostics", "group": "performance", "folder": "pad", "scope": "game", "requires": ["spin"] },
     "MN": { "label": "Menu", "group": "other", "folder": "mn", "scope": "game", "requires": ["spin", "bet"] },
     "WD": { "label": "Wilds (packages 7 and 11)", "group": "other", "folder": "wd", "scope": "game", "requires": ["spin", "bet"] },
     "PROBE": { "label": "Reel data contract (PROBE-004)", "group": "other", "folder": "probe", "testMatch": ["probe/**/PROBE-004.spec.ts"], "scope": "game", "requires": [] }

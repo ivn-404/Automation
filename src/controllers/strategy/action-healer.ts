@@ -5,6 +5,7 @@
  * readiness and recovery, which differ by rendering (canvas eye gate, overlay
  * dismissal, vision re-locate). A healer must never perform the action itself or
  * substitute a different one — it only gets the game ready, or explains why not.
+ * A game defect is not recovered: the attempt stays a failure.
  */
 
 export type HealableAction = 'spin';

@@ -10,4 +10,4 @@
 Controllers are not test cases. Specs orchestrate controllers against manual test IDs.
 
 See `registry/` for the single Controller Registry.
-See `docs/SPIN_CONTROLLER.md`.
+See `docs/architecture/controllers/SPIN_CONTROLLER.md`.

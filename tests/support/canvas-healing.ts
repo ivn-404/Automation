@@ -134,8 +134,9 @@ export async function ensurePortrait(
 }
 
 /**
- * Find `action` by colour. Does not tap. Pass `remember: true` only after a miss
- * so the next click can use that ratio once.
+ * Find `action` by colour. Does not tap. A hit is remembered so the following
+ * click (Phaser often misses Package 3's unnamed Zone) uses this ratio instead
+ * of the manifest pin. Pass `remember: false` when the caller is only probing.
  */
 
 export async function locateControlByVision(
@@ -187,7 +188,7 @@ export async function locateControlByVision(
     };
   }
   const target = capture.toActionRatio(found.center);
-  if (options?.remember === true) {
+  if (options?.remember !== false) {
     rememberHealedRatio(manifest.gameId, action, target);
   }
   countHeal('vision');
@@ -266,6 +267,7 @@ async function advanceFeatureOrWinOverlay(
   manifest: GameManifest,
   last?: HealOutcome,
   allowEnterFallback = false,
+  allowSplash = true,
 ): Promise<void> {
   let dismissed = false;
   if (last?.blockerCenter !== undefined) {
@@ -289,10 +291,12 @@ async function advanceFeatureOrWinOverlay(
       dismissed = true;
     }
   }
-  const splash = await dismissSplashPlay(page, driver, manifest);
-  if (splash.healed) {
-    console.log(`[sgap-heal] idle: ${splash.detail}`);
-    dismissed = true;
+  if (allowSplash) {
+    const splash = await dismissSplashPlay(page, driver, manifest);
+    if (splash.healed) {
+      console.log(`[sgap-heal] idle: ${splash.detail}`);
+      dismissed = true;
+    }
   }
   const win = await dismissWinBanner(page, driver, manifest);
   if (win.healed) {
@@ -305,18 +309,29 @@ async function advanceFeatureOrWinOverlay(
   if (!dismissed && allowEnterFallback) {
     const enter =
       manifest.canvasActions?.actions.enter ?? { x: 0.5, y: 0.82 };
-    await driver
-      .clickCanvasAt(enter, {
-        timeoutMs: 5_000,
-        singleInput: false,
-        label: 'enter',
-        fallback: true,
-        detail: 'no overlay blob found — enter fallback',
-      })
-      .catch(() => undefined);
-    console.log(
-      `[sgap-heal] idle: tapped enter at ${enter.x.toFixed(3)},${enter.y.toFixed(3)} (no overlay blob)`,
-    );
+    const buy = manifest.canvasActions?.actions.buyFeature;
+    const hitsBuy =
+      buy !== undefined &&
+      Math.abs(enter.x - buy.x) < 0.15 &&
+      enter.y > buy.y - 0.03;
+    if (hitsBuy) {
+      console.log(
+        `[sgap-heal] idle: skipped enter at ${enter.x.toFixed(3)},${enter.y.toFixed(3)} — sits on BUY FEATURE`,
+      );
+    } else {
+      await driver
+        .clickCanvasAt(enter, {
+          timeoutMs: 5_000,
+          singleInput: false,
+          label: 'enter',
+          fallback: true,
+          detail: 'no overlay blob found — enter fallback',
+        })
+        .catch(() => undefined);
+      console.log(
+        `[sgap-heal] idle: tapped enter at ${enter.x.toFixed(3)},${enter.y.toFixed(3)} (no overlay blob)`,
+      );
+    }
   } else if (dismissed) {
     // Only spray skip/errorOk when a real overlay blob was seen — on idle HUD
     // those points can land on Buy Feature / mid-panel.
@@ -329,30 +344,22 @@ async function advanceFeatureOrWinOverlay(
   await waitForBetQuiet(page, 800, 3_000);
 }
 
-/** Pink BUY pill in the base HUD band — proves idle even when spin green is clipped. */
-async function findPinkBuyHud(
-  driver: PlaywrightGameDriver,
-): Promise<boolean> {
+/** HUD BUY pill from the surface profile — proves idle even when spin green is clipped. */
+async function findBuyHud(driver: PlaywrightGameDriver): Promise<boolean> {
+  const signature = signatureFor(driver, 'buyFeature');
+  if (signature === undefined) {
+    return false;
+  }
   const capture = await driver.captureCanvasForVision();
   if (capture === undefined) {
     return false;
   }
-  return (
-    findControlInPng(capture.png, {
-      id: 'buyHud',
-      hue: 'pink',
-      // Tight HUD band only — Rules paytable pink hearts sit mid-screen
-      // and must not count as the BUY pill (AT-008 false idle).
-      band: { y0: 0.74, y1: 0.81, x0: 0.38, x1: 0.62 },
-      minAreaRatio: 0.003,
-      maxAreaRatio: 0.025,
-    }) !== undefined
-  );
+  return findControlInPng(capture.png, signature) !== undefined;
 }
 
 /**
  * Accept idle via Phaser when colour vision misses the green spin circle.
- * Requires a second HUD signal (vision spin, pink BUY, or Phaser amplify)
+ * Requires a second HUD signal (vision spin, HUD BUY, or Phaser amplify)
  * so a menu/settings overlay that still lists a spin Image is not treated as idle.
  */
 async function tryAcceptPhaserIdle(
@@ -376,7 +383,7 @@ async function tryAcceptPhaserIdle(
     return { ...verify, stage: 'phaser', detail: `${phaser.detail}; ${verify.detail}` };
   }
 
-  if (await findPinkBuyHud(driver)) {
+  if (await findBuyHud(driver)) {
     rememberHealedRatio(
       manifest.gameId,
       'spin',
@@ -385,7 +392,7 @@ async function tryAcceptPhaserIdle(
     );
     countHeal('phaser');
     console.log(
-      `[sgap-heal] spin runtime/phaser+buyHUD: ${phaser.detail} (pink BUY visible, spin green clipped)`,
+      `[sgap-heal] spin runtime/phaser+buyHUD: ${phaser.detail} (HUD BUY visible, spin green clipped)`,
     );
     return {
       stage: 'phaser',
@@ -425,11 +432,51 @@ async function tryAcceptPhaserIdle(
 }
 
 /**
+ * HUD BUY is on screen but the green spin ring may be missing from vision and
+ * from Phaser (Package 3 idle lists a large Image at y 0.80 instead). Use the
+ * Phaser hit when it is in-band, otherwise the manifest spin pin.
+ */
+async function tryAcceptBuyHudIdle(
+  page: Page,
+  driver: PlaywrightGameDriver,
+  manifest: GameManifest,
+): Promise<HealOutcome | undefined> {
+  if (!(await findBuyHud(driver))) {
+    return undefined;
+  }
+  const phaser = await locateControlByPhaser(page, manifest, driver.iframeSelector, 'spin', {
+    remember: false,
+  });
+  const manifestSpin = manifest.canvasActions?.actions.spin;
+  const point =
+    phaser.found && phaser.hit !== undefined
+      ? { x: phaser.hit.xRatio, y: phaser.hit.yRatio }
+      : manifestSpin;
+  if (point === undefined) {
+    return undefined;
+  }
+  rememberHealedRatio(
+    manifest.gameId,
+    'spin',
+    point,
+    phaser.found ? 'phaser' : 'manifest',
+  );
+  countHeal('phaser');
+  const via = phaser.found ? phaser.detail : `manifest ${point.x.toFixed(3)},${point.y.toFixed(3)}`;
+  console.log(`[sgap-heal] spin runtime/buyHUD: ${via}`);
+  return {
+    stage: 'phaser',
+    healed: true,
+    detail: `buyHUD visible; ${via}`,
+  };
+}
+
+/**
  * A feature round still playing out swallows spin taps even when the spin circle
  * looks idle. Wait for the game to report it complete; the budget is separate from
  * the caller's idle timeout because progress is observable, not guessed.
  */
-async function waitForOpenRound(page: Page): Promise<void> {
+export async function waitForOpenRound(page: Page): Promise<void> {
   const tracker = roundTrackerFor(page);
   const open = tracker?.open();
   if (tracker === undefined || open === undefined) {
@@ -490,6 +537,10 @@ export async function waitForIdleHud(
   if (earlyPhaser !== undefined) {
     return earlyPhaser;
   }
+  const earlyBuyHud = await tryAcceptBuyHudIdle(page, driver, manifest);
+  if (earlyBuyHud !== undefined) {
+    return earlyBuyHud;
+  }
 
   // Prefer mid-screen YES (y≈0.58) over splash Play (y≈0.77) — false splash
   // taps leave the dialogue up and spin stays covered.
@@ -547,7 +598,7 @@ export async function waitForIdleHud(
       if (Date.now() >= nextAdvanceAt) {
         nextAdvanceAt = Date.now() + 1_500;
         const allowEnter = enterFallbackCount < maxEnterWithBlocker;
-        await advanceFeatureOrWinOverlay(page, driver, manifest, last, allowEnter);
+        await advanceFeatureOrWinOverlay(page, driver, manifest, last, allowEnter, false);
         if (allowEnter) {
           enterFallbackCount += 1;
         }
@@ -559,6 +610,10 @@ export async function waitForIdleHud(
     const accepted = await tryAcceptPhaserIdle(page, driver, manifest);
     if (accepted !== undefined) {
       return accepted;
+    }
+    const buyHudIdle = await tryAcceptBuyHudIdle(page, driver, manifest);
+    if (buyHudIdle !== undefined) {
+      return buyHudIdle;
     }
 
     // Phaser listed spin but no second HUD signal ⇒ overlay/splash. Escape only —
@@ -583,7 +638,7 @@ export async function waitForIdleHud(
       nextAdvanceAt = Date.now() + 1_500;
       const allowEnter =
         !skipEnter && enterFallbackCount < maxEnterNoBlocker;
-      await advanceFeatureOrWinOverlay(page, driver, manifest, last, allowEnter);
+      await advanceFeatureOrWinOverlay(page, driver, manifest, last, allowEnter, false);
       if (allowEnter) {
         enterFallbackCount += 1;
       }

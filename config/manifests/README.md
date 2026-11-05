@@ -18,4 +18,4 @@
 - Controller `id` values must be from the approved controller set
 - Selectors are data; UI Registry resolves logical keys at runtime
 
-See `docs/GAME_MANIFEST.md` for the full schema reference.
+See `docs/architecture/layers/GAME_MANIFEST.md` for the full schema reference.

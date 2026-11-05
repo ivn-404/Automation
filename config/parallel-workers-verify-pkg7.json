@@ -1,0 +1,50 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 7 verification: PROBE-005 (two-tier panel parse), PROBE-001 (/bet mapping), CSF-001 (spin) and CSF-011 (reel multipliers summed per ways win).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "oppals",
+      "gameName": "Oppals",
+      "category": "PROBE",
+      "categories": [
+        "PROBE",
+        "CSF"
+      ],
+      "packageId": "7",
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts",
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Oppals_PB17",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "amazonians",
+      "gameName": "Amazonians",
+      "category": "PROBE",
+      "categories": [
+        "PROBE",
+        "CSF"
+      ],
+      "packageId": "7",
+      "testMatch": [
+        "probe/**/PROBE-005.spec.ts",
+        "probe/**/PROBE-001.spec.ts",
+        "csf/**/CSF-001.spec.ts",
+        "csf/**/CSF-011.spec.ts"
+      ],
+      "playerId": "Amazonians_PB17",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

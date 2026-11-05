@@ -6,6 +6,7 @@ export const CONTROLLERS_LAYER = 'controllers' as const;
 
 export * from './registry/index.js';
 export { NO_HEAL, type ActionHealer, type HealableAction } from './strategy/action-healer.js';
+export { GameDefectError, failureKind } from './strategy/failure-class.js';
 export { clickCanvasControl } from './strategy/click-control.js';
 export { SpinController, type SpinControllerOptions } from './spin-controller.js';
 export { BetController, type BetControllerOptions } from './bet-controller.js';

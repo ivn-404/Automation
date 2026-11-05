@@ -1,0 +1,30 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks only: FS-005..FS-009 were not executed when the previous feature-flow run was interrupted. BF-003 is the remaining buy-during-spin failure (90s no /bet).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["FS", "BF"],
+      "testMatch": [
+        "fs/**/FS-005.spec.ts",
+        "fs/**/FS-006.spec.ts",
+        "fs/**/FS-007.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "fs/**/FS-009.spec.ts",
+        "bf/**/BF-003.spec.ts"
+      ],
+      "playerId": "War Freaks_FS2",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

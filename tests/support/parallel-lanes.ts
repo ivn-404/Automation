@@ -23,6 +23,13 @@ export interface ScreenRect {
   readonly height: number;
 }
 
+/** One title inside a lane. Several entries share the same worker process sequentially. */
+export interface LaneGame {
+  readonly gameId: string;
+  readonly gameName: string;
+  readonly playerId?: string;
+}
+
 export interface ParallelLane {
   readonly id: number;
   readonly category: string;
@@ -32,11 +39,17 @@ export interface ParallelLane {
   readonly playerId: string;
   readonly gameId?: string;
   readonly gameName?: string;
+  /** When set, this worker runs each title in order (one Playwright process, one browser at a time). */
+  readonly games?: readonly LaneGame[];
   readonly packageId?: string;
   readonly monitor?: number;
   readonly slot?: number;
   readonly col?: number;
   readonly row?: number;
+  /** Installed browser channel for this lane (`chrome`, `msedge`); default is bundled Chromium. */
+  readonly channel?: string;
+  /** Extra Chromium switches for this lane only (e.g. uncapped frame rate for PAD-053). */
+  readonly browserArgs?: readonly string[];
 }
 
 export interface ParallelWorkersConfig {
@@ -94,8 +107,35 @@ export function loadParallelWorkersConfig(): ParallelWorkersConfig {
     lanes: parsed.lanes.map((lane) => ({
       ...lane,
       playerId: lane.playerId.endsWith(`_${tester}`) ? lane.playerId : `${lane.playerId}_${tester}`,
+      ...(lane.games !== undefined
+        ? {
+            games: lane.games.map((game) => {
+              const id = game.playerId ?? `${game.gameName}_${lane.category}`;
+              return {
+                ...game,
+                playerId: id.endsWith(`_${tester}`) ? id : `${id}_${tester}`,
+              };
+            }),
+          }
+        : {}),
     })),
   };
+}
+
+export function gamesForLane(lane: ParallelLane): readonly LaneGame[] {
+  if (lane.games !== undefined && lane.games.length > 0) {
+    return lane.games;
+  }
+  if (lane.gameId !== undefined && lane.gameId.length > 0) {
+    return [
+      {
+        gameId: lane.gameId,
+        gameName: lane.gameName ?? lane.gameId,
+        playerId: lane.playerId,
+      },
+    ];
+  }
+  return [];
 }
 
 export function testMatchForLane(lane: ParallelLane): string[] {
@@ -124,26 +164,39 @@ export function laneAssignmentLabel(lane: ParallelLane): string {
 export function validateLaneAssignments(config: ParallelWorkersConfig): void {
   const seen = new Map<string, number>();
   for (const lane of config.lanes) {
-    const namespace = lane.gameId ?? '*';
-    for (const glob of testMatchForLane(lane)) {
-      const key = `${namespace}:${glob}`;
-      const previous = seen.get(key);
-      if (previous !== undefined) {
-        throw new Error(
-          `testMatch ${glob} is assigned to workers ${previous} and ${lane.id} for ${namespace}`,
-        );
+    const titles = gamesForLane(lane);
+    const namespaces = titles.length > 0 ? titles.map((game) => game.gameId) : [lane.gameId ?? '*'];
+    for (const namespace of namespaces) {
+      for (const glob of testMatchForLane(lane)) {
+        const key = `${namespace}:${glob}`;
+        const previous = seen.get(key);
+        if (previous !== undefined) {
+          throw new Error(
+            `testMatch ${glob} is assigned to workers ${previous} and ${lane.id} for ${namespace}`,
+          );
+        }
+        seen.set(key, lane.id);
       }
-      seen.set(key, lane.id);
     }
   }
 }
 
 export function workerTag(lane: Pick<ParallelLaneRuntime, 'id' | 'category' | 'playerId'>): string {
-  return `[Worker ${lane.id}][${lane.category}][${lane.playerId}]`;
+  const tag = `[Worker ${lane.id}][${lane.category}][${lane.playerId}]`;
+  const prefix = process.env.SGAP_LANE_TITLE_PREFIX?.trim();
+  return prefix !== undefined && prefix.length > 0 ? `${prefix} ${tag}` : tag;
 }
 
-export function projectNameForLane(lane: Pick<ParallelLane, 'id' | 'category'>): string {
-  return `w${lane.id}-${lane.category}`;
+export function projectNameForLane(
+  lane: Pick<ParallelLane, 'id' | 'category' | 'games' | 'gameId'>,
+  gameId?: string,
+): string {
+  const base = `w${lane.id}-${lane.category}`;
+  const games = gamesForLane(lane as ParallelLane);
+  if (games.length > 1 && gameId !== undefined && gameId.length > 0) {
+    return `${base}-${gameId}`;
+  }
+  return base;
 }
 
 export function parseScreensEnv(raw: string | undefined): ScreenRect[] {

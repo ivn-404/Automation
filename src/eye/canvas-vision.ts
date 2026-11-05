@@ -26,6 +26,12 @@ export interface ControlSignature {
   readonly minAreaRatio?: number;
   /** Reject blobs larger than this fraction (background art, win banners). */
   readonly maxAreaRatio?: number;
+  /**
+   * Where the blob centre must land. The search band can be wider so a pill is
+   * still found whole; scenery of the same hue whose centre sits outside this
+   * window is rejected.
+   */
+  readonly accept?: { readonly y0: number; readonly y1: number; readonly x0?: number; readonly x1?: number };
   /** Default is the largest qualifying blob. Bet +/− must pick by x, not area. */
   readonly pick?: 'largest' | 'leftmost' | 'rightmost';
   /** Label only pixels inside the band window, so same-hue scenery touching the control
@@ -262,6 +268,17 @@ export function findControl(
     }
     if (signature.band.x1 !== undefined && control.center.x > signature.band.x1) {
       return false;
+    }
+    if (signature.accept !== undefined) {
+      if (control.center.y < signature.accept.y0 || control.center.y > signature.accept.y1) {
+        return false;
+      }
+      if (signature.accept.x0 !== undefined && control.center.x < signature.accept.x0) {
+        return false;
+      }
+      if (signature.accept.x1 !== undefined && control.center.x > signature.accept.x1) {
+        return false;
+      }
     }
     return true;
   });

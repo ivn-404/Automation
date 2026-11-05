@@ -1,0 +1,326 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "titanic-transport",
+  "displayName": "Titanic Transport",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
+      "id": "scratchCard",
+      "enabled": true
+    }
+  ],
+  "locatorKeys": {
+    "gameGrid": "div.grid",
+    "gameIframe": "iframe[title=\"Game session\"]",
+    "searchGames": "input[placeholder*=\"Search games\"]"
+  },
+  "canvasActions": {
+    "canvasSelector": "canvas",
+    "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.518,
+        "y": 0.9
+      },
+      "buyFeature": {
+        "x": 0.518,
+        "y": 0.808
+      },
+      "buyFeatureOption1": {
+        "x": 0.487,
+        "y": 0.344
+      },
+      "buyFeatureOption2": {
+        "x": 0.489,
+        "y": 0.465
+      },
+      "buyFeatureConfirm": {
+        "x": 0.5,
+        "y": 0.929
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.921,
+        "y": 0.248
+      },
+      "betMinus": {
+        "x": 0.719,
+        "y": 0.817
+      },
+      "betPlus": {
+        "x": 0.905,
+        "y": 0.817
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.898,
+        "y": 0.905
+      },
+      "amplifyBet": {
+        "x": 0.736,
+        "y": 0.9
+      },
+      "menu": {
+        "x": 0.138,
+        "y": 0.905
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.299,
+        "y": 0.9
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.299,
+        "y": 0.9
+      },
+      "scratchCard": {
+        "x": 0.222,
+        "y": 0.748
+      },
+      "autoplaySpins10": {
+        "x": 0.172,
+        "y": 0.458
+      }
+    }
+  },
+  "scratchCard": {
+    "hubUrlPattern": "**/hubs/game",
+    "sideCanvasSelector": "#scratch-side-host canvas",
+    "inCanvasDrawer": {
+      "x": 0,
+      "y": 0.0713,
+      "width": 1,
+      "height": 0.9287
+    },
+    "actions": {
+      "size3x3": {
+        "x": 0.266,
+        "y": 0.203
+      },
+      "size4x4": {
+        "x": 0.5,
+        "y": 0.203
+      },
+      "size5x5": {
+        "x": 0.735,
+        "y": 0.203
+      },
+      "buyCard": {
+        "x": 0.5,
+        "y": 0.941
+      },
+      "scratchAll": {
+        "x": 0.5,
+        "y": 0.941
+      },
+      "close": {
+        "x": 0.925,
+        "y": 0.047
+      },
+      "betMinus": {
+        "x": 0.151,
+        "y": 0.85
+      },
+      "betPlus": {
+        "x": 0.852,
+        "y": 0.85
+      }
+    },
+    "scratchArea": {
+      "x": 0.08,
+      "y": 0.31,
+      "width": 0.84,
+      "height": 0.47
+    },
+    "openProbe": {
+      "area": {
+        "x": 0.12,
+        "y": 0.92,
+        "width": 0.18,
+        "height": 0.04
+      },
+      "hue": "green",
+      "minShare": 0.6
+    },
+    "textAreas": {
+      "title": {
+        "x": 0.03,
+        "y": 0.01,
+        "width": 0.6,
+        "height": 0.07
+      },
+      "totalWin": {
+        "x": 0.2,
+        "y": 0.06,
+        "width": 0.6,
+        "height": 0.055
+      },
+      "sizeTabs": {
+        "x": 0.1,
+        "y": 0.175,
+        "width": 0.8,
+        "height": 0.05
+      },
+      "legend": {
+        "x": 0.05,
+        "y": 0.275,
+        "width": 0.9,
+        "height": 0.04
+      },
+      "betValue": {
+        "x": 0.3,
+        "y": 0.835,
+        "width": 0.4,
+        "height": 0.035
+      },
+      "pill": {
+        "x": 0.2,
+        "y": 0.905,
+        "width": 0.6,
+        "height": 0.05
+      }
+    }
+  },
+  "network": {
+    "betUrlPattern": "**/api/v1/slots/bet",
+    "initializeUrlPattern": "**/api/v1/slots/initialize",
+    "fields": {
+      "balance": "balance",
+      "totalWin": "slot.totalWin",
+      "transactionState": "transactionState"
+    }
+  },
+  "metadata": {
+    "launcherGameLabel": "Titanic Transport",
+    "launcherGameId": "00260326",
+    "launcherGameKey": "titanic",
+    "playButtonAriaLabel": "Play in modal",
+    "rendering": "canvas",
+    "host": "dijoker",
+    "devices": "mobile,desktop",
+    "portraitViewport": "390x844",
+    "orientationLock": "portrait",
+    "stagingStatus": "active",
+    "packageId": "package-5",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true",
+    "buyFeatureSelections": "2",
+    "buyFeatureMultiplier": "100",
+    "buyFeatureOption2Multiplier": "500",
+    "buyFeatureOption2StartMultiplier": "2",
+    "buyFeatureOption1StartMultiplier": "1",
+    "buyFeatureOption1StartGridValue": "0",
+    "buyFeatureOption1Scatters": "3",
+    "buyFeatureOption2Scatters": "3",
+    "maxWinMultiplier": "5000",
+    "normalModeMultiplier": "true",
+    "normalModeMultiplierMode": "position",
+    "normalModePositionTumblesPath": "slot.tumbles",
+    "normalModeMultiplierPath": "slot.tumbles[].symbols.out[].win.multiplier",
+    "notes": "Package 5 slot. Launcher id 00260326. Frame URL /titanic/. PROBE-005 (2026-10-15) opened the buy panel from the HUD BUY pill. Two choices: buyFeatureOption1 Slay Queen's Gem v.1 at 100x (Random Scatter 3-7, start multiplier 1x); buyFeatureOption2 v.2 at 500x (start multiplier 2x). Confirm is the bottom BUY FEATURE pill at 0.500,0.929. Close is the glyph at 0.921,0.248. Scratch drawer ratios are still the shared Package 5 panel. The multiplier is the background on a winning cell. PROBE-006 recorded slot.tumbles[].symbols.out[].win.multiplier, and later cascades paid the sum of cells that had already won earlier in the same spin. Max win is 5,000x. Buy tier 1 (100x, \"Start Multipliers: 1x\") opens with every cell unmarked (0) by design; only tiers of 2x and above pre-mark the board (tier 2 opens all 2). Confirmed with the game owner 2026-10-26."
+  }
+}

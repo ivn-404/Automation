@@ -213,6 +213,7 @@ function countScattersOnBoard(body: unknown, manifest: SgapSession['manifest']):
       areaPath: manifest.reelValidation?.areaPath,
       tumblesPath: manifest.reelValidation?.tumblesPath,
       rowOrder: manifest.reelValidation?.rowOrder,
+      areaLayout: manifest.reelValidation?.areaLayout,
       symbols: manifest.reelValidation?.symbols,
       gameId: manifest.gameId,
     });
@@ -388,12 +389,22 @@ export function readFreeSpinSession(
   } else if (discovered !== undefined) {
     for (const item of discovered.items) {
       if (item.spinsRemaining !== undefined) {
+        const previousLeft = spinsLeftSeries[spinsLeftSeries.length - 1];
+        if (previousLeft !== undefined && item.spinsRemaining > previousLeft) {
+          hadRetrigger = true;
+        }
         spinsLeftSeries.push(item.spinsRemaining);
       }
       if (item.totalWin !== undefined) {
         sumItemWins += item.totalWin;
       }
     }
+  }
+
+  // A retrigger that lands as the count steps down can leave spinsLeft flat (12→12);
+  // the extra spin still shows as more items than the opening count.
+  if (items.length > 0 && spinsLeftSeries.length > 0 && items.length > spinsLeftSeries[0]!) {
+    hadRetrigger = true;
   }
 
   const remaining = freeSpinItemsRemaining(body);

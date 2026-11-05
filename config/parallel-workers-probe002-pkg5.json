@@ -1,0 +1,43 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3 4",
+  "notes": "PROBE-002 on the Package 5 titles that only have scratch-only manifests (Titanic Transport is already probed). Writes test-results/probe/PROBE-002/<gameId>/calibration.json for the slot HUD ratios.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Pastry Cub_PRB5",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Empire",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Aztec Empire_PRB5",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "grave-threat",
+      "gameName": "Grave Threats",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Grave Threats_PRB5",
+      "monitor": 1,
+      "slot": 0
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * PEN-033 — Oversized payload is bounded, not a hang/OOM.
  *
- * Manual Test Case ID: PEN-033 (docs/PERSONALTESTING.md §7)
+ * Manual Test Case ID: PEN-033 (docs/catalogs/PERSONALTESTING.md §7)
  * Intent: a multi-MB argument must be bounded and rejected (or cleanly closed),
  * never an out-of-memory or an indefinite hang. Observable: the hub answers or the
  * socket closes within a short window — it does not silently swallow the frame.

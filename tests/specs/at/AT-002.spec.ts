@@ -2,8 +2,8 @@
  * AT-002 — Additional Test
  *
  * Manual Test Case ID: AT-002
- * Intent: The HUD shows the currency symbol from initialize (`currencySymbol`, e.g. "$")
- * on the amount labels — not the ISO code (`currency`, e.g. "USD") or the currency name.
+ * Intent: RegressionTestCases.md — the HUD shows the currency code from initialize
+ * (`currency`, e.g. "USD"), not a symbol ("$") and not the currency name.
  */
 
 import { test, expect } from '../../fixtures/index.js';
@@ -18,11 +18,11 @@ import { ensureBaseHud } from '../../support/session-guard.js';
 import type { VerificationResult } from '../../../src/core/models/index.js';
 
 const MANUAL_TEST_ID = 'AT-002' as const;
-const HUD_LABEL = /^BALANCE$/iu;
+const HUD_LABEL = /^BALANCE\b/iu;
 const CURRENCY_NAMES = /\b(dollars?|euros?|pounds?|won|yen|yuan|rand|dinars?|pesos?|rupees?)\b/iu;
 
 test.describe('AT — Additional Test', () => {
-  test(`${MANUAL_TEST_ID} currency displays its symbol, not the code or name`, async ({
+  test(`${MANUAL_TEST_ID} currency displays its code, not the symbol or name`, async ({
     sgapSession,
     sgapDriver,
     page,
@@ -90,12 +90,12 @@ test.describe('AT — Additional Test', () => {
         : [];
       verificationResults.push({
         kind: 'bet',
-        passed: codeMarkers.length === 0,
+        passed: code.length > 0 && codeMarkers.length > 0,
         message:
-          codeMarkers.length === 0
-            ? `HUD does not show the currency code ${code}`
-            : `HUD shows the currency code instead of the symbol: ${codeMarkers.map((t) => `"${t}"`).join(', ')}`,
-        expected: `symbol "${symbol}"`,
+          code.length > 0 && codeMarkers.length > 0
+            ? `HUD shows the currency code ${code} (${codeMarkers.map((t) => `"${t}"`).join(', ')})`
+            : `HUD does not show the currency code ${code || '(missing)'}`,
+        expected: code,
         actual: codeMarkers,
       });
 
@@ -110,14 +110,14 @@ test.describe('AT — Additional Test', () => {
         actual: nameMarkers,
       });
 
-      const symbolMarkers = symbol.length > 0 ? hudTexts.filter((text) => text.includes(symbol)) : [];
+      const symbolMarkers = symbol.length > 0 ? hudTexts.filter((text) => text.includes(symbol) && !text.includes(code)) : [];
       verificationResults.push({
         kind: 'bet',
-        passed: symbolMarkers.length > 0,
+        passed: symbolMarkers.length === 0,
         message:
-          symbolMarkers.length > 0
-            ? `HUD shows the currency symbol "${symbol}" (${symbolMarkers.join(', ')})`
-            : `HUD never shows the currency symbol "${symbol}"`,
+          symbolMarkers.length === 0
+            ? `HUD does not use the currency symbol "${symbol}" in place of the code`
+            : `HUD shows the currency symbol instead of the code: ${symbolMarkers.join(', ')}`,
         expected: symbol,
         actual: symbolMarkers,
       });

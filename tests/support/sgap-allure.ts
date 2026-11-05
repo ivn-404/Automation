@@ -63,10 +63,12 @@ export async function applySgapAllureMetadata(
     await allure.description(catalog.title);
   }
 
+  const reportType = process.env.SGAP_REPORT_TYPE?.trim();
   if (inRegression) {
-    await allure.parentSuite('Regression');
+    const parent = reportType && reportType.length > 0 ? reportType : 'Regression Test';
+    await allure.parentSuite(parent);
     await allure.suite(feature);
-    await allure.label('suite', 'Regression');
+    await allure.label('suite', parent);
     await allure.tag('regression');
     await allure.label('automationStatus', 'automated');
     await allure.tag('automated');

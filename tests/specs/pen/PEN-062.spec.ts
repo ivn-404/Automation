@@ -1,7 +1,7 @@
 /**
  * PEN-062 — Disconnecting mid-round cannot change the fixed outcome.
  *
- * Manual Test Case ID: PEN-062 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-062 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: buy a card, drop the socket without settling, then reconnect with the same
  * token. The round's outcome is fixed at StartRound, so the final balance must equal
  * initial − bet + dealtWin — a player can neither abandon a loser for a refund nor lose

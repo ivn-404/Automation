@@ -15,6 +15,7 @@ import type { VerificationResult } from '../../../src/core/models/index.js';
 import { settleCanvasToBaseGame } from '../../../src/platform/index.js';
 import { clearCanvasOverlays } from '../../../src/platform/index.js';
 import { spinWithMidSpinBuyAttempt, dismissBuyFeaturePanel } from '../../support/canvas-bet-flow.js';
+import { prepareCanvasTurbo } from '../../support/canvas-bet-control.js';
 import { verifyBetSpinOutcome } from '../../../src/verification/bet-response-verification.js';
 
 const MANUAL_TEST_ID = 'BF-003' as const;
@@ -52,6 +53,7 @@ test.describe('BF — Buy Feature', () => {
         sgapSession.manifest,
         sgapSession.platform.getInitializeBody(),
       );
+      await prepareCanvasTurbo(sgapSession, sgapDriver, page);
       await sgapSession.turbo.enable({ timeoutMs: 15_000 }).catch(() => undefined);
 
       let sawBuy = true;

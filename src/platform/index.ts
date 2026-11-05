@@ -11,6 +11,7 @@ export {
   PlaywrightPlatform,
   type PlaywrightPlatformOptions,
 } from './playwright-platform.js';
+export { UrlPlatform, type UrlPlatformOptions } from './url-platform.js';
 export {
   primeCanvasSession,
   clearCanvasOverlays,

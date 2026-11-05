@@ -12,7 +12,10 @@ import type { SgapSession } from '../fixtures/index.js';
 import { expect } from '../fixtures/index.js';
 import { countBetsUntilIdle, expectNoBetWithin } from './canvas-bet-flow.js';
 import { prepareCanvasTurbo } from './canvas-bet-control.js';
+import { waitForIdleHud } from './canvas-healing.js';
+import { clickCanvasControl } from '../../src/controllers/strategy/click-control.js';
 import { matchesBetUrl } from '../../src/network/bet-url.js';
+import { readInteractions } from '../../src/reporting/interaction-journal.js';
 
 export const isBetResponse = (url: string): boolean => matchesBetUrl(url);
 
@@ -86,6 +89,10 @@ export async function prepareAutoplayCanvas(
   });
   await prepareCanvasTurbo(sgapSession, sgapDriver, page).catch(() => undefined);
   await sgapSession.turbo.enable({ timeoutMs: 15_000 }).catch(() => undefined);
+  const idle = await waitForIdleHud(page, sgapDriver, sgapSession.manifest, 12_000);
+  if (idle.healed) {
+    console.log(`[sgap-heal] autoplay idle: ${idle.detail}`);
+  }
 }
 
 export interface AutoplayStartOptions {
@@ -207,13 +214,40 @@ export async function stopAutoplayQuietly(
 ): Promise<void> {
   await sgapSession.autoplay.stop({ timeoutMs: 15_000 }).catch(() => undefined);
   sgapSession.autoplay.acknowledgeStopped();
-  await page
+  const drain = async (): Promise<void> => {
+    await page
+      .waitForResponse(
+        (response) => response.ok() && isBetResponse(response.url()),
+        { timeout: options?.drainMs ?? 8_000 },
+      )
+      .catch(() => undefined);
+  };
+  await drain();
+  const quietMs = options?.quietMs ?? 5_000;
+  const continued = await page
     .waitForResponse(
       (response) => response.ok() && isBetResponse(response.url()),
-      { timeout: options?.drainMs ?? 8_000 },
+      { timeout: quietMs },
     )
-    .catch(() => undefined);
-  await expectNoBetWithin(page, options?.quietMs ?? 5_000);
+    .then(() => true)
+    .catch(() => false);
+  if (!continued) {
+    return;
+  }
+  const stopClick = [...readInteractions(page)]
+    .reverse()
+    .find((entry) => entry.action === 'autoplay' || entry.action === 'autoplayStop');
+  if (stopClick?.strategy === 'phaser' && stopClick.fallback !== true) {
+    expect(false, 'unexpected bet response after autoplay stop').toBe(true);
+    return;
+  }
+  console.log('[sgap-heal] autoplay stop missed — clicking the live autoplay control once');
+  await clickCanvasControl(sgapSession.driver, sgapSession.manifest, 'autoplay', {
+    timeoutMs: 8_000,
+    singleInput: true,
+  });
+  await drain();
+  await expectNoBetWithin(page, quietMs);
 }
 
 export async function settleAutoplaySession(

@@ -1,0 +1,22 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Package 1 cold-load timing under one 3G profile. One game at a time, three runs each. No other package.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Sugar Wonderland_LOAD3G",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

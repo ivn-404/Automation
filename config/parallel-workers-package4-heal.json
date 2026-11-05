@@ -1,0 +1,51 @@
+{
+  "workers": 2,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 4 re-run of automation misses only. Game-defect AT-003 and NOT CONFIGURED cases are not in this lane.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "thats-bait",
+      "gameName": "That's Bait",
+      "category": "REGRESSION",
+      "categories": ["BF", "CP"],
+      "packageId": "4",
+      "testMatch": [
+        "bf/**/BF-007.spec.ts",
+        "cp/**/CP-001.spec.ts"
+      ],
+      "playerId": "That's Bait_REGH1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "sk8leton",
+      "gameName": "Sk8leton",
+      "category": "REGRESSION",
+      "categories": ["AP", "AT", "BF", "CSF", "ES", "SM", "UIDS"],
+      "packageId": "4",
+      "testMatch": [
+        "ap/**/AP-001.spec.ts",
+        "ap/**/AP-003.spec.ts",
+        "at/**/AT-009.spec.ts",
+        "at/**/AT-010.spec.ts",
+        "bf/**/BF-002.spec.ts",
+        "bf/**/BF-006.spec.ts",
+        "bf/**/BF-007.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "bf/**/BF-010.spec.ts",
+        "csf/**/CSF-012.spec.ts",
+        "es/**/ES-004.spec.ts",
+        "sm/**/SM-001.spec.ts",
+        "uids/**/UIDS-004.spec.ts"
+      ],
+      "playerId": "Sk8leton_REGH1",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

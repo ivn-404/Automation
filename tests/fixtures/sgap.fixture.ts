@@ -4,10 +4,10 @@
  * Specs must import { test, expect } from this module — not from @playwright/test directly.
  */
 
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 
 import type {
   BalanceSnapshot,
@@ -15,6 +15,7 @@ import type {
   GameManifest,
 } from '../../src/core/models/index.js';
 import {
+  assessmentSkipReason,
   notApplicableReason,
   notConfiguredMessage,
   supportsCapability,
@@ -41,6 +42,7 @@ import {
   refreshWorkerMonitorOverlay,
 } from '../../src/driver/worker-monitor-overlay.js';
 import { BetResponseWatcher } from '../../src/network/bet-response-watcher.js';
+import { AssetAudit } from '../../src/perf/asset-audit.js';
 import { trackRounds, untrackRounds } from '../../src/network/round-tracker.js';
 import {
   defaultEnvironmentsDir,
@@ -49,8 +51,11 @@ import {
   FileGameManifestLoader,
   PlaywrightPlatform,
   primeCanvasSession,
+  UrlPlatform,
 } from '../../src/platform/index.js';
 import { UiRegistry } from '../../src/ui/registry/index.js';
+import { redactUrl } from '../../src/observability/redact.js';
+import { discoveryCaseSkip, fetchLaunchUrl, isLaunchUrlRun, launchDevice, withLearnedProfile } from '../support/launch-url.js';
 import {
   getLauncherMode,
   getSgapEnvName,
@@ -88,6 +93,19 @@ import {
   summarizeObservations,
 } from '../../src/observability/index.js';
 import { attachBackendReaderCapture, isImmediateRestartSpec } from '../../src/verification/reel/backend-reader-capture.js';
+
+/** Origin of the launcher's game iframe, read per response so a reload onto a new URL is followed. */
+function childFrameOrigin(page: Page): string | undefined {
+  for (const frame of page.mainFrame().childFrames()) {
+    try {
+      const url = new URL(frame.url());
+      if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin;
+    } catch {
+      // about:blank and friends
+    }
+  }
+  return undefined;
+}
 
 /** Default tests stay on the 1400×900 desktop shell. Mobile specs opt in. */
 export type SgapView = 'desktop' | 'mobile';
@@ -152,6 +170,14 @@ export const test = base.extend<SgapFixtures>({
   _sgapBaseline: [
     async ({ sgapManifest }, use, testInfo) => {
       const requires = familyForSpec(testInfo.file)?.requires ?? [];
+      // DISC-001 is what writes the discovery profile, so it cannot wait for one.
+      const discovering = /[\\/]discovery[\\/]/.test(testInfo.file);
+      const caseId = path.basename(testInfo.file, '.spec.ts');
+      const notReady = discovering ? undefined : discoveryCaseSkip(caseId) ?? assessmentSkipReason(sgapManifest, requires);
+      if (notReady !== undefined) {
+        testInfo.annotations.push({ type: 'assessment', description: notReady });
+        testInfo.skip(true, notReady);
+      }
       if (unsupportedCapabilities(sgapManifest, requires).length > 0) {
         testInfo.skip(true, notApplicableReason(sgapManifest, requires));
       }
@@ -255,15 +281,48 @@ export const test = base.extend<SgapFixtures>({
         sampleMs: Number.isFinite(sampleMs) ? sampleMs : 500,
         ignoreOrigins: monitorUrl === undefined ? [] : [monitorUrl],
         sink: sink === undefined ? undefined : (observation) => sink.push(observation),
+        passive: process.env.SGAP_OBSERVE_PASSIVE === '1',
       });
+      const resources =
+        process.env.SGAP_RESOURCES === '1'
+          ? AssetAudit.start(page, () => childFrameOrigin(page), {
+              hash: process.env.SGAP_RESOURCES_HASH === '1',
+              onRecord: ({ kind, ...record }) => {
+                try {
+                  recorder.resource({ ...record, assetKind: kind });
+                } catch {
+                  // Inventory is best-effort; never fail the test over it.
+                }
+              },
+            })
+          : undefined;
       recorder.event('test-started', `${testCode} retry ${testInfo.retry}`);
       await use();
       recorder.event('test-finished', `${testInfo.status ?? 'unknown'}`, {
         severity: testInfo.status === 'passed' || testInfo.status === 'skipped' ? 'info' : 'error',
       });
+      await resources?.stop().catch(() => undefined);
       await stopObservation(page);
       await sink?.close(testInfo.status ?? 'unknown');
       const observations = recorder.observations();
+      const runDir = process.env.SGAP_RUN_DIR;
+      if (resources !== undefined && runDir !== undefined && runDir.length > 0) {
+        const sessionId = `w${lane?.id ?? 0}-${testCode}-${sgapManifest.gameId}-r${testInfo.retry}`;
+        const dir = path.join(runDir, 'resources');
+        await mkdir(dir, { recursive: true })
+          .then(() =>
+            writeFile(
+              path.join(dir, `${sessionId.replace(/[^\w.-]+/gu, '_')}.json`),
+              JSON.stringify({
+                session: { id: sessionId, testCode, title: testInfo.title, gameId: sgapManifest.gameId, retry: testInfo.retry },
+                status: testInfo.status ?? 'unknown',
+                resources: observations.filter((entry) => entry.kind === 'resource'),
+              }),
+              'utf8',
+            ),
+          )
+          .catch(() => undefined);
+      }
       const summary = { ...summarizeObservations(observations), ...recorder.stats() };
       await testInfo.attach('monitor-summary.txt', {
         body: `${JSON.stringify(summary, null, 2)}\n\n${formatObservationTimeline(observations)}`,
@@ -292,7 +351,7 @@ export const test = base.extend<SgapFixtures>({
       typeof testInfo.project.metadata?.sgapGameId === 'string'
         ? testInfo.project.metadata.sgapGameId
         : undefined;
-    await use(await loader.load(getSgapGameId(projectGameId)));
+    await use(await withLearnedProfile(await loader.load(getSgapGameId(projectGameId))));
   },
 
   sgapUi: async ({ sgapManifest }, use) => {
@@ -300,12 +359,10 @@ export const test = base.extend<SgapFixtures>({
   },
 
   sgapPlatform: async ({ page, sgapEnvironment, sgapManifest, sgapUi }, use) => {
-    const platform = new PlaywrightPlatform({
-      page,
-      environment: sgapEnvironment,
-      manifest: sgapManifest,
-      ui: sgapUi,
-    });
+    const options = { page, environment: sgapEnvironment, manifest: sgapManifest, ui: sgapUi };
+    const platform = isLaunchUrlRun()
+      ? new UrlPlatform({ ...options, launchUrl: await fetchLaunchUrl(), device: launchDevice() })
+      : new PlaywrightPlatform(options);
     await use(platform);
     await platform.dispose();
   },
@@ -502,12 +559,18 @@ export const test = base.extend<SgapFixtures>({
       await sgapPlatform.openGame();
       await sgapDriver.attach();
     } else {
+      const setupStarted = Date.now();
+      const launchUrlRun = isLaunchUrlRun();
+      if (launchUrlRun) {
+        testInfo.annotations.push({ type: 'gameUrl', description: redactUrl(await fetchLaunchUrl()) });
+      }
       await sgapPlatform.openGameHost();
+      const afterHost = Date.now();
       if (parallelLane !== undefined) {
         await tileLaneWindow(page, parallelLane);
-        console.log(`${workerTag(parallelLane)} launcher ready`);
+        console.log(`${workerTag(parallelLane)} ${launchUrlRun ? 'Game URL host ready' : 'launcher ready'}`);
       }
-      if (mode === 'staging') {
+      if (mode === 'staging' && !launchUrlRun) {
         const targetBalance = parallelLane?.defaultBalance ?? STAGING_DEFAULT_BET_LIMIT;
         const targetBetLimit = parallelLane?.defaultBetLimit ?? STAGING_DEFAULT_BET_LIMIT;
         const current = await readLauncherBalance(page);
@@ -523,11 +586,14 @@ export const test = base.extend<SgapFixtures>({
           `${tag} host balance=${after ?? 'unknown'} (target ${targetBalance}) betLimit=${betLimit ?? 'unknown'} remaining=${remaining ?? 'unknown'} (target ${targetBetLimit})`,
         );
       }
+      const afterWallet = Date.now();
       await sgapPlatform.openGame();
+      const afterPlay = Date.now();
       if (parallelLane !== undefined) {
         await tileLaneWindow(page, parallelLane);
       }
       await sgapPlatform.prepareGameView(sgapView);
+      const afterPortrait = Date.now();
       if (parallelLane !== undefined) {
         await tileLaneWindow(page, parallelLane, { syncViewport: false });
       }
@@ -539,6 +605,10 @@ export const test = base.extend<SgapFixtures>({
         manifest: sgapManifest,
         initializeBody: sgapPlatform.getInitializeBody(),
       });
+      const afterPrime = Date.now();
+      console.log(
+        `[sgap-timing] ${sgapManifest.gameId} host=${afterHost - setupStarted}ms wallet=${afterWallet - afterHost}ms play=${afterPlay - afterWallet}ms portrait=${afterPortrait - afterPlay}ms prime=${afterPrime - afterPortrait}ms setup=${afterPrime - setupStarted}ms`,
+      );
     }
 
     if (mode === 'staging') {

@@ -1,0 +1,21 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "Scratch PEN-030 and PEN-031 only. Slot specs are not included.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "testMatch": ["pen/**/PEN-030.spec.ts", "pen/**/PEN-031.spec.ts"],
+      "playerId": "Sugar Wonderland_PEN30",
+      "monitor": 0,
+      "slot": 0
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 /**
  * Locator strategy for a named canvas HUD control.
  *
- * Order: the Phaser scene graph (when the surface profile has a band for the action),
- * then the manifest ratio. HUD art moves with layout; manifest points do not, so a
- * located object beats a stored ratio. A miss is never silent — the manifest click is
- * journaled as a fallback with the reason the scene graph gave.
+ * Order: Phaser scene graph → remembered vision/Phaser ratio from idle locate →
+ * manifest pin. HUD art moves; a live or just-measured point beats the pin. A
+ * miss is never silent — the fallback is journaled with why Phaser did not hit.
  */
 
 import type { GameManifest, ObservableWaitOptions } from '../../core/models/index.js';
 import type { PlaywrightGameDriver } from '../../driver/playwright-game-driver.js';
+import { recallHealedRatio } from '../../eye/learned-ratios.js';
 import { locateControlByPhaser, type PhaserLocateResult } from '../../runtime/phaser-locate.js';
 import { phaserBand } from '../../surfaces/index.js';
 
@@ -48,6 +48,20 @@ export async function clickCanvasControl(
     await driver.clickCanvasAt(
       { x: located.hit.xRatio, y: located.hit.yRatio },
       { ...options, label: action, strategy: 'phaser' },
+    );
+    return;
+  }
+  const healed = recallHealedRatio(manifest.gameId, action);
+  if (healed !== undefined) {
+    await driver.clickCanvasAt(
+      { x: healed.x, y: healed.y },
+      {
+        ...options,
+        label: action,
+        strategy: healed.source,
+        fallback: true,
+        detail: `${located.detail}; using ${healed.source} ${healed.x.toFixed(3)},${healed.y.toFixed(3)}`,
+      },
     );
     return;
   }

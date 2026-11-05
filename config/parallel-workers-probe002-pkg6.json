@@ -1,0 +1,32 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "PROBE-002 on the Package 6 titles (scratch-only manifests). Writes test-results/probe/PROBE-002/<gameId>/calibration.json for the slot HUD ratios.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Zero Law_PRB6",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "testMatch": ["probe/**/PROBE-002.spec.ts"],
+      "playerId": "Boobie Trap_PRB6",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

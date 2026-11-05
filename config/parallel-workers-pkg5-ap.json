@@ -1,0 +1,74 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 5 full AP category after the autoplay spin-count label fix and measured 10-spin point (0.172,0.458).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "category": "REGRESSION",
+      "categories": [
+        "AP"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "ap/**/*.spec.ts"
+      ],
+      "playerId": "Pastry Cub_FIX5",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Empire",
+      "category": "REGRESSION",
+      "categories": [
+        "AP"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "ap/**/*.spec.ts"
+      ],
+      "playerId": "Aztec Empire_FIX5",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "grave-threat",
+      "gameName": "Grave Threats",
+      "category": "REGRESSION",
+      "categories": [
+        "AP"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "ap/**/*.spec.ts"
+      ],
+      "playerId": "Grave Threats_FIX5",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "category": "REGRESSION",
+      "categories": [
+        "AP"
+      ],
+      "packageId": "5",
+      "testMatch": [
+        "ap/**/*.spec.ts"
+      ],
+      "playerId": "Titanic Transport_FIX5",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

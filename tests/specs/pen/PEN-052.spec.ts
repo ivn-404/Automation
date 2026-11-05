@@ -1,7 +1,7 @@
 /**
  * PEN-052 — The scratch token must be scoped to its own game.
  *
- * Manual Test Case ID: PEN-052 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-052 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: reuse the captured scratch token but JoinScratch with a foreign gameId. The
  * hub must refuse to bind the session to a game the token was not issued for.
  */

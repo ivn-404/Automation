@@ -70,12 +70,24 @@ function toIntMatrix(value: number[][]): number[][] {
   return value.map((column) => column.map((cell) => Number(cell)));
 }
 
+/** Reels as integer columns that may differ in height (Package 6 deals 3-4-5-5-4-3). */
+/** Jagged reels; some servers pad feature boards with an empty trailing column. */
+function isIntColumns(value: unknown): value is number[][] {
+  return (
+    Array.isArray(value) &&
+    value.some((column) => Array.isArray(column) && column.length > 0) &&
+    value.every(
+      (column) => Array.isArray(column) && column.every((cell) => Number.isInteger(Number(cell))),
+    )
+  );
+}
+
 function isFeatureItemEntry(value: unknown): value is { area: number[][] } {
   return (
     value !== null &&
     typeof value === 'object' &&
     'area' in value &&
-    isIntMatrix((value as { area: unknown }).area)
+    isIntColumns((value as { area: unknown }).area)
   );
 }
 
@@ -169,6 +181,11 @@ function tumblesFromEntry(entry: Record<string, unknown>): unknown[] | undefined
     const value = entry[key];
     if (Array.isArray(value)) {
       return value;
+    }
+    // Package 3 wraps the steps: { items: [...], multiplier: {...} }.
+    const items = (value as { items?: unknown } | null | undefined)?.items;
+    if (Array.isArray(items)) {
+      return items;
     }
   }
   return undefined;

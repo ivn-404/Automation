@@ -37,10 +37,10 @@ export interface PlaywrightPlatformOptions {
 }
 
 export class PlaywrightPlatform implements IPlatform {
-  private readonly page: Page;
+  protected readonly page: Page;
   readonly environment: EnvironmentConfig;
   readonly manifest: GameManifest;
-  private readonly ui: UiRegistry;
+  protected readonly ui: UiRegistry;
   private disposed = false;
   private lastInitializeBody: unknown | undefined;
   private activeGameView: GameView = 'desktop';
@@ -112,6 +112,11 @@ export class PlaywrightPlatform implements IPlatform {
     if (!(await changeUser.isVisible().catch(() => false))) {
       return;
     }
+    const setUserOpen = this.page.locator('div.fixed.inset-0.z-50').filter({ hasText: 'Set user' });
+    if (await setUserOpen.first().isVisible().catch(() => false)) {
+      await this.ensureLauncherUser(options);
+      return;
+    }
     await clickHostWithIndicator(this.page, changeUser, { timeout }, 'change-user');
     const setUserDialog = this.page.locator('div.fixed.inset-0.z-50').filter({ hasText: 'Set user' });
     await setUserDialog.first().waitFor({ state: 'visible', timeout });
@@ -127,13 +132,20 @@ export class PlaywrightPlatform implements IPlatform {
     const setUserDialog = this.page.locator('div.fixed.inset-0.z-50').filter({ hasText: 'Set user' });
     const changeUser = this.page.getByRole('button', { name: 'Change user' });
 
+    // Prefer the Set user modal when it appears. Change user is in the header
+    // even while that overlay intercepts clicks, so a race would click through it.
     const setUserAppeared = await setUserDialog
-      .waitFor({ state: 'visible', timeout: Math.min(timeout, 8_000) })
+      .first()
+      .waitFor({ state: 'visible', timeout: Math.min(timeout, 2_000) })
       .then(() => true)
       .catch(() => false);
 
     if (!setUserAppeared) {
       await changeUser.waitFor({ state: 'visible', timeout });
+      await setUserDialog
+        .first()
+        .waitFor({ state: 'visible', timeout: 1_500 })
+        .catch(() => undefined);
     }
   }
 
@@ -281,10 +293,7 @@ export class PlaywrightPlatform implements IPlatform {
       throw new PlatformConfigurationError('Game frame not found for desktop landscape reload');
     }
     const initializeWait = this.beginInitializeWait(timeout)?.catch(() => undefined);
-    await gameFrame.goto(this.applyDeviceParam(gameFrame.url(), 'desktop'), {
-      waitUntil: 'domcontentloaded',
-      timeout,
-    });
+    await this.navigateGameFrame(gameFrame, this.applyDeviceParam(gameFrame.url(), 'desktop'), timeout);
     if (initializeWait !== undefined) {
       await initializeWait;
     }
@@ -305,7 +314,7 @@ export class PlaywrightPlatform implements IPlatform {
       throw new PlatformConfigurationError('Game frame has no session URL to reload');
     }
     const initializeWait = this.beginInitializeWait(timeout)?.catch(() => undefined);
-    await gameFrame.goto(src, { waitUntil: 'domcontentloaded', timeout });
+    await this.navigateGameFrame(gameFrame, src, timeout);
     if (initializeWait !== undefined) {
       await initializeWait;
     }
@@ -315,7 +324,12 @@ export class PlaywrightPlatform implements IPlatform {
     return this.activeGameView;
   }
 
-  private applyDeviceParam(src: string, device: 'desktop' | 'mobile'): string {
+  /** Loads `url` in the game iframe. */
+  protected async navigateGameFrame(frame: Frame, url: string, timeout: number): Promise<void> {
+    await frame.goto(url, { waitUntil: 'domcontentloaded', timeout });
+  }
+
+  protected applyDeviceParam(src: string, device: 'desktop' | 'mobile'): string {
     try {
       const url = new URL(src);
       url.searchParams.set('device', device);
@@ -329,7 +343,7 @@ export class PlaywrightPlatform implements IPlatform {
     }
   }
 
-  private findGameFrame(): Frame | undefined {
+  protected findGameFrame(): Frame | undefined {
     const gameKey =
       this.manifest.metadata?.launcherGameKey ?? this.manifest.gameId.replace(/-/gu, '_');
     const keyLower = gameKey.toLowerCase();
@@ -422,18 +436,19 @@ export class PlaywrightPlatform implements IPlatform {
         return { w: g.innerWidth, h: g.innerHeight };
       })
       .catch(() => undefined);
+    const alreadyPortrait = innerBefore !== undefined && innerBefore.w < innerBefore.h;
     if (innerBefore !== undefined && innerBefore.w >= innerBefore.h) {
       await this.page.setViewportSize(fitted);
       await this.lockGameIframePortrait(fitted);
+    }
+    if (alreadyPortrait && /[?&]device=mobile/i.test(src)) {
+      return;
     }
 
     const initializeWait = this.beginInitializeWait(timeout)?.catch(() => undefined);
     const iframeDevice =
       this.manifest.metadata?.orientationLock === 'landscape' ? 'desktop' : 'mobile';
-    await gameFrame.goto(this.applyDeviceParam(src, iframeDevice), {
-      waitUntil: 'domcontentloaded',
-      timeout,
-    });
+    await this.navigateGameFrame(gameFrame, this.applyDeviceParam(src, iframeDevice), timeout);
     await this.lockGameIframePortrait(fitted);
     if (initializeWait !== undefined) {
       await initializeWait;
@@ -614,7 +629,7 @@ export class PlaywrightPlatform implements IPlatform {
    * Captures JSON body for before-balance verification.
    * Skipped on local about:blank fixtures (no initialize network call).
    */
-  private beginInitializeWait(timeout: number): Promise<Response | undefined> | undefined {
+  protected beginInitializeWait(timeout: number): Promise<Response | undefined> | undefined {
     const pattern = this.manifest.network?.initializeUrlPattern;
     if (pattern === undefined) {
       return undefined;
@@ -673,7 +688,7 @@ export class PlaywrightPlatform implements IPlatform {
     return this.page.getByRole('button', { name: playAria }).first();
   }
 
-  private assertNotDisposed(): void {
+  protected assertNotDisposed(): void {
     if (this.disposed) {
       throw new PlatformConfigurationError('Platform has been disposed');
     }

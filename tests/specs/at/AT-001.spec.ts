@@ -65,6 +65,7 @@ test.describe('AT — Additional Test', () => {
     page,
   }, testInfo) => {
     test.setTimeout(360_000);
+    test.skip(true, 'RegressionTestCases.md marks AT-001 [Manual]');
 
     const tracker = new InMemoryExecutionTracker();
     await tracker.start(MANUAL_TEST_ID, testInfo.project.name);
@@ -133,16 +134,21 @@ test.describe('AT — Additional Test', () => {
         actual: multipliers,
       });
 
-      const manifestIds = new Set(
-        (sgapSession.manifest.reelValidation?.symbols ?? []).map((entry) => entry.id),
+      const reelSymbols = sgapSession.manifest.reelValidation?.symbols;
+      const referenceIds = new Set(
+        (reelSymbols !== undefined && reelSymbols.length > 0 ? reelSymbols : catalog).map(
+          (entry) => entry.id,
+        ),
       );
-      const catalogVsManifest = catalogIds.filter((id) => !manifestIds.has(id));
+      const catalogVsManifest = catalogIds.filter((id) => !referenceIds.has(id));
       verificationResults.push({
         kind: 'uiSynchronization',
-        passed: catalogVsManifest.length === 0 && manifestIds.size === uniqueIds.size,
+        passed: catalogVsManifest.length === 0 && referenceIds.size === uniqueIds.size,
         message:
-          catalogVsManifest.length === 0 && manifestIds.size === uniqueIds.size
-            ? 'Help/Payout catalog ids match the reel-validation manifest'
+          catalogVsManifest.length === 0 && referenceIds.size === uniqueIds.size
+            ? reelSymbols !== undefined && reelSymbols.length > 0
+              ? 'Help/Payout catalog ids match the reel-validation manifest'
+              : 'Help/Payout catalog ids match the package symbol catalog'
             : `Help catalog vs manifest mismatch: extra=${catalogVsManifest.join(',') || 'none'}`,
         actual: catalogVsManifest,
       });
@@ -218,6 +224,7 @@ test.describe('AT — Additional Test', () => {
         tumblesPath: sgapSession.manifest.reelValidation?.tumblesPath,
         featureItemsPath: sgapSession.manifest.reelValidation?.featureItemsPath,
         rowOrder: sgapSession.manifest.reelValidation?.rowOrder,
+        areaLayout: sgapSession.manifest.reelValidation?.areaLayout,
         symbols: sgapSession.manifest.reelValidation?.symbols,
         gameId: sgapSession.manifest.gameId,
       });

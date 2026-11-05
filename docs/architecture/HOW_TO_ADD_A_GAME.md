@@ -20,7 +20,7 @@ SGAP_LAUNCHER_MODE=staging
 
 ## 3. Probe (must pass before the catalog)
 
-Follow `docs/PROBE_GATE.md`.
+Follow `docs/guides/PROBE_GATE.md`.
 
 | Probe | Question |
 |---|---|

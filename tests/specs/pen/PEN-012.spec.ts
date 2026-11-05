@@ -1,7 +1,7 @@
 /**
  * PEN-012 — Double Cashout credits a win at most once.
  *
- * Manual Test Case ID: PEN-012 (docs/PERSONALTESTING.md §3)
+ * Manual Test Case ID: PEN-012 (docs/catalogs/PERSONALTESTING.md §3)
  * Intent: StartRound → Cashout → Cashout again. The second settlement must be a
  * no-op; the win must never be credited twice. Needs a joined session.
  */

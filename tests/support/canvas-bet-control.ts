@@ -390,6 +390,29 @@ export async function assertStakeClamped(
  * Start a spin, nudge bet+/- after request starts (mid-spin), then await complete.
  * Returns the stake on the in-flight bet request.
  */
+/** Taps landing this long after the /bet answer may already hit an idle HUD. */
+const MID_SPIN_WINDOW_MS = 400;
+
+/** Walk the stake back to `target`, reading each step from the next spin's /bet. */
+async function restoreStake(
+  sgapSession: SgapSession,
+  sgapDriver: PlaywrightGameDriver,
+  target: string,
+  page?: Page,
+): Promise<void> {
+  for (let step = 0; step < 6; step += 1) {
+    const stake = await spinForStake(sgapSession, sgapDriver, page);
+    sgapSession.bet.observeBet(stake);
+    if (Math.abs(Number(stake) - Number(target)) <= 0.001) return;
+    await prepareBetNudge(sgapSession, sgapDriver, page);
+    if (Number(stake) > Number(target)) {
+      await sgapSession.bet.decrease({ timeoutMs: 15_000 });
+    } else {
+      await sgapSession.bet.increase({ timeoutMs: 15_000 });
+    }
+  }
+}
+
 export async function spinWithMidSpinBetNudge(
   sgapSession: SgapSession,
   sgapDriver: PlaywrightGameDriver,
@@ -400,7 +423,7 @@ export async function spinWithMidSpinBetNudge(
   const timeoutMs = getLauncherMode() === 'staging' ? 90_000 : 30_000;
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     const host = page ?? sgapDriver.getPage();
 
     try {
@@ -412,14 +435,25 @@ export async function spinWithMidSpinBetNudge(
       sgapSession.betWatcher!.reset();
       sgapSession.betWatcher!.arm({ timeoutMs });
 
+      // A spin cannot finish before its /bet answer arrives, and the reels keep turning
+      // briefly after it. Only taps inside that window prove the bet was locked mid-spin;
+      // later taps hit an idle HUD and legitimately change the next stake.
+      let betAnsweredAt: number | undefined;
+      const answered = host
+        .waitForResponse((response: Response) => response.ok() && matchesBetUrl(response.url()), { timeout: timeoutMs })
+        .then(() => {
+          betAnsweredAt = Date.now();
+        })
+        .catch(() => undefined);
+      const action = direction === 'increase' ? 'betPlus' : 'betMinus';
+      const target = await sgapDriver.canvasPagePoint(action, { timeoutMs: 10_000 });
       const startDone = sgapSession.spin.waitForSpinStart({ timeoutMs });
+      const spinAt = Date.now();
       await sgapSession.spin.clickSpin({
         timeoutMs,
         singleInput: true,
         useHealedRatio: attempt > 1,
       });
-      await startDone;
-
       await sgapDriver
         .getFrame()
         .locator('body')
@@ -435,11 +469,44 @@ export async function spinWithMidSpinBetNudge(
         })
         .catch(() => undefined);
 
-      const action = direction === 'increase' ? 'betPlus' : 'betMinus';
+      const tapTimes: number[] = [];
+      let midSpinTaps = 0;
       for (let i = 0; i < nudgeCount; i += 1) {
+        if (betAnsweredAt !== undefined && Date.now() - betAnsweredAt > MID_SPIN_WINDOW_MS) break;
+        await host.mouse.click(target.x, target.y).catch(() => undefined);
+        const tappedAt = Date.now();
+        tapTimes.push(tappedAt - spinAt);
+        if (betAnsweredAt === undefined || tappedAt - betAnsweredAt <= MID_SPIN_WINDOW_MS) {
+          midSpinTaps += 1;
+        }
+      }
+      await startDone;
+      await answered;
+      console.log(
+        `[sgap-midspin] ${action} taps at +${tapTimes.join('/')}ms after spin; /bet answered at +${
+          betAnsweredAt === undefined ? '?' : betAnsweredAt - spinAt
+        }ms; ${midSpinTaps} tap(s) inside the mid-spin window`,
+      );
+      if (midSpinTaps === 0 || midSpinTaps < tapTimes.length) {
+        // Some taps landed after the reels may have stopped; their stake change is not a defect.
+        const bet = await sgapSession.betWatcher!.read({ timeoutMs }).catch(() => undefined);
         await sgapDriver
-          .clickCanvas(action, { timeoutMs: 10_000, singleInput: true })
+          .getFrame()
+          .locator('body')
+          .evaluate(() => {
+            (window as unknown as { __sgapSpinning?: boolean }).__sgapSpinning = false;
+          })
           .catch(() => undefined);
+        await waitForIdleHud(host, sgapDriver, sgapSession.manifest, 8_000);
+        if (bet?.bet?.amount !== undefined && tapTimes.length > midSpinTaps) {
+          await restoreStake(sgapSession, sgapDriver, bet.bet.amount, page).catch(() => undefined);
+        }
+        lastError = new Error(
+          `could not land every bet tap inside the mid-spin window (taps at +${tapTimes.join('/')}ms, /bet at +${
+            betAnsweredAt === undefined ? '?' : betAnsweredAt - spinAt
+          }ms)`,
+        );
+        continue;
       }
 
       const bet = await sgapSession.betWatcher!.read({ timeoutMs });
@@ -493,6 +560,11 @@ export async function prepareCanvasSpin(
   const located = await waitForIdleHud(host, sgapDriver, sgapSession.manifest, idleMs);
   if (located.healed) {
     console.log(`[sgap-heal] spin: ${located.detail}`);
+    // Turbo is the existing fast-play toggle. One click after idle HUD is proven;
+    // specs that need slow reels still call turbo.disable().
+    if (process.env.SGAP_DEFAULT_TURBO !== '0' && !sgapSession.turbo.isTurboEnabled()) {
+      await sgapSession.turbo.enable({ timeoutMs: 8_000 }).catch(() => undefined);
+    }
     return true;
   }
   console.log(`[sgap-heal] spin not ready: ${located.detail}`);

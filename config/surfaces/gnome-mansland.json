@@ -1,0 +1,6 @@
+{
+  "id": "gnome-mansland",
+  "extends": "package-6",
+  "notes": "Gnome Man's Land reel board is darker than the other Package 6 titles: across the 2026-10-27 regression the press-anywhere band read luma 40-48 on about 600 idle / win-presentation frames (peak 41-45) versus mostly 13-35 on real dark overlays, so the Package 6 maxLuma 56 read the board as a dialog and the eye gave up with 'ongoing-spin-round recover failed'. maxLuma 36 keeps the board out; the bright 'Press anywhere to continue' panel is still caught by its Phaser text.",
+  "pressAnywhere": { "band": { "y0": 0.35, "y1": 0.65, "x0": 0.2, "x1": 0.8 }, "maxLuma": 36, "center": { "x": 0.5, "y": 0.55 } }
+}

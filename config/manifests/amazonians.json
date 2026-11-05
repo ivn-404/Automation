@@ -5,6 +5,42 @@
   "iframeSelectorKey": "gameIframe",
   "controllers": [
     {
+      "id": "spin",
+      "enabled": true
+    },
+    {
+      "id": "autoplay",
+      "enabled": true
+    },
+    {
+      "id": "buyFeature",
+      "enabled": true
+    },
+    {
+      "id": "bet",
+      "enabled": true
+    },
+    {
+      "id": "amplifyBet",
+      "enabled": true
+    },
+    {
+      "id": "turbo",
+      "enabled": true
+    },
+    {
+      "id": "menu",
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
+    },
+    {
+      "id": "fullscreen",
+      "enabled": true
+    },
+    {
       "id": "scratchCard",
       "enabled": true
     }
@@ -17,9 +53,133 @@
   "canvasActions": {
     "canvasSelector": "canvas",
     "actions": {
+      "enter": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "attractPlay": {
+        "x": 0.5,
+        "y": 0.72
+      },
+      "acknowledge": {
+        "x": 0.5,
+        "y": 0.56
+      },
+      "acknowledgeAlt": {
+        "x": 0.5,
+        "y": 0.6
+      },
+      "dismiss": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "skip": {
+        "x": 0.5,
+        "y": 0.45
+      },
+      "closeOverlay": {
+        "x": 0.88,
+        "y": 0.22
+      },
+      "spin": {
+        "x": 0.5,
+        "y": 0.917
+      },
+      "buyFeature": {
+        "x": 0.5,
+        "y": 0.821
+      },
+      "buyFeatureConfirm": {
+        "x": 0.501,
+        "y": 0.929
+      },
+      "buyFeatureConfirmAlt": {
+        "x": 0.5,
+        "y": 0.92
+      },
+      "buyFeatureCancel": {
+        "x": 0.921,
+        "y": 0.248
+      },
+      "betMinus": {
+        "x": 0.712,
+        "y": 0.83
+      },
+      "betPlus": {
+        "x": 0.908,
+        "y": 0.83
+      },
+      "errorOk": {
+        "x": 0.5,
+        "y": 0.58
+      },
+      "errorOkAlt": {
+        "x": 0.5,
+        "y": 0.27
+      },
+      "turbo": {
+        "x": 0.9,
+        "y": 0.923
+      },
+      "amplifyBet": {
+        "x": 0.73,
+        "y": 0.917
+      },
+      "menu": {
+        "x": 0.1,
+        "y": 0.923
+      },
+      "menuClose": {
+        "x": 0.86,
+        "y": 0.08
+      },
+      "menuCloseAlt": {
+        "x": 0.84,
+        "y": 0.1
+      },
+      "settingsTab": {
+        "x": 0.72,
+        "y": 0.12
+      },
+      "fullscreen": {
+        "x": 0.924,
+        "y": 0.035
+      },
+      "autoplay": {
+        "x": 0.27,
+        "y": 0.917
+      },
+      "autoplayConfirm": {
+        "x": 0.42,
+        "y": 0.78
+      },
+      "autoplayStart": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "autoplayStartAlt": {
+        "x": 0.5,
+        "y": 0.76
+      },
+      "autoplayStop": {
+        "x": 0.27,
+        "y": 0.917
+      },
+      "autoplaySpins10": {
+        "x": 0.172,
+        "y": 0.458
+      },
       "scratchCard": {
         "x": 0.19,
         "y": 0.764
+      },
+      "buyFeatureOption1": {
+        "x": 0.5,
+        "y": 0.344
+      },
+      "buyFeatureOption2": {
+        "x": 0.5,
+        "y": 0.465
       }
     }
   },
@@ -127,7 +287,9 @@
     "fields": {
       "balance": "balance",
       "totalWin": "slot.totalWin",
-      "transactionState": "transactionState"
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
     }
   },
   "metadata": {
@@ -141,8 +303,24 @@
     "portraitViewport": "390x844",
     "orientationLock": "portrait",
     "stagingStatus": "active",
-    "notes": "Scratch-only manifest (SCG). Game space 428x926; HUD SCRATCH button from Phaser discovery; scratch drawer is the shared 428x860 panel. Slot controllers (spin, bet, buy…) are not configured for this title.",
+    "notes": "Package 7 slot HUD. PROBE-002 (2026-10-27) measured spin 0.500,0.917, turbo 0.900,0.923, amplify (Enhance Bet) 0.730,0.917, bet -/+ 0.712/0.908 at y 0.830, autoplay 0.270,0.917, menu 0.100,0.923 and the buy button hud_feature_button 0.500,0.821 (168x104) from the Phaser scene; the HUD bands are in config/surfaces/package-7.json. PROBE-005 (2026-10-27) mapped the two-tier buy panel from its Phaser text: tier rows at y 0.344 / 0.465 (price lines; F1 100x \"Get 3 Scatters Instantly\", F2 200x \"Get Random 3-5 Scatters Instantly\"), BUY at 0.501, 0.929, close at 0.921, 0.248, stake -/+ at 0.151 / 0.852, y 0.832. Dialog and autoplay-panel points start from the Package 6 template. Scratch drawer stays the shared panel.",
     "packageId": "package-7",
-    "normalModeMultiplier": "true"
+    "normalModeMultiplier": "true",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins10",
+    "autoplaySelectedSpins": "10",
+    "buyFeatureNeedsConfirm": "true",
+    "buyFeatureMultiplier": "100",
+    "buyFeatureSelections": "2",
+    "buyFeatureOption1Scatters": "3",
+    "buyFeatureOption2Multiplier": "200",
+    "buyFeatureOption2Scatters": "3",
+    "maxWinMultiplier": "20000",
+    "normalModeMultiplierMode": "reel",
+    "normalModeMultiplierPath": "slot.tumbles",
+    "featureTriggerScatterPaths": "slot.area,slot.tumbles[].symbols.in",
+    "featureScatterSpins": "3:7,4:9,5:11"
   }
 }

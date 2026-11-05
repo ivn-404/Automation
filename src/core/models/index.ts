@@ -68,6 +68,8 @@ export interface ReelSymbolDef {
   readonly helpOrder?: number;
 }
 
+export type ReelAreaLayout = 'columns' | 'rows';
+
 /**
  * Backend vs frontend reel validation (per package).
  * Column/row counts come from the bet response — not hardcoded here.
@@ -83,6 +85,12 @@ export interface ReelValidationConfig {
    * - bottom-to-top: index 0 is the bottom row (DiJoker Sugar Wonderland)
    */
   readonly rowOrder?: 'top-to-bottom' | 'bottom-to-top';
+  /**
+   * Nesting of the area matrix in the payload.
+   * - columns (default): `area[col][row]` (Package 1)
+   * - rows: `area[row][col]` (Package 2)
+   */
+  readonly areaLayout?: ReelAreaLayout;
   readonly symbols: readonly ReelSymbolDef[];
   readonly symbolTemplateDir: string;
   readonly reelRegion: NormalizedRect;

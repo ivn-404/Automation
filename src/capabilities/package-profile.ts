@@ -20,6 +20,8 @@ export interface PackageProfile {
   readonly hasSymbolCatalog: boolean;
   /** Multiplier values the package spec lists on the Help/Payout screen, ascending. */
   readonly multiplierValues?: readonly number[];
+  /** Max win cap as a multiple of the bet. */
+  readonly maxWinMultiplier?: number;
 }
 
 interface RawPackageProfile {
@@ -29,6 +31,7 @@ interface RawPackageProfile {
   readonly capabilities?: Readonly<Record<string, unknown>>;
   readonly symbols?: readonly unknown[];
   readonly multiplierValues?: readonly unknown[];
+  readonly maxWinMultiplier?: unknown;
 }
 
 const cache = new Map<string, PackageProfile | null>();
@@ -55,6 +58,9 @@ function toProfile(raw: RawPackageProfile, fileId: string): PackageProfile {
             .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
             .sort((a, b) => a - b),
         }
+      : {}),
+    ...(typeof raw.maxWinMultiplier === 'number' && Number.isFinite(raw.maxWinMultiplier)
+      ? { maxWinMultiplier: raw.maxWinMultiplier }
       : {}),
   };
 }

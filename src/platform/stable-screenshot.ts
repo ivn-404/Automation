@@ -18,7 +18,10 @@ import { PNG } from 'pngjs';
 export const SCREENSHOT_TOAST_ID = 'sgap-screenshot-toast';
 
 /** Pass as `style` to any page screenshot so the notice stays out of the picture. */
-export const HIDE_SCREENSHOT_TOAST = `#${SCREENSHOT_TOAST_ID}{display:none !important}`;
+/** Live FPS badge drawn by PAD runs (src/perf/fps-counter.ts); never part of a vision capture. */
+export const FPS_COUNTER_ID = 'sgap-fps-counter';
+
+export const HIDE_SCREENSHOT_TOAST = `#${SCREENSHOT_TOAST_ID},#${FPS_COUNTER_ID}{display:none !important}`;
 
 const TOAST_VISIBLE_MS = 1_200;
 

@@ -1,0 +1,21 @@
+{
+  "id": "package-6",
+  "extends": "base",
+  "notes": "Package 6 HUD from Zero Law / Boobie Trap PROBE-002 (2026-10-23). Bet - / + are the 28x28 hud_decrease_bet / hud_increase_bet images at 0.712 / 0.908, y 0.841, just under the base band. The buy control is hud_feature_hitbox, a 120x54 rectangle at 0.500, 0.832 under the BUY (USD) label. The four-tier buy panel ends in a full-width green BUY FEATURE pill at 0.501, 0.929 (regression 2026-10-23 vision: area 5.2%, fill 0.91), below the base confirm band; without this band the open panel read as press-anywhere and the 0.5, 0.55 dismiss tap selected a tier. The plain reel board is dark: across the 2026-10-26 regression the press-anywhere band read luma 59-70 on about 400 idle/win frames (peak 66-69) versus 0-58 on real dark overlays, so maxLuma 56 keeps the board from reading as a dialog (the bright \"Press anywhere to continue\" panel is caught by its Phaser text).",
+  "pressAnywhere": { "band": { "y0": 0.35, "y1": 0.65, "x0": 0.2, "x1": 0.8 }, "maxLuma": 56, "center": { "x": 0.5, "y": 0.55 } },
+  "controls": {
+    "betPlus": {
+      "phaser": { "x0": 0.82, "x1": 0.98, "y0": 0.78, "y1": 0.88, "minW": 18, "minH": 18, "pick": "rightmost" }
+    },
+    "betMinus": {
+      "phaser": { "x0": 0.62, "x1": 0.82, "y0": 0.78, "y1": 0.88, "minW": 18, "minH": 18, "pick": "leftmost" }
+    },
+    "buyFeature": {
+      "phaser": { "x0": 0.4, "x1": 0.6, "y0": 0.78, "y1": 0.87, "minW": 70, "minH": 28, "maxW": 160, "pick": "largest" }
+    },
+    "buyFeatureConfirm": {
+      "vision": { "hue": "green", "band": { "y0": 0.88, "y1": 0.98, "x0": 0.2, "x1": 0.8 }, "minAreaRatio": 0.015, "maxAreaRatio": 0.12 },
+      "candidates": [{ "x": 0.5, "y": 0.929 }, { "x": 0.5, "y": 0.92 }, { "x": 0.48, "y": 0.929 }]
+    }
+  }
+}

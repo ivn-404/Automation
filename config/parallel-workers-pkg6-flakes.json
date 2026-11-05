@@ -1,0 +1,46 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Package 6 flake check after the press-anywhere maxLuma override (dark reel board read as a dialog): SM-002, AP-002, CP-001, UIDS-005, plus AT-003 to re-confirm the refund defect.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "zero-law",
+      "gameName": "Zero Law",
+      "category": "REGRESSION",
+      "categories": ["SM", "AP", "CP", "UIDS", "AT"],
+      "packageId": "6",
+      "testMatch": [
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "cp/**/CP-001.spec.ts",
+        "uids/**/UIDS-005.spec.ts",
+        "at/**/AT-003.spec.ts"
+      ],
+      "playerId": "Zero Law_FIX6",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "boobie-trap",
+      "gameName": "Boobie Trap",
+      "category": "REGRESSION",
+      "categories": ["SM", "AP", "CP", "UIDS", "AT"],
+      "packageId": "6",
+      "testMatch": [
+        "sm/**/SM-002.spec.ts",
+        "ap/**/AP-002.spec.ts",
+        "cp/**/CP-001.spec.ts",
+        "uids/**/UIDS-005.spec.ts",
+        "at/**/AT-003.spec.ts"
+      ],
+      "playerId": "Boobie Trap_FIX6",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

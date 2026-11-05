@@ -1,7 +1,7 @@
 /**
  * PEN-058 — No RNG seed leaks and outcomes are not deterministic.
  *
- * Manual Test Case ID: PEN-058 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-058 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: over a sample of rounds, the hub must never expose seed/rng material a client
  * could use to predict outcomes, and the dealt cards must vary (not a fixed sequence).
  * The distribution is attached as evidence for manual review.

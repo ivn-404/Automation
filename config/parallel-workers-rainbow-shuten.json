@@ -1,0 +1,62 @@
+{
+  "workers": 2,
+  "layout": "1",
+  "notes": "Full Regression (no PEN) for Rainbow Fist and The Shuten Doji on separate workers. Isolated wallets, one persistent SGAP overlay.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP", "TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "3",
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "tm/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_PKG3",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "category": "REGRESSION",
+      "categories": ["CSF", "AT", "BC", "BF", "AP", "TM", "FS", "UIDS", "SM", "ES", "CP"],
+      "packageId": "3",
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "testMatch": [
+        "csf/**/*.spec.ts",
+        "at/**/*.spec.ts",
+        "bc/**/*.spec.ts",
+        "bf/**/*.spec.ts",
+        "ap/**/*.spec.ts",
+        "tm/**/*.spec.ts",
+        "fs/**/*.spec.ts",
+        "uids/**/*.spec.ts",
+        "sm/**/*.spec.ts",
+        "es/**/*.spec.ts",
+        "cp/**/*.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_PKG3",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * PEN-059 — Boundary bets are validated server-side with no rounding leak.
  *
- * Manual Test Case ID: PEN-059 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-059 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: zero, exactly-balance, one-over-balance, and high-precision fractional bets
  * must each be handled server-side — rejected cleanly with the balance untouched, or
  * dealt with an exact debit that never rounds in the player's favor.

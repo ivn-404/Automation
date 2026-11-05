@@ -121,6 +121,7 @@ function toSignature(id: string, config: VisionSignatureConfig): ControlSignatur
     ...(config.minAreaRatio !== undefined ? { minAreaRatio: config.minAreaRatio } : {}),
     ...(config.maxAreaRatio !== undefined ? { maxAreaRatio: config.maxAreaRatio } : {}),
     ...(config.pick !== undefined ? { pick: config.pick } : {}),
+    ...(config.accept !== undefined ? { accept: config.accept } : {}),
   };
 }
 

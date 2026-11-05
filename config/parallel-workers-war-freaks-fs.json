@@ -1,0 +1,34 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks: remaining feature-flow cases that previously died on buy confirm / splash-vs-spin overlap.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["FS", "BF", "ES"],
+      "testMatch": [
+        "fs/**/FS-003.spec.ts",
+        "fs/**/FS-004.spec.ts",
+        "fs/**/FS-005.spec.ts",
+        "fs/**/FS-006.spec.ts",
+        "fs/**/FS-007.spec.ts",
+        "fs/**/FS-008.spec.ts",
+        "fs/**/FS-009.spec.ts",
+        "bf/**/BF-003.spec.ts",
+        "es/**/ES-004.spec.ts",
+        "es/**/ES-007.spec.ts"
+      ],
+      "playerId": "War Freaks_FS1",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "3G runtime simulation, package 5. DevTools 3G preset only. Next package waits for this one.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "pastry-cub",
+      "gameName": "Pastry Cub",
+      "packageId": "5",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Pastry Cub_3G5",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "aztec-lost-empire",
+      "gameName": "Aztec Lost Empire",
+      "packageId": "5",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Aztec Lost Empire_3G5",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "grave-threat",
+      "gameName": "Grave Threat",
+      "packageId": "5",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Grave Threat_3G5",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": [
+        "probe/**/LOAD-3G-PKG1.spec.ts"
+      ],
+      "playerId": "Titanic Transport_3G5",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

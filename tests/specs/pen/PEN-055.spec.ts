@@ -1,7 +1,7 @@
 /**
  * PEN-055 — Racing Cashout against a new StartRound must not settle funds twice.
  *
- * Manual Test Case ID: PEN-055 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-055 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: with a card in play, fire Cashout and a fresh StartRound in parallel. Any
  * interleaving must keep the ledger exact — the in-play win is credited at most once and
  * every dealt bet is debited exactly once, with no negative or inflated balance.

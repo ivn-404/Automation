@@ -1,7 +1,7 @@
 /**
  * PEN-015 — Payout never exceeds the win cap.
  *
- * Manual Test Case ID: PEN-015 (docs/PERSONALTESTING.md §3/§4)
+ * Manual Test Case ID: PEN-015 (docs/catalogs/PERSONALTESTING.md §3/§4)
  * Intent: over a sample of rounds, every paid win must respect bet × maxWinMultiplier
  * and maxWin, and every paid winMultiplier must be within maxWinMultiplier — even
  * though the pay-table legend shows a higher multiplier than the cap. Needs a joined

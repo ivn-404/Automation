@@ -1,74 +1,60 @@
 /**
- * SGAP control panel: the shared QA dashboard and execution manager.
+ * SGAP control panel (local only): dashboard, test runner and execution manager.
  *
- * Users sign in, pick test families (Regression and Security / Pentesting kept
- * apart) or a preset, the games, optionally one case and the evidence options,
- * then Run. Every run is an independent execution (scripts/lib/execution-manager.mjs):
- * id RUN-0001…, its own folder under runs/, its own worker monitor and its owner's
- * staging players. Runs execute side by side as far as this host's CPU/RAM allow
- * (config/qa-server.json); beyond that they queue with the actual reason.
+ * Pick test families (Regression and Security / Pentesting kept apart) or a preset,
+ * the games, optionally one case and the evidence options, then Run. Every run is an
+ * independent execution (scripts/lib/execution-manager.mjs): id RUN-0001…, its own
+ * folder under runs/, its own worker monitor and the tester's staging players. Runs
+ * execute side by side as far as this PC's CPU/RAM allow (config/qa-server.json);
+ * beyond that they queue with the actual reason.
  *
  * Run-scoped pages and reads live under /runs/<id>/ and are forwarded to that run's
  * monitor through an allowlist; worker-only monitor endpoints are never reachable.
  *
- * "Run on: My PC" hands a run to the SGAP agent on the tester's own PC
- * (scripts/qa-agent.mjs, installed by the /agent/setup.cmd download). The agent
- * authenticates with its own token under /api/qa/agent/ and only ever receives
- * the test selection; browsers, terminal and reports stay on that PC.
+ * PAD (performance) runs have their own page, /pad (PAD Tester): one game in one browser
+ * on screen 2, never beside another run.
  *
- * Usage: node scripts/qa-testing-page.mjs [port] [--server | --share[=view]]   (default 3850)
- *   --server   shared QA server: listens on the network, QA accounts required
- *              (npx pnpm qa:users add <name>); this PC's own browser is the host admin
- *   --share    ad-hoc LAN link with an access key (scripts/lib/qa-access.mjs)
+ * Usage: node scripts/qa-testing-page.mjs [port]   (default 3850, bound to 127.0.0.1)
  * Env:   SGAP_QA_PAGE_NO_OPEN=1      do not open the browser
- *        SGAP_QA_SERVER=1            same as --server
- *        SGAP_QA_SHARE=control|view  same as --share
- *        SGAP_QA_SHARE_KEY=…         fixed access key instead of a random one per start
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
 import { createExecutionManager } from './lib/execution-manager.mjs';
 import { loadServerConfig } from './lib/host-resources.mjs';
-import {
-  SECURITY_HEADERS,
-  checkAccess,
-  corsHeaders,
-  deniedPage,
-  isLoopback,
-  lanUrls,
-  shareConfig,
-} from './lib/qa-access.mjs';
+import { LOCKFILE } from './lib/sgap-process-guard.mjs';
+import { SECURITY_HEADERS, corsHeaders, isLoopback } from './lib/qa-access.mjs';
+import { checkLaunchUrl, gameForLaunchUrl, launchUrlFacts } from './lib/launch-url.mjs';
 import { familyCases, findSuite, loadCatalog, loadManifests, suiteCases } from './lib/qa-suites.mjs';
-import { createAuth } from './lib/qa-users.mjs';
 import { resolveTester, sanitizeTester } from './lib/sgap-tester.mjs';
+import { loadAnalytics } from './lib/test-analytics.mjs';
+import { stripLearnedSecrets } from './lib/learned-secrets.mjs';
 import { UI_ASSETS } from './lib/sgap-worker-monitor-server.mjs';
 
 const cwd = process.cwd();
 const portArg = process.argv.slice(2).find((arg) => /^\d+$/u.test(arg));
 const port = Number(portArg ?? process.env.SGAP_QA_PAGE_PORT ?? 3850);
-const serverMode = process.argv.includes('--server') || process.env.SGAP_QA_SERVER === '1';
-const share = serverMode ? undefined : shareConfig();
 const config = loadServerConfig(cwd);
-const auth = createAuth({ cwd, sessionHours: config.sessionHours });
 const manager = createExecutionManager({ cwd, config });
-const HOST_USER = { name: resolveTester() || sanitizeTester(os.userInfo().username) || 'host', role: 'admin' };
+const HOST_USER = { name: resolveTester() || sanitizeTester(os.userInfo().username) || 'host' };
 
 const LIB = path.join(cwd, 'scripts', 'lib');
 const HTML_PATH = path.join(LIB, 'sgap-worker-monitor.html');
 const READER_HTML_PATH = path.join(LIB, 'sgap-backend-reader.html');
 const OBSERVE_HTML_PATH = path.join(LIB, 'sgap-monitor-worker.html');
-const LOGIN_HTML_PATH = path.join(LIB, 'sgap-login.html');
-const AGENT_SETUP_PATH = path.join(LIB, 'sgap-agent-setup.cmd');
+const DASHBOARD_HTML_PATH = path.join(LIB, 'sgap-dashboard.html');
+const PAD_HTML_PATH = path.join(LIB, 'sgap-pad-tester.html');
 const ALLURE_ROOT = path.resolve(process.env.SGAP_ALLURE_HISTORY_ROOT ?? path.join(cwd, 'allure-history'));
 
 /** Per-run monitor endpoints the panel pages read; everything else there is worker-only. */
 const PROXY_GET = new Set(['/api/status', '/api/reader', '/api/observe', '/api/observe/session']);
 const PROXY_GET_PREFIX = '/reader/files/';
-const RUN_PATH = /^\/runs\/(RUN-\d{4,})(\/.*)?$/u;
+const RUN_PATH = /^\/runs\/(RUN-\d{4,}|CLI)(\/.*)?$/u;
+/** Id under which a run started from a terminal (not by this panel) is shown. */
+const CLI_RUN_ID = 'CLI';
 
 const STATIC_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -145,15 +131,177 @@ const OFFLINE = {
   '/api/observe': { offline: true, sessions: [] },
 };
 
+function pidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === 'EPERM';
+  }
+}
+
+const monitorByPid = new Map();
+
+/** Loopback port a runner process listens on (its worker monitor), for lockfiles that do not record it. */
+function listeningMonitorUrl(pid) {
+  if (monitorByPid.has(pid)) return monitorByPid.get(pid);
+  let url;
+  const result = process.platform === 'win32'
+    ? spawnSync('netstat', ['-ano', '-p', 'tcp'], { encoding: 'utf8', windowsHide: true, timeout: 3000 })
+    : spawnSync('lsof', ['-nP', '-a', '-p', String(pid), '-iTCP', '-sTCP:LISTEN'], { encoding: 'utf8', timeout: 3000 });
+  for (const line of String(result.stdout ?? '').split(/\r?\n/u)) {
+    const win = line.match(/^\s*TCP\s+127\.0\.0\.1:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/u);
+    const nix = line.match(/127\.0\.0\.1:(\d+)\s+\(LISTEN\)/u);
+    if (win && Number(win[2]) === pid) url = `http://127.0.0.1:${win[1]}`;
+    else if (nix) url = `http://127.0.0.1:${nix[1]}`;
+    if (url) break;
+  }
+  monitorByPid.set(pid, url);
+  return url;
+}
+
+/**
+ * A parallel run started by hand (terminal, agent, npm script), found through the
+ * runner's lockfile. The panel cannot see its console, only its worker monitor.
+ */
+function cliRun() {
+  let lock;
+  try {
+    lock = JSON.parse(readFileSync(LOCKFILE, 'utf8'));
+  } catch {
+    return undefined;
+  }
+  const pid = Number(lock.parent);
+  if (!pid || !pidAlive(pid)) return undefined;
+  lock.monitorUrl ||= listeningMonitorUrl(pid);
+  if (!lock.monitorUrl) return undefined;
+  const startedAt = Date.parse(lock.startedAt);
+  return {
+    id: CLI_RUN_ID,
+    external: true,
+    ...(lock.kind ? { kind: lock.kind } : {}),
+    owner: lock.tester || HOST_USER.name,
+    label: `Terminal run · ${lock.config ?? 'parallel workers'}`,
+    state: 'running',
+    startedAt: Number.isNaN(startedAt) ? undefined : startedAt,
+    games: Array.isArray(lock.games) ? lock.games : [],
+    packages: [],
+    browsers: Number(lock.lanes) || 0,
+    pid,
+    note: `Started from a terminal · ${lock.lanes ?? '?'} lane(s) · monitor ${lock.monitorUrl}`,
+    monitorUrl: lock.monitorUrl,
+  };
+}
+
+/** Per-test resource inventories a run wrote to `<run dir>/resources/` (already redacted by the worker). */
+/** DISC-001 output of a Game URL run: the discovery report, the per-case assessment, QA decisions. */
+const EMPTY_DISCOVERY = {
+  report: null,
+  cases: [],
+  learned: false,
+  decisions: {},
+  summary: { ready: 0, calibration: 0, unsupported: 0, blocked: 0, spinsLearned: 0, panels: [] },
+};
+
+function savedDiscovery(run) {
+  if (!run.dir) return { ...EMPTY_DISCOVERY };
+  const dir = path.resolve(cwd, run.dir, 'discovery');
+  if (!dir.startsWith(path.resolve(cwd))) return { ...EMPTY_DISCOVERY };
+  const read = (name) => {
+    try {
+      return JSON.parse(readFileSync(path.join(dir, name), 'utf8'));
+    } catch {
+      return null;
+    }
+  };
+  const report = read('discovery.json');
+  const cases = read('case-assessment.json') ?? [];
+  const count = (status) => cases.filter((entry) => entry.status === status).length;
+  const decisions = report?.game?.gameKey ? readLearnedDecisions(report.game.gameKey) : {};
+  return {
+    report,
+    cases,
+    learned: read('learned-manifest.json') !== null,
+    decisions,
+    summary: {
+      ready: count('ready'),
+      calibration: count('calibration'),
+      unsupported: count('unsupported'),
+      blocked: count('blocked'),
+      spinsLearned: report?.payload?.spinsLearned ?? 0,
+      panels: (report?.panelChecks ?? []).map((check) => ({ target: check.target, verified: check.verified, closed: check.closed })),
+    },
+  };
+}
+
+const LEARNED_DIR = path.join(cwd, '.sgap', 'learned');
+const learnedPath = (gameKey) => path.join(LEARNED_DIR, `${String(gameKey).replace(/[^\w.-]+/gu, '_')}.json`);
+
+function readLearnedDecisions(gameKey) {
+  try {
+    return JSON.parse(readFileSync(learnedPath(gameKey), 'utf8')).decisions ?? {};
+  } catch {
+    return {};
+  }
+}
+
+const QA_DECISIONS = new Set(['confirmed', 'absent', 'rejected', 'clear']);
+
+/**
+ * Assisted calibration: a tester confirms a discovered control, rejects a mapping, or confirms a
+ * capability is absent (→ N/A). Stored per game key (and build) in .sgap/learned — never in
+ * config/manifests, never with a URL or token. The next discovery of that game applies it.
+ */
+function recordLearnedDecision(user, body) {
+  const gameKey = String(body.gameKey ?? '').trim();
+  const target = String(body.target ?? '').trim();
+  const decision = String(body.decision ?? '');
+  if (!/^[\w.-]{1,80}$/u.test(gameKey)) return { status: 400, body: { ok: false, error: 'gameKey is required.' } };
+  if (!/^[A-Za-z]{2,40}$/u.test(target)) return { status: 400, body: { ok: false, error: 'target must be a control or capability name.' } };
+  if (!QA_DECISIONS.has(decision)) return { status: 400, body: { ok: false, error: `decision must be one of ${[...QA_DECISIONS].join(', ')}.` } };
+  const decisions = readLearnedDecisions(gameKey);
+  if (decision === 'clear') delete decisions[target];
+  else decisions[target] = { decision, by: user, at: new Date().toISOString(), ...(typeof body.build === 'string' && body.build ? { build: body.build.slice(0, 40) } : {}) };
+  mkdirSync(LEARNED_DIR, { recursive: true });
+  let existing = {};
+  try {
+    existing = JSON.parse(readFileSync(learnedPath(gameKey), 'utf8'));
+  } catch {
+    existing = {};
+  }
+  const safe = stripLearnedSecrets({ ...existing, gameKey, decisions });
+  writeFileSync(learnedPath(gameKey), `${JSON.stringify(safe, null, 2)}\n`, 'utf8');
+  return { status: 200, body: { ok: true, gameKey, decisions } };
+}
+
+function savedResources(run) {
+  if (!run.dir) return [];
+  const dir = path.resolve(cwd, run.dir, 'resources');
+  if (!dir.startsWith(path.resolve(cwd))) return [];
+  let files = [];
+  try {
+    files = readdirSync(dir).filter((name) => name.endsWith('.json'));
+  } catch {
+    return [];
+  }
+  return files.flatMap((name) => {
+    try {
+      const saved = JSON.parse(readFileSync(path.join(dir, name), 'utf8'));
+      return [{ ...saved.session, status: saved.status, resources: Array.isArray(saved.resources) ? saved.resources : [] }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function findRun(runId) {
+  return runId === CLI_RUN_ID ? cliRun() : manager.get(runId);
+}
+
 /** Forwards a read to one run's worker monitor; answers "offline" between packages or after the run. */
 async function proxyToRun(req, res, runId, subPath, search, raw) {
-  const base = runId ? manager.monitorUrl(runId) : undefined;
+  const base = !runId ? undefined : runId === CLI_RUN_ID ? cliRun()?.monitorUrl : manager.monitorUrl(runId);
   if (base === undefined) {
-    const live = runId ? manager.liveStatus(runId) : undefined;
-    if (subPath === '/api/status' && live !== undefined) {
-      send(res, 200, live);
-      return;
-    }
     if (OFFLINE[subPath]) send(res, 200, OFFLINE[subPath]);
     else send(res, 503, { ok: false, error: 'This run has no live worker monitor right now.' });
     return;
@@ -179,75 +327,15 @@ async function proxyToRun(req, res, runId, subPath, search, raw) {
   }
 }
 
-function clientIp(req) {
-  return String(req.socket.remoteAddress ?? '').replace(/^::ffff:/u, '');
-}
-
-/** Clone URL for agent PCs: this checkout's origin without any embedded credentials. */
-function agentRepoUrl() {
-  const fromGit = spawnSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf8', windowsHide: true });
-  const raw = String(config.agentRepoUrl ?? fromGit.stdout ?? '').trim();
-  try {
-    const url = new URL(raw);
-    url.username = '';
-    url.password = '';
-    return url.protocol === 'https:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-const REPO_URL = agentRepoUrl();
-
-/** setup.cmd for a tester's PC, pointed at the address they reached this server on. */
-function agentSetupScript(req) {
-  const host = String(req.headers.host ?? '');
-  const lan = lanUrls(port, '').map((entry) => entry.replace(/\?key=$/u, '').replace(/\/$/u, ''));
-  const reachable = /^[A-Za-z0-9.-]+(:\d{1,5})?$/u.test(host) && !/^(127\.|localhost\b|\[?::1)/u.test(host);
-  const server = reachable ? `http://${host}` : lan[0];
-  if (server === undefined || REPO_URL === undefined) return undefined;
-  return readFileSync(AGENT_SETUP_PATH, 'utf8')
-    .replaceAll('__SGAP_SERVER__', server)
-    .replaceAll('__SGAP_REPO__', REPO_URL)
-    .replace(/\r?\n/gu, '\r\n');
-}
-
-/** Requests from an SGAP agent (Bearer token); answered before the browser sign-in check. */
-async function handleAgent(req, res, url) {
-  if (req.method !== 'POST') {
-    send(res, 405, { ok: false, error: 'POST only.' });
-    return;
-  }
-  const body = parseJson(await readBody(req));
-  if (url.pathname === '/api/qa/agent/register') {
-    const result = auth.registerAgent(req, body.name, body.password, body.machine);
-    send(res, result.ok ? 200 : result.status, result.ok ? { ok: true, token: result.token, user: result.user, machine: result.machine } : { ok: false, error: result.error });
-    return;
-  }
-  const agent = auth.agent(req);
-  if (agent === undefined) {
-    send(res, 401, { ok: false, error: 'This agent is not registered (or its account changed). Run setup again: node scripts/qa-agent.mjs setup' });
-    return;
-  }
-  const owner = agent.user.name;
-  if (url.pathname === '/api/qa/agent/poll') {
-    send(res, 200, { ok: true, user: agent.user, machine: agent.machine, ...manager.agentPoll(owner, agent.machine, clientIp(req), body) });
-    return;
-  }
-  const action = url.pathname.match(/^\/api\/qa\/agent\/runs\/(RUN-\d{4,})\/(claim|report)$/u);
-  if (action) {
-    const result = action[2] === 'claim'
-      ? manager.agentClaim(owner, agent.machine, action[1])
-      : manager.agentReport(owner, agent.machine, action[1], body);
-    send(res, result.status, result.body);
-    return;
-  }
-  send(res, 404, { ok: false, error: 'not found' });
-}
-
 /** Run shown by the root-level pages: the caller's newest live run, else anyone's. */
 function defaultRunId(user) {
   const live = manager.list().filter((run) => run.state === 'running');
-  return (live.find((run) => run.owner === user.name) ?? live[0])?.id;
+  return (live.find((run) => run.owner === user.name) ?? live[0])?.id ?? cliRun()?.id;
+}
+
+function allRuns() {
+  const cli = cliRun();
+  return cli ? [cli, ...manager.list()] : manager.list();
 }
 
 function catalogView() {
@@ -255,7 +343,7 @@ function catalogView() {
   const manifests = loadManifests(cwd);
   const cases = familyCases(catalog, cwd);
   return {
-    groups: Object.entries(catalog.familyGroups ?? {}).map(([id, group]) => ({
+    groups: Object.entries(catalog.familyGroups ?? {}).filter(([, group]) => group.panel === undefined).map(([id, group]) => ({
       id,
       label: group.label,
       description: group.description,
@@ -283,52 +371,66 @@ function catalogView() {
   };
 }
 
-/**
- * Who is calling.
- *   { ok: true, remote, user: { name, role } }
- *   { ok: false, status, message, login? }  — login: send the browser to /login
- */
-function identify(req, url) {
-  if (isLoopback(req)) {
-    return { ok: true, remote: false, user: HOST_USER };
+/** PAD case wording and priority from docs/catalogs/FPS_TestCase.md (the QA-owned source). */
+function padCaseDocs() {
+  const docs = new Map();
+  const priority = new Map();
+  let text = '';
+  try {
+    text = readFileSync(path.join(cwd, 'docs', 'catalogs', 'FPS_TestCase.md'), 'utf8');
+  } catch {
+    return { docs, priority };
   }
-  if (auth.enabled()) {
-    const user = auth.current(req);
-    return user ? { ok: true, remote: true, user } : { ok: false, status: 401, login: true, message: 'Sign in to use the QA panel.' };
+  for (const line of text.split(/\r?\n/u)) {
+    const row = line.match(/^\|\s*(PAD-\d{3})\s*\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|/u);
+    if (row) {
+      docs.set(row[1], { title: row[2].trim(), window: row[3].trim(), runs: row[4].trim(), expected: row[5].trim() });
+      continue;
+    }
+    const tier = line.match(/^\|\s*(P\d)\b[^|]*\|([^|]*)\|/u);
+    if (tier) {
+      for (const token of tier[2].split(/[,\s]+/u).filter(Boolean)) {
+        const span = token.match(/^(?:PAD-)?(\d{3})(?:(?:…|\.\.\.|–|-)(\d{3}))?$/u);
+        if (!span) continue;
+        const from = Number(span[1]);
+        const to = span[2] ? Number(span[2]) : from;
+        for (let n = from; n <= to; n += 1) {
+          const id = `PAD-${String(n).padStart(3, '0')}`;
+          if (!priority.has(id)) priority.set(id, tier[1]);
+        }
+      }
+    }
   }
-  if (share !== undefined) {
-    const access = checkAccess(req, url, share);
-    if (!access.ok) return access;
-    return { ok: true, remote: true, user: { name: 'remote', role: access.role === 'view' ? 'viewer' : 'tester' } };
-  }
+  return { docs, priority };
+}
+
+function padCatalogView() {
+  const catalog = loadCatalog(cwd);
+  const manifests = loadManifests(cwd);
+  const automated = familyCases(catalog, cwd).PAD ?? [];
+  const { docs, priority } = padCaseDocs();
+  const packageOf = new Map(Object.entries(catalog.packages).flatMap(([pkg, gameIds]) => gameIds.map((gameId) => [gameId, pkg])));
+  const games = [...manifests.entries()]
+    .map(([gameId, manifest]) => ({ gameId, name: manifest?.displayName ?? gameId, package: packageOf.get(gameId) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   return {
-    ok: false,
-    status: 403,
-    message: serverMode
-      ? 'No QA accounts exist yet. On the server PC run: npx pnpm qa:users add <your-name> --role admin'
-      : 'This panel only accepts connections from the host PC.',
+    games,
+    defaultGame: 'gnome-mansland',
+    cases: automated.map((id) => ({ id, priority: priority.get(id), ...(docs.get(id) ?? { title: id }) })),
+    screens: { default: 1, note: 'Screen 2 keeps the game away from the panel and other windows.' },
   };
 }
 
-function accessView(who) {
-  const base = {
-    remote: who.remote,
-    user: who.user,
-    role: who.user.role === 'viewer' ? 'view' : 'control',
-    authRequired: auth.enabled(),
-    server: serverMode,
-  };
-  if (share !== undefined) {
-    return { ...base, share: { mode: share.mode, ...(who.remote ? {} : { urls: lanUrls(port, share.key) }) } };
-  }
-  if (serverMode && !who.remote) {
-    return { ...base, share: { mode: 'accounts', urls: lanUrls(port, '').map((entry) => entry.replace(/\?key=$/u, '')) } };
-  }
-  return { ...base, share: null };
+/** Local only: callers from this PC are the host tester; anything else is refused. */
+function identify(req) {
+  return isLoopback(req)
+    ? { ok: true, user: HOST_USER }
+    : { ok: false, status: 403, message: 'The SGAP control panel only accepts connections from this PC.' };
 }
 
 async function handleRunScoped(req, res, url, who, runId, subPath) {
-  const run = manager.get(runId);
+  // A finished terminal run leaves no record; its pages stay up and read as offline.
+  const run = runId === CLI_RUN_ID ? (cliRun() ?? { id: CLI_RUN_ID }) : manager.get(runId);
   if (run === undefined) {
     send(res, 404, { ok: false, error: `${runId} not found.` });
     return;
@@ -357,12 +459,8 @@ async function handleRunScoped(req, res, url, who, runId, subPath) {
   }
   if (req.method === 'POST' && subPath === '/api/stop') {
     const raw = await readBody(req);
-    if (run.owner !== who.user.name && who.user.role !== 'admin') {
-      send(res, 403, { ok: false, error: `${runId} belongs to ${run.owner}; only they or an admin can stop it.` });
-      return;
-    }
     const body = parseJson(raw);
-    if (body.all === true) {
+    if (body.all === true && runId !== CLI_RUN_ID) {
       const result = manager.stop(who.user, runId);
       send(res, result.status, { ...result.body, message: `${runId} stopped` });
       return;
@@ -392,44 +490,9 @@ const server = createServer(async (req, res) => {
       send(res, 415, { ok: false, error: 'Send JSON (Content-Type: application/json).' });
       return;
     }
-    if (req.method === 'GET' && url.pathname === '/login') {
-      send(res, 200, readFileSync(LOGIN_HTML_PATH, 'utf8'), 'text/html; charset=utf-8');
-      return;
-    }
-    if (req.method === 'POST' && url.pathname === '/api/qa/login') {
-      const body = parseJson(await readBody(req));
-      const result = auth.login(req, body.name, body.password);
-      if (!result.ok) {
-        send(res, result.status, { ok: false, error: result.error });
-        return;
-      }
-      send(res, 200, { ok: true, user: result.user }, undefined, { 'Set-Cookie': result.cookie });
-      return;
-    }
-    if (req.method === 'POST' && url.pathname === '/api/qa/logout') {
-      send(res, 200, { ok: true }, undefined, { 'Set-Cookie': auth.logout(req) });
-      return;
-    }
-    if (url.pathname.startsWith('/api/qa/agent/')) {
-      await handleAgent(req, res, url);
-      return;
-    }
-
-    const who = identify(req, url);
+    const who = identify(req);
     if (!who.ok) {
-      if (who.status === 302) {
-        redirect(res, who.redirect, { 'Set-Cookie': who.cookie });
-      } else if (url.pathname.startsWith('/api/') || RUN_PATH.test(url.pathname) && url.pathname.includes('/api/')) {
-        send(res, who.status, { ok: false, error: who.message, login: who.login === true });
-      } else if (who.login) {
-        redirect(res, `/login?next=${encodeURIComponent(url.pathname + url.search)}`);
-      } else {
-        send(res, who.status, deniedPage(who.message), 'text/html; charset=utf-8');
-      }
-      return;
-    }
-    if (req.method === 'POST' && who.user.role === 'viewer') {
-      send(res, 403, { ok: false, error: 'View-only account: ask an admin for tester access to run or stop tests.' });
+      send(res, who.status, { ok: false, error: who.message });
       return;
     }
 
@@ -442,6 +505,22 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET') {
       if (url.pathname === '/' || url.pathname === '/index.html') {
         send(res, 200, panelPage(HTML_PATH), 'text/html; charset=utf-8');
+        return;
+      }
+      if (url.pathname === '/pad' || url.pathname === '/pad.html') {
+        send(res, 200, panelPage(PAD_HTML_PATH), 'text/html; charset=utf-8');
+        return;
+      }
+      if (url.pathname === '/api/qa/pad/catalog') {
+        send(res, 200, padCatalogView());
+        return;
+      }
+      if (url.pathname === '/dashboard' || url.pathname === '/dashboard.html') {
+        send(res, 200, panelPage(DASHBOARD_HTML_PATH), 'text/html; charset=utf-8');
+        return;
+      }
+      if (url.pathname === '/api/qa/analytics') {
+        send(res, 200, await loadAnalytics(ALLURE_ROOT));
         return;
       }
       if (url.pathname === '/reader' || url.pathname === '/reader.html') {
@@ -466,7 +545,7 @@ const server = createServer(async (req, res) => {
         return;
       }
       if (url.pathname === '/api/qa/access') {
-        send(res, 200, accessView(who));
+        send(res, 200, { user: who.user });
         return;
       }
       if (url.pathname === '/api/qa/catalog') {
@@ -476,30 +555,53 @@ const server = createServer(async (req, res) => {
       if (url.pathname === '/api/qa/runs') {
         send(res, 200, {
           me: who.user,
-          remote: who.remote,
-          agent: manager.myAgent(who.user, clientIp(req)),
           capacity: manager.capacity(),
-          runs: manager.list(),
+          runs: allRuns(),
         });
         return;
       }
-      if (url.pathname === '/agent/setup.cmd') {
-        const script = agentSetupScript(req);
-        if (script === undefined) {
-          send(res, 503, 'Setup needs the server to be reachable on the network (npx pnpm qa:server) and an https git remote.', 'text/plain; charset=utf-8');
-          return;
-        }
-        send(res, 200, script, 'application/octet-stream', { 'Content-Disposition': 'attachment; filename="SGAP-setup.cmd"' });
-        return;
-      }
-      const runRead = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,})$/u);
+      const runRead = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,}|CLI)$/u);
       if (runRead) {
-        const run = manager.get(runRead[1]);
+        const run = findRun(runRead[1]);
         if (run === undefined) {
           send(res, 404, { ok: false, error: `${runRead[1]} not found.` });
           return;
         }
-        send(res, 200, { run, log: manager.log(run.id, Number(url.searchParams.get('since') ?? 0)) });
+        const log = run.external
+          ? { from: 0, next: 1, lines: [`Started from a terminal (PID ${run.pid}). Its console output stays in that terminal; the workers below are live from ${run.monitorUrl}.`] }
+          : manager.log(run.id, Number(url.searchParams.get('since') ?? 0));
+        send(res, 200, { run, log });
+        return;
+      }
+      const launchRef = url.pathname.match(/^\/api\/qa\/launch-url\/([0-9a-f]{48})$/u);
+      if (launchRef) {
+        const raw = manager.launchUrl(launchRef[1]);
+        if (raw === undefined) {
+          send(res, 404, { ok: false, error: 'No active run holds this Game URL.' });
+          return;
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        send(res, 200, { ok: true, url: raw });
+        return;
+      }
+      const runDiscovery = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,})\/discovery$/u);
+      if (runDiscovery) {
+        const run = manager.get(runDiscovery[1]);
+        if (run === undefined) {
+          send(res, 404, { ok: false, error: `${runDiscovery[1]} not found.` });
+          return;
+        }
+        send(res, 200, { run: run.id, ...savedDiscovery(run) });
+        return;
+      }
+      const runResources = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,})\/resources$/u);
+      if (runResources) {
+        const run = manager.get(runResources[1]);
+        if (run === undefined) {
+          send(res, 404, { ok: false, error: `${runResources[1]} not found.` });
+          return;
+        }
+        send(res, 200, { run: run.id, sessions: savedResources(run) });
         return;
       }
       // Root-level monitor reads (older bookmarks, the in-page links) follow the default run.
@@ -510,9 +612,36 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      if (url.pathname === '/api/qa/run') {
-        const result = manager.submit(who.user, parseJson(await readBody(req)), { ip: clientIp(req) });
+      if (url.pathname === '/api/qa/learned') {
+        const result = recordLearnedDecision(who.user, parseJson(await readBody(req)));
         send(res, result.status, result.body);
+        return;
+      }
+      if (url.pathname === '/api/qa/launch-url/check') {
+        const raw = parseJson(await readBody(req)).url;
+        const { ok, reasons, redacted, host, lan, hasToken } = checkLaunchUrl(raw);
+        const game = ok ? gameForLaunchUrl(raw, loadManifests()) : undefined;
+        const { gameKey, device } = ok ? launchUrlFacts(raw) : {};
+        send(res, 200, {
+          ok, reasons, redacted, host, lan, hasToken, gameKey, device,
+          gameId: game?.gameId,
+          gameName: game?.metadata?.launcherGameLabel ?? game?.gameId,
+          registered: ok ? game !== undefined : undefined,
+        });
+        return;
+      }
+      if (url.pathname === '/api/qa/pad/run') {
+        const result = manager.submitPad(who.user, parseJson(await readBody(req)));
+        send(res, result.status, result.body);
+        return;
+      }
+      if (url.pathname === '/api/qa/run') {
+        const result = manager.submit(who.user, parseJson(await readBody(req)));
+        send(res, result.status, result.body);
+        return;
+      }
+      if (url.pathname === `/api/qa/runs/${CLI_RUN_ID}/stop`) {
+        await proxyToRun(req, res, CLI_RUN_ID, '/api/stop', '', Buffer.from(JSON.stringify({ all: true })));
         return;
       }
       const runStop = url.pathname.match(/^\/api\/qa\/runs\/(RUN-\d{4,})\/stop$/u);
@@ -535,29 +664,16 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   });
 }
 
-server.listen(port, serverMode || share !== undefined ? '0.0.0.0' : '127.0.0.1', () => {
+server.listen(port, '127.0.0.1', () => {
   const pageUrl = `http://127.0.0.1:${port}/`;
+  process.env.SGAP_QA_PANEL_URL = `http://127.0.0.1:${server.address().port}`;
   const capacity = manager.capacity();
-  console.log(`SGAP control panel: ${pageUrl}   (this PC signs in as ${HOST_USER.name}, admin)`);
+  void loadAnalytics(ALLURE_ROOT).catch(() => undefined);
+  console.log(`SGAP control panel (local only): ${pageUrl}   (tester ${HOST_USER.name})`);
   console.log(
     `Capacity: up to ${capacity.maxBrowsers} game browsers at once (${capacity.limitedBy.detail})` +
       `${capacity.maxRuns ? `, ${capacity.maxRuns} runs` : ''}. Tune in .sgap/qa-server.json.`,
   );
-  if (serverMode) {
-    const urls = lanUrls(port, '').map((entry) => entry.replace(/\?key=$/u, ''));
-    console.log('Shared QA server — teammates open:');
-    for (const entry of urls.length > 0 ? urls : [`http://<this-pc-ip>:${port}/`]) console.log(`  ${entry}`);
-    console.log(
-      auth.enabled()
-        ? 'Each QA signs in with their own account (npx pnpm qa:users list).'
-        : 'No QA accounts yet — remote sign-in is closed until you add one: npx pnpm qa:users add <name> --role admin',
-    );
-  } else if (share !== undefined) {
-    const urls = lanUrls(port, share.key);
-    console.log(`Shared on the local network (${share.mode === 'view' ? 'view only' : 'control'}) — open on the other PC:`);
-    for (const entry of urls.length > 0 ? urls : [`http://<this-pc-ip>:${port}/?key=${share.key}`]) console.log(`  ${entry}`);
-    console.log('Remote browsers need the key once. Tests, browsers and files stay on this PC.');
-  }
   if (process.env.SGAP_QA_PAGE_NO_OPEN !== '1') {
     if (process.platform === 'win32') {
       spawn('cmd', ['/c', 'start', '""', pageUrl], { detached: true, stdio: 'ignore', windowsHide: true }).unref();

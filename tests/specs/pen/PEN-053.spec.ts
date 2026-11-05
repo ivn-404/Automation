@@ -1,20 +1,24 @@
 /**
- * PEN-053 — A token must stop working after the session is invalidated.
+ * PEN-053 — Replay a token after logout.
  *
- * Manual Test Case ID: PEN-053 (docs/PERSONALTESTING.md §security-extensions)
- * Intent: capture a token, log out / invalidate the session in the UI, then reconnect
- * with the old token — the hub must refuse it.
- *
- * BLOCKED (documented skip): the PEN harness has no logout/session-invalidation hook
- * for the staging account, and forcing a real logout would disrupt the shared launcher
- * session other cases depend on. Enable by wiring an operator-side session-revoke step
- * (or a second disposable account) before reconnecting with the captured token.
+ * The staging launcher page has no logout or session-revoke control that this
+ * harness can press. Invalidating the shared session from outside the page is
+ * not available here.
  */
 
 import { test } from '../../fixtures/index.js';
+import { startPenSession } from '../../support/pen-hub.js';
 
-test.describe('PEN — Authorization & token integrity', () => {
-  test.skip('PEN-053 post-logout token replay (needs a session-invalidation hook)', () => {
-    // Intentionally empty: see file header for why this is blocked.
+test.describe('PEN — Authorization', () => {
+  test('PEN-053 post-logout token replay', async ({ sgapSession, sgapDriver, page }, testInfo) => {
+    test.setTimeout(300_000);
+    const session = await startPenSession({ sgapSession, sgapDriver, page, testInfo, manualTestId: 'PEN-053' });
+    try {
+      const logout = page.getByRole('button', { name: /log out|sign out|revoke/i });
+      const visible = await logout.first().isVisible().catch(() => false);
+      test.skip(!visible, 'The launcher page has no logout or session-revoke control');
+    } finally {
+      session.client.close();
+    }
   });
 });

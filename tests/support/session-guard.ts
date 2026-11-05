@@ -332,4 +332,5 @@ export async function dismissErrorDialog(page: Page, driver: PlaywrightGameDrive
 }
 
 /** "Session is not active" style message painted by the game after the server rejects a call. */
-export const SESSION_INACTIVE_TEXT = /session (is )?not active|session expired|logged in (from )?(another|elsewhere)/iu;
+export const SESSION_INACTIVE_TEXT =
+  /opened in another window|session has been disconnected|session (is )?not active|session expired|logged in (from )?(another|elsewhere)/iu;

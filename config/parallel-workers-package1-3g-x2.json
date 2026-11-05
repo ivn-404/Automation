@@ -1,0 +1,34 @@
+{
+  "workers": 2,
+  "layout": "1 2",
+  "notes": "Remeasure Beelze-Bop and Mars Triumph. The first DevTools 3G pass stopped on a missing-texture placeholder, not the green splash button.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Beelze-Bop_LOAD3G1B",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "category": "PROBE",
+      "categories": ["PROBE"],
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "packageId": "1",
+      "testMatch": ["probe/**/LOAD-3G-PKG1.spec.ts"],
+      "playerId": "Mars Triumph_LOAD3G3B",
+      "monitor": 0,
+      "slot": 1
+    }
+  ]
+}

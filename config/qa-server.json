@@ -1,11 +1,10 @@
 {
-  "$comment": "Execution manager limits for the shared QA server (scripts/qa-testing-page.mjs --server). 'auto' = derived from this host's CPU cores and RAM. Override per host in .sgap/qa-server.json (git-ignored) instead of editing this file.",
+  "$comment": "Execution manager limits for the local control panel (scripts/qa-testing-page.mjs). 'auto' = derived from this PC's CPU cores and RAM. Override per PC in .sgap/qa-server.json (git-ignored) instead of editing this file.",
   "maxConcurrentRuns": "auto",
   "maxBrowsers": "auto",
   "memoryPerBrowserMB": 900,
   "reserveMemoryMB": 2048,
   "cpuCoresPerBrowser": 1,
   "whenFull": "queue",
-  "keepFinishedRuns": 200,
-  "sessionHours": 12
+  "keepFinishedRuns": 200
 }

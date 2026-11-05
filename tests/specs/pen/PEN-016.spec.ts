@@ -1,7 +1,7 @@
 /**
  * PEN-016 — Server ignores client-supplied outcome on settle.
  *
- * Manual Test Case ID: PEN-016 (docs/PERSONALTESTING.md §3)
+ * Manual Test Case ID: PEN-016 (docs/catalogs/PERSONALTESTING.md §3)
  * Intent: Cashout carries no outcome, but a malicious client may inject win data as
  * extra arguments/fields. The server must pay only what it dealt at StartRound, never
  * a client-claimed jackpot. Needs a joined session.

@@ -43,7 +43,7 @@ test.describe('Regression — pending catalog', () => {
       await allure.tag('regression');
       await allure.tag('pending');
 
-      test.skip(true, 'Not yet automated — listed in docs/RegressionTestCases.md');
+      test.skip(true, 'Not yet automated — listed in docs/catalogs/RegressionTestCases.md');
     });
   }
 });

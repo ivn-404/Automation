@@ -1,0 +1,61 @@
+{
+  "workers": 3,
+  "layout": "1 2 | 3",
+  "notes": "PROBE-001 on Package 3: one click per HUD control, pass only on the matching /bet payload; also writes bet-shape.json for payload path mapping.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "War Freaks_PRB2",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "id": 2,
+      "gameId": "rainbow-fist",
+      "gameName": "Rainbow Fist",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "Rainbow Fist_PRB2",
+      "monitor": 0,
+      "slot": 1,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "id": 3,
+      "gameId": "the-shuten-doji",
+      "gameName": "The Shuten Doji",
+      "category": "PROBE",
+      "categories": [
+        "PROBE"
+      ],
+      "testMatch": [
+        "probe/**/PROBE-001.spec.ts"
+      ],
+      "playerId": "The Shuten Doji_PRB2",
+      "monitor": 1,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

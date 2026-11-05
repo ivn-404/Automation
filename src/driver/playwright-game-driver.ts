@@ -293,10 +293,41 @@ export class PlaywrightGameDriver implements IGameDriver {
       at: Date.now(),
     };
 
+    console.log(
+      `[sgap-click] ${label} ${point.x.toFixed(3)},${point.y.toFixed(3)} via=${strategy}` +
+        `${options?.fallback === true ? ' fallback' : ''} once`,
+    );
     await canvas.click({ timeout, position, force: true });
     if (options?.singleInput === false) {
       await canvas.tap({ timeout, position, force: true }).catch(() => undefined);
     }
+  }
+
+  /**
+   * Page coordinates of a manifest action, resolved once so time-critical callers can
+   * tap it repeatedly with page.mouse (no per-tap canvas lookup).
+   */
+  async canvasPagePoint(
+    actionName: string,
+    options?: ObservableWaitOptions,
+  ): Promise<{ readonly x: number; readonly y: number }> {
+    this.requireAttached();
+    const canvasActions = this.manifest.canvasActions;
+    const point = canvasActions?.actions[actionName];
+    if (canvasActions === undefined || point === undefined) {
+      throw new Error(`Canvas action "${actionName}" is not defined for game "${this.gameId}"`);
+    }
+    const selector = canvasActions.canvasSelector ?? 'canvas';
+    const canvas = await this.resolveGameCanvas(selector, resolveTimeoutMs(options, this.defaultTimeoutMs));
+    const box = await canvas.boundingBox();
+    if (box === null) {
+      throw new Error(`Canvas "${selector}" has no bounding box for game "${this.gameId}"`);
+    }
+    const area = portraitHitArea(box, this.surfaceProfile.portraitAspect);
+    return {
+      x: box.x + Math.max(area.x + 1, Math.min(area.x + area.width - 1, area.x + area.width * point.x)),
+      y: box.y + Math.max(area.y + 1, Math.min(area.y + area.height - 1, area.y + area.height * point.y)),
+    };
   }
 
   private isManifestPoint(label: string, point: { readonly x: number; readonly y: number }): boolean {

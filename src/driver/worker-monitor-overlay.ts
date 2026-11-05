@@ -17,6 +17,12 @@ export function isWorkerMonitorEnabled(): boolean {
   return typeof process.env.SGAP_MONITOR_URL === 'string' && process.env.SGAP_MONITOR_URL.length > 0;
 }
 
+/** In-game HUD is opt-in. The Chrome worker monitor is the single persistent panel. */
+export function isInPageWorkerMonitorEnabled(): boolean {
+  const value = process.env.SGAP_INPAGE_MONITOR?.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes';
+}
+
 const RENDER_BODY = `
   const data = payload.data;
   const workerId = payload.workerId;
@@ -159,7 +165,7 @@ export async function installWorkerMonitorOverlay(
   page: Page,
   options?: { readonly workerId?: number },
 ): Promise<void> {
-  if (!isWorkerMonitorEnabled()) {
+  if (!isWorkerMonitorEnabled() || !isInPageWorkerMonitorEnabled()) {
     return;
   }
   const previous = overlays.get(page);
@@ -218,7 +224,7 @@ export async function refreshWorkerMonitorOverlay(
   page: Page,
   options?: { readonly workerId?: number },
 ): Promise<void> {
-  if (!isWorkerMonitorEnabled() || page.isClosed()) {
+  if (!isWorkerMonitorEnabled() || !isInPageWorkerMonitorEnabled() || page.isClosed()) {
     return;
   }
   if (!overlays.has(page)) {

@@ -64,6 +64,30 @@ function main(): void {
   assert(pack2.columns === 5 && pack2.rows === 3, `synthetic Package 2 should be 5×3, got ${pack2.columns}×${pack2.rows}`);
   assert(pack2.unknownSymbolIds.includes(11), 'id 11 should stay unknown without a catalog');
 
+  // Kobo Ass staging /bet (PROBE-001, 2026-10-09): area[row][col]; payline 9×4 rides the 2x wild on reel 4.
+  const rowMajor = readBackendSpin(
+    {
+      slot: {
+        area: [
+          [11, 3, 10, 7, 9],
+          [10, 9, 9, 12, 0],
+          [9, 1, 11, 5, 8],
+        ],
+        totalWin: 0.5,
+      },
+    },
+    { areaLayout: 'rows' },
+  );
+  assert(rowMajor.columns === 5 && rowMajor.rows === 3, `row-major Package 2 should be 5×3, got ${rowMajor.columns}×${rowMajor.rows}`);
+  assert(
+    rowMajor.grid.cells[3]![1]!.symbolId === 12 && rowMajor.grid.cells[4]![1]!.symbolId === 0,
+    `C4 R2 should be wild [12] and C5 R2 scatter [0], got [${rowMajor.grid.cells[3]![1]!.symbolId}] [${rowMajor.grid.cells[4]![1]!.symbolId}]`,
+  );
+  assert(
+    rowMajor.boards[0]!.ids[0]!.join(',') === '11,3,10,7,9',
+    `visual R1 should be the first payload row, got ${rowMajor.boards[0]!.ids[0]!.join(',')}`,
+  );
+
   const config: ReelValidationConfig = {
     areaPath: 'slot.area',
     tumblesPath: 'slot.tumbles',

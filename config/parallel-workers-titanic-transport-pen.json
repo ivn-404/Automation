@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1 2 | 3 4",
+  "notes": "PEN-070, PEN-071, and PEN-072: Titanic Transport slot pentest pack. Scratch-hub PEN is not included.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "category": "PEN",
+      "categories": ["PEN"],
+      "gameId": "titanic-transport",
+      "gameName": "Titanic Transport",
+      "packageId": "5",
+      "testMatch": ["pen/**/PEN-070.spec.ts", "pen/**/PEN-071.spec.ts", "pen/**/PEN-072.spec.ts"],
+      "playerId": "Titanic Transport_PEN75",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 /**
  * PEN-056 — Two sockets sharing one token must not diverge the balance.
  *
- * Manual Test Case ID: PEN-056 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-056 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: open a second socket with the same token and act on both. Each connection must
  * see the other's debits/credits (one authoritative balance), with no double credit.
  */

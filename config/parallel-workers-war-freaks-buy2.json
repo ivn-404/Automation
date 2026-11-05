@@ -1,0 +1,28 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "War Freaks: remaining buy-entry failures after spin/splash overlap fix on package-3 surface.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "war-freaks",
+      "gameName": "War Freaks",
+      "category": "STAB",
+      "categories": ["BF", "CSF", "UIDS"],
+      "testMatch": [
+        "bf/**/BF-002.spec.ts",
+        "bf/**/BF-008.spec.ts",
+        "csf/**/CSF-012.spec.ts",
+        "uids/**/UIDS-004.spec.ts"
+      ],
+      "playerId": "War Freaks_BUY2",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

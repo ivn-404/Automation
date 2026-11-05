@@ -1,7 +1,7 @@
 /**
  * PEN-051 — The hub must validate the JWT signature and expiry.
  *
- * Manual Test Case ID: PEN-051 (docs/PERSONALTESTING.md §security-extensions)
+ * Manual Test Case ID: PEN-051 (docs/catalogs/PERSONALTESTING.md §security-extensions)
  * Intent: connect with a tampered access_token and confirm the backend refuses it.
  * Variants: `alg:none`, a flipped `sub` claim, and an expired `exp`. We cannot re-sign
  * (no key), so every variant also breaks the signature — a correct server rejects them
@@ -9,6 +9,7 @@
  */
 
 import { test } from '../../fixtures/index.js';
+import { recordPenExchange } from '../../support/pen-evidence.js';
 import { expectPenChecks, penCheck, startPenSession, tamperToken, type TokenTamper } from '../../support/pen-hub.js';
 import { ScratchHubClient, parseScratchRound, type HubCompletion } from '../../../src/network/index.js';
 
@@ -47,6 +48,12 @@ test.describe('PEN — Authorization & token integrity', () => {
         } finally {
           probe?.close();
         }
+        await recordPenExchange({
+          page,
+          title: `JoinScratch with ${variant} token`,
+          request: { variant, hub: 'wss://stg-crashgame-api.dijoker.com/hubs/game', accessToken: '[redacted]' },
+          response: { rejected, detail },
+        });
         checks.push(
           penCheck(rejected, `Tampered token [${variant}] rejected — ${detail}`, 'rejected', detail),
         );

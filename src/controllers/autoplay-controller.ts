@@ -16,6 +16,8 @@ import { clearCanvasOverlays, markSpinTriggered } from '../platform/canvas-sessi
 import { ControllerDisabledError } from './registry/errors.js';
 import { clickCanvasControl } from './strategy/click-control.js';
 import { matchesBetUrl } from '../network/bet-url.js';
+import { candidatePoints, phaserBand } from '../surfaces/index.js';
+import { listPhaserTexts } from '../runtime/index.js';
 
 export interface AutoplayControllerOptions {
   readonly driver: PlaywrightGameDriver;
@@ -74,15 +76,28 @@ export class AutoplayController implements IAutoplayController {
           intent: 'autoplay',
         });
         await clickCanvasControl(this.driver, this.manifest, 'autoplay', options);
-        const spinCountAction = options?.spinCountAction;
-        if (
-          spinCountAction !== undefined &&
-          this.manifest.canvasActions?.actions[spinCountAction] !== undefined
-        ) {
-          await this.driver.clickCanvas(spinCountAction, {
-            ...options,
-            singleInput: true,
-          });
+        const spinCountAction =
+          options?.spinCountAction ?? this.manifest.metadata?.autoplaySpinCountAction;
+        const spinCountPoint =
+          spinCountAction === undefined ? undefined : this.manifest.canvasActions?.actions[spinCountAction];
+        if (spinCountAction !== undefined && spinCountPoint !== undefined) {
+          // The panel animates in; a tap before its count label renders keeps the previous
+          // or default count, and autoplay then runs a different number of spins.
+          const label = await this.waitForSpinCountLabel(spinCountPoint);
+          if (label !== undefined) {
+            await this.driver.clickCanvasAt(label, {
+              ...options,
+              singleInput: true,
+              label: spinCountAction,
+              strategy: 'phaser',
+            });
+          } else {
+            await this.driver.getPage().waitForTimeout(800);
+            await this.driver.clickCanvas(spinCountAction, {
+              ...options,
+              singleInput: true,
+            });
+          }
         }
         if (this.manifest.metadata?.autoplayNeedsConfirm === 'true') {
           await this.confirmAutoplayStart(options);
@@ -96,29 +111,76 @@ export class AutoplayController implements IAutoplayController {
     }
   }
 
+  /** Centre of the panel's spin-count label (metadata.autoplaySelectedSpins) near the manifest point. */
+  private async waitForSpinCountLabel(
+    near: { readonly x: number; readonly y: number },
+    timeoutMs = 4_000,
+  ): Promise<{ x: number; y: number } | undefined> {
+    const wanted = this.manifest.metadata?.autoplaySelectedSpins?.trim();
+    if (wanted === undefined || wanted === '') {
+      return undefined;
+    }
+    const page = this.driver.getPage();
+    const deadline = Date.now() + timeoutMs;
+    let previous: { x: number; y: number } | undefined;
+    while (Date.now() < deadline) {
+      const texts = await listPhaserTexts(page, this.driver.iframeSelector).catch(() => []);
+      const hit = texts
+        .filter((entry) => entry.text.trim() === wanted && entry.gameWidth > 0 && entry.gameHeight > 0)
+        .map((entry) => ({
+          x: (entry.x + entry.width / 2) / entry.gameWidth,
+          y: (entry.y + entry.height / 2) / entry.gameHeight,
+        }))
+        .filter((point) => Math.hypot(point.x - near.x, point.y - near.y) < 0.08)
+        .sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y))[0];
+      // The panel slides in: a label read mid-animation is not where it will be when tapped.
+      if (hit !== undefined && previous !== undefined && Math.hypot(hit.x - previous.x, hit.y - previous.y) < 0.005) {
+        return hit;
+      }
+      previous = hit;
+      await page.waitForTimeout(250);
+    }
+    return previous;
+  }
+
   private async confirmAutoplayStart(options?: ObservableWaitOptions): Promise<void> {
     const page = this.driver.getPage();
     const timeoutMs = Math.min(options?.timeoutMs ?? 12_000, 10_000);
-    const confirmNames = ['autoplayConfirm', 'autoplayStart'] as const;
+    const points = uniquePoints([
+      ...candidatePoints(this.driver.surface, this.manifest, 'autoplayConfirm'),
+      ...candidatePoints(this.driver.surface, this.manifest, 'autoplayStart', ['autoplayStartAlt']),
+    ]);
 
     let lastError: unknown;
-    for (let attempt = 0; attempt < confirmNames.length; attempt += 1) {
-      const actionName = confirmNames[attempt]!;
-      if (this.manifest.canvasActions?.actions[actionName] === undefined) {
-        continue;
-      }
+    for (const point of points) {
       const betPromise = page.waitForResponse(
         (response) => response.ok() && matchesBetUrl(response.url()),
         { timeout: timeoutMs },
       );
-      await this.driver.clickCanvas(actionName, {
+      await this.driver.clickCanvasAt(point, {
         ...options,
         singleInput: true,
         timeoutMs: 10_000,
-        useHealedRatio: attempt > 0,
+        label: 'autoplayStart',
+        strategy: 'candidate',
       });
       try {
         await betPromise;
+        // A single /bet can be a HUD spin miss. Autoplay keeps firing, but a cascade or
+        // big-win animation can hold the next autoplay /bet back well past 12 s; giving up
+        // early re-taps the start flow on top of a running autoplay.
+        const second = await page
+          .waitForResponse(
+            (response) => response.ok() && matchesBetUrl(response.url()),
+            { timeout: 30_000 },
+          )
+          .catch(() => undefined);
+        if (second === undefined) {
+          lastError = new Error(
+            `autoplayStart ${point.x.toFixed(3)},${point.y.toFixed(3)} produced one /bet, not autoplay`,
+          );
+          continue;
+        }
         markSpinTriggered(this.driver);
         return;
       } catch (error: unknown) {
@@ -145,8 +207,11 @@ export class AutoplayController implements IAutoplayController {
       const rendering = this.manifest.metadata?.rendering ?? 'dom';
       await clearCanvasOverlays(this.driver, this.manifest, 1, { allowGridSpam: false });
       if (rendering === 'canvas') {
+        // Stop is the same button that started autoplay. A pinned autoplayStop
+        // with no scene-graph band is a stale ratio — use the live control.
+        const stopPinned = this.manifest.canvasActions?.actions.autoplayStop !== undefined;
         const stopAction =
-          this.manifest.canvasActions?.actions.autoplayStop !== undefined
+          stopPinned && phaserBand(this.driver.surface, 'autoplayStop') !== undefined
             ? 'autoplayStop'
             : 'autoplay';
         await clickCanvasControl(this.driver, this.manifest, stopAction, options);
@@ -158,4 +223,20 @@ export class AutoplayController implements IAutoplayController {
       this.lockState = { locked: false };
     }
   }
+}
+
+function uniquePoints(
+  points: readonly { readonly x: number; readonly y: number }[],
+): readonly { readonly x: number; readonly y: number }[] {
+  const seen = new Set<string>();
+  const unique: { readonly x: number; readonly y: number }[] = [];
+  for (const point of points) {
+    const key = `${point.x.toFixed(3)},${point.y.toFixed(3)}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(point);
+  }
+  return unique;
 }
