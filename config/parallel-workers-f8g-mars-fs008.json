@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F8-G: Mars Triumph FS-008 live contract check vs Sugar/Beelze/Felice. Two Buy Feature attempts max, no FS-008 wallet refill, isolated player Mars Triumph_F8G. Fixture target 250 only tops up if the wallet is below that. Authorized gross spend cap 200 at bet 1.00.",
+  "defaultBalance": 250,
+  "defaultBetLimit": 250,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "mars-triumph",
+      "gameName": "Mars Triumph",
+      "category": "REGR",
+      "categories": ["FS"],
+      "testMatch": ["fs/**/FS-008.spec.ts"],
+      "playerId": "Mars Triumph_F8G",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

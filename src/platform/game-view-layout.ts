@@ -56,18 +56,20 @@ export function innerViewportForWindow(outer: {
 }
 
 /**
- * Largest portrait rectangle that fits in `container`, keeping the preferred
- * aspect (default 390×844). Always returns width < height.
+ * Largest portrait rectangle that fills `container`, keeping the preferred
+ * aspect (default 390×844). `preferred` is the shape, not a max size — a
+ * 960×1032 worker pane must scale the game up, not leave a 390×844 phone
+ * strip with white letterbox. Always returns width < height.
  */
 export function fitPortraitSize(
   container: { readonly width: number; readonly height: number },
   preferred: { readonly width: number; readonly height: number } = PORTRAIT_ASPECT,
 ): { readonly width: number; readonly height: number } {
   const aspect = preferred.width / preferred.height;
-  let height = Math.min(container.height, preferred.height);
+  let height = Math.max(1, container.height);
   let width = Math.round(height * aspect);
   if (width > container.width) {
-    width = container.width;
+    width = Math.max(1, container.width);
     height = Math.round(width / aspect);
   }
   width = Math.max(200, width);

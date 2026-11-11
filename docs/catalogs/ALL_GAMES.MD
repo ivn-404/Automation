@@ -31,7 +31,7 @@ Necronomicoin	Slot	00280326
 Trippy Cat	Slot	00162025 
 Sugar Pals	Slot	00162025 
 Fang Shui Fortunes	Slot	00230126 - NOT YET RELEASED
-Fruit Attack	Slot	00190126 - NOT YET RELEASED
+Fruit Attack	Slot	00190126
 Rangda	Slot	00210126 - NOT YET RELEASED
 
 
@@ -77,6 +77,9 @@ Trippy Cat
 Mad Freak
 Necronomicoin
 Sugar Pals
+
+Package 9
+Fruit Attack
 
 Package 11
 Joker Ace

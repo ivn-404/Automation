@@ -134,7 +134,7 @@ export function selectionSuite(catalog, tokens, cwd = process.cwd()) {
 export const URL_PACKAGE = 'url';
 export const UNREGISTERED_GAME = 'unregistered';
 
-function packageGamesOf(catalog, pkg, games) {
+export function packageGamesOf(catalog, pkg, games) {
   return pkg === URL_PACKAGE ? (games ?? [UNREGISTERED_GAME]) : catalog.packages[pkg];
 }
 

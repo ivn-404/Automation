@@ -371,6 +371,11 @@ export async function clearInterferingScreens(
     // Canvas-drawn session Continue is invisible to getByText — detect via colour.
     if (screen.id === 'base-idle' || via === 'idle') {
       const blocker = await detectCanvasBlocker(options.driver);
+      // Autoplay hides the idle spin circle. A dark reel board then reads as
+      // press-anywhere; tapping 0.5,0.55 fights the count panel / running autoplay.
+      if (intent === 'autoplay' && blocker.kind === 'press-anywhere') {
+        return last;
+      }
       if (isDismissableBlocker(blocker.kind)) {
         const dismissed = await dismissCanvasBlocker(
           options.driver,

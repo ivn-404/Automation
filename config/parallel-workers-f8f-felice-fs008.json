@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F8-F: Felice in Space FS-008 after read-only F5 preflight. Two Buy Feature attempts max, no FS-008 wallet refill, isolated player Felice in Space_F8F (not REG1). Fixture target 250 only tops up if the wallet is below that. Authorized gross spend cap 200 at bet 1.00. Stop on F5; do not repair.",
+  "defaultBalance": 250,
+  "defaultBetLimit": 250,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "felice-in-space",
+      "gameName": "Felice in Space",
+      "category": "REGR",
+      "categories": ["FS"],
+      "testMatch": ["fs/**/FS-008.spec.ts"],
+      "playerId": "Felice in Space_F8F",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

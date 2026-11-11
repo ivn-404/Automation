@@ -31,6 +31,7 @@ import path from 'node:path';
 
 import { publishAllureReport } from './generate-allure-report.mjs';
 import { assessCases, caseRequirements } from './lib/case-requirements.mjs';
+import { printQueueEligibility } from './lib/eligibility-summary.mjs';
 import {
   findSuite,
   launcherModeFor,
@@ -134,6 +135,8 @@ console.log(` environment: ${launcherMode ?? process.env.SGAP_LAUNCHER_MODE ?? '
 console.log(` browser    : ${hideBrowser ? 'hidden off-screen' : 'visible'} · failure screenshots ${screenshots ? 'on' : 'off'} · trace ${trace ? 'retain-on-failure' : 'off'}`);
 console.log(` each       : games side by side via worker monitor${dryRun ? ' (DRY RUN — nothing launched)' : ''}`);
 console.log('────────────────────────────────────────');
+
+await printQueueEligibility({ catalog, suite, queue, games, caseId, cwd });
 
 const manifests = loadManifests(cwd);
 const managed = isManagedRun();

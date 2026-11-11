@@ -184,6 +184,26 @@ export function classifyCanvasPng(
   return { kind: 'none', detail: 'no canvas blocker detected' };
 }
 
+const CONTINUE_LABEL = /^(CONTINUE|RESUME)$/iu;
+const ONGOING_ROUND_TEXT =
+  /ongoing (free )?spin|ongoing (bonus|hold)|unfinished round|you have an ongoing|from the last session|continue this round/iu;
+
+function phaserConfirmsContinue(texts: readonly PhaserTextHit[]): boolean {
+  return texts.some(
+    (hit) => CONTINUE_LABEL.test(hit.text.trim()) || ONGOING_ROUND_TEXT.test(hit.text),
+  );
+}
+
+function splashPlayBlocker(play: PhaserHit): CanvasBlocker {
+  return {
+    kind: 'splash-play',
+    detail:
+      `Phaser splash Play at ${play.xRatio.toFixed(3)},${play.yRatio.toFixed(3)} ` +
+      `${play.width}x${play.height} (${play.type})`,
+    center: { x: play.xRatio, y: play.yRatio },
+  };
+}
+
 export async function detectCanvasBlocker(
   driver: PlaywrightGameDriver,
 ): Promise<CanvasBlocker> {
@@ -192,6 +212,36 @@ export async function detectCanvasBlocker(
     return { kind: 'none', detail: 'could not capture game canvas' };
   }
   const raw = classifyCanvasPng(capture.png, driver.surface);
+  const texts = await listPhaserTexts(driver.getPage(), driver.iframeSelector).catch(
+    () => [] as readonly PhaserTextHit[],
+  );
+  const confirmedContinue = phaserConfirmsContinue(texts);
+  if (confirmedContinue) {
+    return {
+      kind: 'session-continue',
+      detail: raw.kind === 'session-continue' ? raw.detail : 'Phaser CONTINUE / leftover-round text',
+      center:
+        raw.kind === 'session-continue' && raw.center !== undefined
+          ? capture.toActionRatio(raw.center)
+          : { x: 0.5, y: 0.56 },
+      areaRatio: raw.areaRatio,
+    };
+  }
+
+  // Attract Play sits on a bright splash, so the dark-panel path never ran and a
+  // mid-screen green splat (loading paint) used to win as session-continue.
+  const play = await findSplashPlayByPhaser(driver);
+  if (play !== undefined) {
+    return splashPlayBlocker(play);
+  }
+
+  if (raw.kind === 'session-continue') {
+    return {
+      kind: 'none',
+      detail: `ignored green blob without Continue text — ${raw.detail}`,
+    };
+  }
+
   if (raw.kind === 'none') {
     const prompt = await findPressAnywhereText(driver);
     const center = driver.surface.pressAnywhere?.center;
@@ -204,15 +254,9 @@ export async function detectCanvasBlocker(
     }
   }
   if (raw.kind === 'press-anywhere') {
-    const play = await findSplashPlayByPhaser(driver);
-    if (play !== undefined) {
-      return {
-        kind: 'splash-play',
-        detail:
-          `Phaser splash Play at ${play.xRatio.toFixed(3)},${play.yRatio.toFixed(3)} ` +
-          `${play.width}x${play.height} (${play.type}) — not press-anywhere`,
-        center: { x: play.xRatio, y: play.yRatio },
-      };
+    const splash = await findSplashPlayByPhaser(driver);
+    if (splash !== undefined) {
+      return splashPlayBlocker(splash);
     }
   }
   if (raw.center === undefined) {
@@ -342,34 +386,18 @@ export interface HudState {
  * unrecognised spin reads as not idle, so callers keep their dismiss behaviour.
  */
 export async function readHudState(driver: PlaywrightGameDriver): Promise<HudState> {
+  const blocker = await detectCanvasBlocker(driver);
+  if (blocker.kind !== 'none') {
+    return { idle: false, blocker, detail: blocker.detail };
+  }
   const capture = await driver.captureCanvasForVision().catch(() => undefined);
   if (capture === undefined) {
-    const blocker: CanvasBlocker = { kind: 'none', detail: 'could not capture game canvas' };
-    return { idle: false, blocker, detail: blocker.detail };
-  }
-  const raw = classifyCanvasPng(capture.png, driver.surface);
-  if (raw.kind !== 'none') {
-    const blocker = raw.kind === 'press-anywhere' ? await detectCanvasBlocker(driver) : {
-      ...raw,
-      center: raw.center === undefined ? undefined : capture.toActionRatio(raw.center),
-    };
-    return { idle: false, blocker, detail: blocker.detail };
+    return { idle: false, blocker, detail: 'could not capture game canvas' };
   }
   const spin = findIdleSpinInPng(capture.png, driver.surface);
-  if (spin === undefined) {
-    const play = await findSplashPlayByPhaser(driver);
-    if (play !== undefined) {
-      const blocker: CanvasBlocker = {
-        kind: 'splash-play',
-        detail: `Phaser splash Play at ${play.xRatio.toFixed(3)},${play.yRatio.toFixed(3)} ${play.width}x${play.height} (${play.type})`,
-        center: { x: play.xRatio, y: play.yRatio },
-      };
-      return { idle: false, blocker, detail: blocker.detail };
-    }
-  }
   return {
     idle: spin !== undefined,
-    blocker: raw,
+    blocker,
     detail:
       spin === undefined
         ? 'idle spin not visible'

@@ -20,7 +20,15 @@
     "scatterMode": true,
     "maxWin": true
   },
-  "notes": "Grid size is a hint only — reader always uses slot.area length. Backend ids follow the spec: [0]=Scatter, [1]=Heart Candy (High). Help/Payout order is not the backend id.",
+  "freeSpinRetriggerRules": {
+    "scatterEntryAt": 4,
+    "scatterRetriggerAt": 3,
+    "awardKind": "add",
+    "awardSpins": 5,
+    "purchasedOpenerInBonus": true,
+    "awardLagItems": 1
+  },
+  "notes": "Grid size is a hint only — reader always uses slot.area length. Backend ids follow the spec: [0]=Scatter, [1]=Heart Candy (High). Help/Payout order is not the backend id. Base game 4+ scatters open 10 free spins; during the bonus 3+ scatters add 5. Buy Bonus grants 10. Do not treat the opening 4-scatter board as a re-trigger.",
   "symbols": [
     { "id": 0, "name": "Scatter", "visualName": "Scatter Candy", "kind": "scatter", "assetKey": "Scatter" },
     { "id": 1, "name": "Heart", "visualName": "Heart Candy", "kind": "high", "assetKey": "Symbol1" },

@@ -3,7 +3,7 @@
  * Docs under docs/catalogs/RegressionTestCases.md and docs/catalogs/SmokeTestingTestCases.md must not be edited here.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 export type TestSuiteKind = 'regression' | 'smoke';
@@ -33,6 +33,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   MN: 'Menu',
   SCG: 'Scratch Game',
   PEN: 'Pentesting',
+  CAPTURE: 'Rare-event capture',
 };
 
 /** Specs that already execute against Sugar Wonderland (regression wave). */
@@ -189,7 +190,18 @@ export function parseTestCasesMarkdown(
 function catalogPath(suite: TestSuiteKind): string {
   const file =
     suite === 'regression' ? 'RegressionTestCases.md' : 'SmokeTestingTestCases.md';
-  return path.join(process.cwd(), 'docs', file);
+  const candidates = [
+    path.join(process.cwd(), 'docs', 'catalogs', file),
+    path.join(process.cwd(), 'docs', file),
+  ];
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (found === undefined) {
+    throw new Error(
+      `QA catalog missing: ${file} (looked in docs/catalogs/ and docs/). ` +
+        `Every package regression reads this file — restore it before running tests.`,
+    );
+  }
+  return found;
 }
 
 const catalogCache = new Map<TestSuiteKind, CatalogCase[]>();

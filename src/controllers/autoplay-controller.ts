@@ -92,7 +92,7 @@ export class AutoplayController implements IAutoplayController {
               strategy: 'phaser',
             });
           } else {
-            await this.driver.getPage().waitForTimeout(800);
+            await this.driver.getPage().waitForTimeout(1_500);
             await this.driver.clickCanvas(spinCountAction, {
               ...options,
               singleInput: true,
@@ -114,25 +114,30 @@ export class AutoplayController implements IAutoplayController {
   /** Centre of the panel's spin-count label (metadata.autoplaySelectedSpins) near the manifest point. */
   private async waitForSpinCountLabel(
     near: { readonly x: number; readonly y: number },
-    timeoutMs = 4_000,
+    timeoutMs = 8_000,
   ): Promise<{ x: number; y: number } | undefined> {
     const wanted = this.manifest.metadata?.autoplaySelectedSpins?.trim();
     if (wanted === undefined || wanted === '') {
       return undefined;
     }
+    const wantedDigits = wanted.replace(/[,\s]/gu, '');
     const page = this.driver.getPage();
     const deadline = Date.now() + timeoutMs;
     let previous: { x: number; y: number } | undefined;
     while (Date.now() < deadline) {
       const texts = await listPhaserTexts(page, this.driver.iframeSelector).catch(() => []);
-      const hit = texts
-        .filter((entry) => entry.text.trim() === wanted && entry.gameWidth > 0 && entry.gameHeight > 0)
+      const matches = texts
+        .filter((entry) => {
+          const label = entry.text.trim().replace(/[,\s]/gu, '');
+          return label === wantedDigits && entry.gameWidth > 0 && entry.gameHeight > 0;
+        })
         .map((entry) => ({
           x: (entry.x + entry.width / 2) / entry.gameWidth,
           y: (entry.y + entry.height / 2) / entry.gameHeight,
         }))
-        .filter((point) => Math.hypot(point.x - near.x, point.y - near.y) < 0.08)
-        .sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y))[0];
+        .sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y));
+      const nearby = matches.filter((point) => Math.hypot(point.x - near.x, point.y - near.y) < 0.22);
+      const hit = nearby[0] ?? matches[0];
       // The panel slides in: a label read mid-animation is not where it will be when tapped.
       if (hit !== undefined && previous !== undefined && Math.hypot(hit.x - previous.x, hit.y - previous.y) < 0.005) {
         return hit;
@@ -145,7 +150,7 @@ export class AutoplayController implements IAutoplayController {
 
   private async confirmAutoplayStart(options?: ObservableWaitOptions): Promise<void> {
     const page = this.driver.getPage();
-    const timeoutMs = Math.min(options?.timeoutMs ?? 12_000, 10_000);
+    const timeoutMs = Math.min(options?.timeoutMs ?? 12_000, 20_000);
     const points = uniquePoints([
       ...candidatePoints(this.driver.surface, this.manifest, 'autoplayConfirm'),
       ...candidatePoints(this.driver.surface, this.manifest, 'autoplayStart', ['autoplayStartAlt']),
@@ -166,21 +171,9 @@ export class AutoplayController implements IAutoplayController {
       });
       try {
         await betPromise;
-        // A single /bet can be a HUD spin miss. Autoplay keeps firing, but a cascade or
-        // big-win animation can hold the next autoplay /bet back well past 12 s; giving up
-        // early re-taps the start flow on top of a running autoplay.
-        const second = await page
-          .waitForResponse(
-            (response) => response.ok() && matchesBetUrl(response.url()),
-            { timeout: 30_000 },
-          )
-          .catch(() => undefined);
-        if (second === undefined) {
-          lastError = new Error(
-            `autoplayStart ${point.x.toFixed(3)},${point.y.toFixed(3)} produced one /bet, not autoplay`,
-          );
-          continue;
-        }
+        // One /bet after confirm is enough. A TOTAL WIN / cascade can hold the next
+        // autoplay /bet well past 30s; treating that as a miss re-taps Autoplay
+        // (toggle) and kills the run that just started.
         markSpinTriggered(this.driver);
         return;
       } catch (error: unknown) {

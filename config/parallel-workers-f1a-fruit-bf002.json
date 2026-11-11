@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F1-A reporting verification: Fruit Attack BF-002. Expect N/A (buyFeature enabled:false).",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "fruit-attack",
+      "gameName": "Fruit Attack",
+      "category": "REGR",
+      "categories": ["BF"],
+      "testMatch": ["bf/**/BF-002.spec.ts"],
+      "playerId": "Fruit Attack_F1A",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

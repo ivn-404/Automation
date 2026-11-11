@@ -1,0 +1,8 @@
+{
+  "gameId": "mars-triumph",
+  "source": "Overnight pkg1 AT-003 2026-11-07, sanitized copy of allure-results/queue-regression/pkg1/w4/9099119d-784f-4eb1-8c47-154ea16ae6f8-attachment.txt plus monitor events. Originals not modified.",
+  "injectedReachedStaging": false,
+  "recovery": { "stake": 1, "win": 0, "serverBalance": 14998 },
+  "dialog": { "displayed": true, "dismissed": true, "source": "legacy-helper" },
+  "timeline": "time                 HUD      server        host  Δ hud-srv  trigger / related\n07:45:59.826           —           —    14998.25          —  sample\n07:46:00.844           —           —    15000.00          —  sample\n07:46:36.431    15000.00           —    15000.00          —  sample\n07:46:48.660    14999.66           —    15000.00          —  sample\n07:46:49.201    14999.00           —    15000.00          —  sample\n07:46:50.645    14999.00    14999.00    15000.00          0  bet response ← #84 POST /api/v1/slots/bet → 201 1894ms\n07:46:52.019    14999.00    14999.00    14999.00          0  sample\n07:46:57.265    14998.00    14999.00    14999.00      -1.00  sample\n07:47:20.782    14998.00    14999.00    14999.00      -1.00  after error recovery\n07:47:27.444    14997.00    14999.00    14999.00      -2.00  sample\n07:47:28.572    14997.00    14998.00    14999.00      -1.00  bet response ← #122 POST /api/v1/slots/bet → 201 1269ms\n07:47:29.473    14997.99    14998.00    14999.00      -0.01  sample\n07:47:30.032    14998.00    14998.00    14998.00          0  sample\n07:47:36.640    14998.00    14998.00    14998.00          0  test end\n"
+}

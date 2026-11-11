@@ -7,7 +7,14 @@ import { allure } from 'allure-playwright';
 import type { TestInfo } from '@playwright/test';
 
 import { getLauncherMode } from '../fixtures/local-launcher-html.js';
-import { isNotApplicableReason } from '../../src/capabilities/index.js';
+import { isNotApplicableReason, isNotConfiguredReason } from '../../src/capabilities/index.js';
+
+/** Skip whose reason is a bounded RNG miss or unreadable payload — not a product defect. */
+export const INCONCLUSIVE_PREFIX = 'INCONCLUSIVE —';
+
+export function isInconclusiveReason(reason: string | undefined): boolean {
+  return reason?.startsWith(INCONCLUSIVE_PREFIX) === true;
+}
 import {
   formatInteractions,
   summarizeInteractions,
@@ -35,6 +42,8 @@ export async function applySgapAllureMetadata(
   await allure.epic('SGAP');
   await allure.label('framework', 'sgap');
   await allure.label('gameId', gameId);
+  // Non-excluded parameter so Allure historyId distinguishes games. Labels alone do not.
+  await allure.parameter('gameId', gameId);
   await allure.label('launcherMode', getLauncherMode());
   await allure.label('browserProject', testInfo.project.name);
   const packageId = testInfo.project.metadata?.sgapPackageId;
@@ -57,7 +66,9 @@ export async function applySgapAllureMetadata(
   await allure.feature(feature);
   await allure.story(manualTestId);
   await allure.displayName(
-    catalog !== undefined ? `${manualTestId} - ${catalog.title}` : manualTestId,
+    catalog !== undefined
+      ? `${manualTestId} [${gameId}] - ${catalog.title}`
+      : `${manualTestId} [${gameId}]`,
   );
   if (catalog !== undefined) {
     await allure.description(catalog.title);
@@ -118,17 +129,50 @@ export async function applySgapInteractionMetadata(
 /**
  * After the test: a skip whose reason starts with `N/A` means the game does not
  * support the feature, which is a result of its own — not a pending or broken case.
+ * A failed capability-gate throw is labelled `NOT CONFIGURED` but stays failed.
  */
 export async function applySgapOutcomeMetadata(testInfo: TestInfo): Promise<void> {
-  if (testInfo.status !== 'skipped') {
+  if (testInfo.status === 'skipped') {
+    const reason = testInfo.annotations.find((entry) => entry.type === 'skip')?.description;
+    if (isNotApplicableReason(reason)) {
+      testInfo.annotations.push({ type: 'outcome', description: 'N/A' });
+      await allure.label('outcome', 'N/A');
+      await allure.tag('N/A');
+      await allure.description(reason!);
+      return;
+    }
+    if (isInconclusiveReason(reason)) {
+      testInfo.annotations.push({ type: 'outcome', description: 'INCONCLUSIVE' });
+      await allure.label('outcome', 'INCONCLUSIVE');
+      await allure.tag('INCONCLUSIVE');
+      await allure.description(reason!);
+      return;
+    }
     return;
   }
-  const reason = testInfo.annotations.find((entry) => entry.type === 'skip')?.description;
-  if (!isNotApplicableReason(reason)) {
+
+  if (testInfo.status !== 'failed' && testInfo.status !== 'timedOut') {
     return;
   }
-  testInfo.annotations.push({ type: 'outcome', description: 'N/A' });
-  await allure.label('outcome', 'N/A');
-  await allure.tag('N/A');
-  await allure.description(reason!);
+  const errorText = testInfo.errors.map((entry) => entry.message ?? '').join('\n');
+  if (!isNotConfiguredReason(errorText)) {
+    return;
+  }
+  await applyNotConfiguredOutcome(testInfo);
+}
+
+/** Label a capability-gate failure. Status remains failed — call before throw from setup. */
+export async function applyNotConfiguredOutcome(
+  testInfo: TestInfo,
+  reason?: string,
+): Promise<void> {
+  if (testInfo.annotations.some((entry) => entry.type === 'outcome' && entry.description === 'NOT CONFIGURED')) {
+    return;
+  }
+  testInfo.annotations.push({ type: 'outcome', description: 'NOT CONFIGURED' });
+  await allure.label('outcome', 'NOT CONFIGURED');
+  await allure.tag('NOT CONFIGURED');
+  if (reason !== undefined && reason.length > 0) {
+    await allure.description(reason);
+  }
 }

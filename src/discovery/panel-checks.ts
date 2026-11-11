@@ -145,7 +145,7 @@ export async function checkScratchDrawer(page: Page, button: Point, shared: Shar
   return { target: 'scratchCard', verified: verified && closed, closed, evidence, measured: reading.measured };
 }
 
-const AUTOPLAY_COUNT = /^(10|20|25|30|50|75|100|200|500|∞)$/u;
+const AUTOPLAY_COUNT = /^(10|20|25|30|50|75|100|200|500|1,?000|∞)$/u;
 const AUTOPLAY_START = /^(start|autoplay)$/iu;
 const MENU_ITEM = /^(settings|sound|music|help|info|paytable|rules|history|home|lobby)$/iu;
 const BUY_LABEL = /buy\s*(feature|bonus|fs|now)?|^buy$/iu;

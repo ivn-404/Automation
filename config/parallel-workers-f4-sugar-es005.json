@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F4-B Stage 1: Sugar Wonderland ES-005 only. Staging wallet to 100, then refresh relock.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "REGR",
+      "categories": ["ES"],
+      "testMatch": ["es/**/ES-005.spec.ts"],
+      "playerId": "Sugar Wonderland_F4",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

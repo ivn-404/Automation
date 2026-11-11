@@ -1,0 +1,8 @@
+{
+  "gameId": "beelze-bop",
+  "source": "Overnight pkg1 AT-003 2026-11-07, sanitized copy of allure-results/queue-regression/pkg1/w2/a74574b4-decc-44bb-88eb-a5a7aaf59e33-attachment.txt plus monitor events. Originals not modified.",
+  "injectedReachedStaging": false,
+  "recovery": { "stake": 1, "win": 0.5, "serverBalance": 14998.5 },
+  "dialog": { "displayed": true, "dismissed": true, "source": "legacy-helper" },
+  "timeline": "time                 HUD      server        host  Δ hud-srv  trigger / related\n07:40:51.406           —           —    14998.00          —  sample\n07:40:52.451           —           —    15000.00          —  sample\n07:41:18.644    15000.00           —    15000.00          —  sample\n07:41:32.005    14999.00           —    15000.00          —  sample\n07:41:32.727    14999.00    14999.00    15000.00          0  bet response ← #102 POST /api/v1/slots/bet → 201 1120ms\n07:41:35.299    14999.00    14999.00    14999.00          0  sample\n07:41:42.808    14998.00    14999.00    14999.00      -1.00  sample\n07:42:07.438    14998.00    14999.00    14999.00      -1.00  after error recovery\n07:42:16.399    14997.00    14999.00    14999.00      -2.00  sample\n07:42:17.733    14997.00    14998.50    14999.00      -1.50  bet response ← #156 POST /api/v1/slots/bet → 201 1408ms\n07:42:20.332    14998.12    14998.50    14998.50      -0.38  sample\n07:42:21.100    14998.50    14998.50    14998.50          0  sample\n07:42:38.473    14998.50    14998.50    14998.50          0  test end\n"
+}

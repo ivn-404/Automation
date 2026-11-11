@@ -1,0 +1,58 @@
+{
+  "workers": 4,
+  "layout": "1 2 | 3 4",
+  "notes": "Package 9 Fruit Attack capture hunt: four isolated sessions, same hunt, unique spec files so lane assignment stays unique. No Buy Feature — autoplay/spin until scatter or hold-and-win. First worker to finish a scenario dumps a still + 40s replay; the run stops when both scenarios are on the shared board.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "fruit-attack",
+      "gameName": "Fruit Attack",
+      "category": "CAPTURE",
+      "categories": ["CAPTURE"],
+      "packageId": "9",
+      "testMatch": ["capture/**/CAPTURE-001.spec.ts"],
+      "playerId": "Fruit Attack_CAP1",
+      "monitor": 0,
+      "slot": 0
+    },
+    {
+      "id": 2,
+      "gameId": "fruit-attack",
+      "gameName": "Fruit Attack",
+      "category": "CAPTURE",
+      "categories": ["CAPTURE"],
+      "packageId": "9",
+      "testMatch": ["capture/**/CAPTURE-002.spec.ts"],
+      "playerId": "Fruit Attack_CAP2",
+      "monitor": 0,
+      "slot": 1
+    },
+    {
+      "id": 3,
+      "gameId": "fruit-attack",
+      "gameName": "Fruit Attack",
+      "category": "CAPTURE",
+      "categories": ["CAPTURE"],
+      "packageId": "9",
+      "testMatch": ["capture/**/CAPTURE-003.spec.ts"],
+      "playerId": "Fruit Attack_CAP3",
+      "monitor": 1,
+      "slot": 0
+    },
+    {
+      "id": 4,
+      "gameId": "fruit-attack",
+      "gameName": "Fruit Attack",
+      "category": "CAPTURE",
+      "categories": ["CAPTURE"],
+      "packageId": "9",
+      "testMatch": ["capture/**/CAPTURE-004.spec.ts"],
+      "playerId": "Fruit Attack_CAP4",
+      "monitor": 1,
+      "slot": 1
+    }
+  ]
+}

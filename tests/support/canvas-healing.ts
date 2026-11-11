@@ -26,7 +26,8 @@ import {
   rememberHealedRatio,
 } from '../../src/eye/learned-ratios.js';
 import type { PlaywrightGameDriver } from '../../src/driver/playwright-game-driver.js';
-import { locateControlByPhaser } from '../../src/runtime/phaser-locate.js';
+import { listPhaserTexts, locateControlByPhaser } from '../../src/runtime/phaser-locate.js';
+import { ONGOING_FS_TEXT } from './session-continue-probe.js';
 import { drainLeftoverFeatureSpins } from '../../src/platform/index.js';
 import { describeRound, roundTrackerFor } from '../../src/network/round-tracker.js';
 import { observationFor } from '../../src/observability/index.js';
@@ -517,13 +518,22 @@ export async function waitForIdleHud(
 
   // Session Continue / press-anywhere after buy-feature or reload — must clear
   // before Phaser/splash heuristics, or spin stays covered forever.
-  const blockers = await clearCanvasBlockers(page, driver, manifest, 3, { cancelBuyPanel: true });
+  const buyEnabled = manifest.controllers.some((entry) => entry.id === 'buyFeature' && entry.enabled);
+  const blockers = await clearCanvasBlockers(page, driver, manifest, 3, { cancelBuyPanel: buyEnabled });
   if (blockers.hadSessionContinue) {
-    // Continue resumes leftover free spins — idle spin only returns after drain.
+    // A small green blob can read as Continue while the idle HUD is already up.
+    // Drain only when spin is still covered — otherwise we spin+fs-advance on
+    // top of a live autoplay/base game (Fruit Attack capture W3).
+    const spinAfterContinue = await locateControlByVision(page, driver, manifest, 'spin');
+    const ongoingPainted = (await listPhaserTexts(page, driver.iframeSelector).catch(() => [])).some(
+      (hit) => ONGOING_FS_TEXT.test(hit.text),
+    );
+    if (spinAfterContinue.healed && !ongoingPainted) {
+      console.log('[sgap-heal] session-continue dismissed but idle spin already visible — not draining FS');
+      return spinAfterContinue;
+    }
     console.log('[sgap-heal] session-continue: draining leftover free spins');
     await drainLeftoverFeatureSpins(page, driver, manifest, 12);
-    // The resumed round only reports progress after Continue, and the spin circle
-    // looks idle between free spins — so the round wait at the top saw nothing.
     await waitForOpenRound(page);
   }
   const afterBlocker = await locateControlByVision(page, driver, manifest, 'spin');
@@ -583,8 +593,16 @@ export async function waitForIdleHud(
     // Re-probe blockers each cycle — Continue can appear mid-wait after a buy.
     const blocker = await detectCanvasBlocker(driver);
     if (isDismissableBlocker(blocker.kind) || blocker.kind === 'buy-confirm') {
-      const cleared = await clearCanvasBlockers(page, driver, manifest, 1, { cancelBuyPanel: true });
+      const cleared = await clearCanvasBlockers(page, driver, manifest, 1, { cancelBuyPanel: buyEnabled });
       if (cleared.hadSessionContinue) {
+        const spinAfterContinue = await locateControlByVision(page, driver, manifest, 'spin');
+        const ongoingPainted = (await listPhaserTexts(page, driver.iframeSelector).catch(() => [])).some(
+          (hit) => ONGOING_FS_TEXT.test(hit.text),
+        );
+        if (spinAfterContinue.healed && !ongoingPainted) {
+          console.log('[sgap-heal] session-continue (loop) dismissed but idle spin already visible — not draining FS');
+          return spinAfterContinue;
+        }
         console.log('[sgap-heal] session-continue (loop): draining leftover free spins');
         await drainLeftoverFeatureSpins(page, driver, manifest, 12);
       }

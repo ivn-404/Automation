@@ -281,7 +281,10 @@ export interface FreeSpinSessionView {
   readonly initialCount: number;
   /** True when the last observed remaining/spinsLeft reaches 0 or the bundle is complete. */
   readonly countExhausted: boolean;
-  /** spinsLeft increased mid-session, or ≥scatterTriggerAt scatters on a non-opener board. */
+  /**
+   * Coarse leftover: remaining increased, or ≥scatterTriggerAt scatters after the opener.
+   * FS-008 uses `evaluateFreeSpinRetrigger` — do not treat this flag as +5 proof.
+   */
   readonly hadRetrigger: boolean;
   readonly maxScatterOnItem: number;
   readonly sumItemWins: number;
@@ -399,12 +402,6 @@ export function readFreeSpinSession(
         sumItemWins += item.totalWin;
       }
     }
-  }
-
-  // A retrigger that lands as the count steps down can leave spinsLeft flat (12→12);
-  // the extra spin still shows as more items than the opening count.
-  if (items.length > 0 && spinsLeftSeries.length > 0 && items.length > spinsLeftSeries[0]!) {
-    hadRetrigger = true;
   }
 
   const remaining = freeSpinItemsRemaining(body);

@@ -454,8 +454,26 @@ const SERVER_CATEGORY = {
   messageRegex: '(?s).*SERVER:.*',
 };
 
-/** Backend rejections (ScratchHubServerError etc.) get their own bucket ahead of product/test defects. */
-function ensureServerCategory(sourceAbs) {
+const NOT_CONFIGURED_CATEGORY = {
+  name: 'NOT CONFIGURED',
+  matchedStatuses: ['failed', 'broken'],
+  messageRegex: '(?s).*NOT CONFIGURED —.*',
+};
+
+const INCONCLUSIVE_CATEGORY = {
+  name: 'INCONCLUSIVE',
+  matchedStatuses: ['skipped'],
+  messageRegex: '(?s).*INCONCLUSIVE —.*',
+};
+
+const PREPEND_CATEGORIES = [SERVER_CATEGORY, NOT_CONFIGURED_CATEGORY, INCONCLUSIVE_CATEGORY];
+
+/**
+ * Keep Allure buckets for server errors, capability-gate configuration gaps,
+ * and bounded INCONCLUSIVE skips ahead of product/test defects. Writes only the
+ * current allure-results source; historical allure-history/ reports are not rewritten.
+ */
+function ensureReportCategories(sourceAbs) {
   const file = path.join(sourceAbs, 'categories.json');
   let categories = [];
   if (existsSync(file)) {
@@ -466,10 +484,13 @@ function ensureServerCategory(sourceAbs) {
       categories = [];
     }
   }
-  if (categories.some((entry) => entry?.name === SERVER_CATEGORY.name)) {
+  const prependNames = new Set(PREPEND_CATEGORIES.map((entry) => entry.name));
+  const rest = categories.filter((entry) => !prependNames.has(entry?.name));
+  const next = [...PREPEND_CATEGORIES, ...rest];
+  if (JSON.stringify(categories) === JSON.stringify(next)) {
     return;
   }
-  writeFileSync(file, `${JSON.stringify([SERVER_CATEGORY, ...categories], null, 2)}\n`, 'utf8');
+  writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
 }
 
 export function generateAllureReport(options = {}) {
@@ -482,7 +503,7 @@ export function generateAllureReport(options = {}) {
     return { ok: false, sources: [] };
   }
   for (const source of sources) {
-    ensureServerCategory(path.join(cwd, source));
+    ensureReportCategories(path.join(cwd, source));
   }
 
   const stamp = options.stamp ?? (options.runId ? `${runStamp()}-${options.runId}` : runStamp());

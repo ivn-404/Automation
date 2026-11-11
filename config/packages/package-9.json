@@ -1,0 +1,25 @@
+{
+  "packageId": "package-9",
+  "gameId": "fruit-attack",
+  "gameIds": ["fruit-attack"],
+  "displayName": "Package 9",
+  "specTitle": "Package 9 Specs",
+  "reelsHint": {
+    "columns": 5,
+    "rows": 4
+  },
+  "winPattern": "paylines-30",
+  "areaPath": "slot.area",
+  "areaLayout": "columns",
+  "featureItemsPath": "slot.freeSpin.items",
+  "maxWinMultiplier": 2000,
+  "capabilities": {
+    "freeSpins": true,
+    "scatterTrigger": true,
+    "freeSpinRetrigger": true,
+    "tumble": false,
+    "scatterMode": false,
+    "maxWin": true
+  },
+  "notes": "Package 9 (Fruit Attack, launcher 00190126) is a Magic Apple (3 Oaks) clone: 5x4, 30 paylines, no tumble, no Buy Feature. Two natural features from base autoplay/spin only. (1) Free spins: 3+ scatters award 8 spins; 3+ scatters during the round add another 8, including on the last spin (spinsLeft 0/1 → +8). Mirror/x2 wilds exist only in that round. (2) Hold & Win: 6+ bonus apples anywhere lock, 3 respins, each new apple resets the count to 3; Mini/Minor/Major jackpot apples can land; filling all 20 cells is Grand and is the max-win path (2000x on the 3 Oaks original — confirm live initialize.maxWin). Bonus apples do not appear during free spins, so the two features do not nest. Max win should close the feature and return to base. Capture hunt watches last-spin retrigger+max-win and Hold & Win max-win+return."
+}

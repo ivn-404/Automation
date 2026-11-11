@@ -134,6 +134,7 @@ async function attemptAutoplayStart<T>(
       return await collecting;
     } catch (error: unknown) {
       lastError = error;
+      await collecting.catch(() => undefined);
       await stopAutoplayQuietly(sgapSession, page);
       if (attempt === maxAttempts) {
         throw error;

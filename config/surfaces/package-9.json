@@ -1,0 +1,6 @@
+{
+  "id": "package-9",
+  "extends": "package-6",
+  "notes": "Package 9 HUD starts from Package 6 portrait bands (Fruit Attack matched that layout on first inspect). No buy-confirm band: this package has no Buy Feature. Fruit Attack's reel board is dark like Gnome Man's Land: capture hunts read press-anywhere luma ~45 on idle/win/autoplay frames with the spin circle hidden, so Package 6 maxLuma 56 treated the board as a dialog and tapped 0.5,0.55 (then drained 'leftover FS') on top of running autoplay. maxLuma 36 keeps the board out; a real Press-anywhere panel is still caught by Phaser text.",
+  "pressAnywhere": { "band": { "y0": 0.35, "y1": 0.65, "x0": 0.2, "x1": 0.8 }, "maxLuma": 36, "center": { "x": 0.5, "y": 0.55 } }
+}

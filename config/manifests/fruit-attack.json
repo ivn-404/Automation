@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "1.0.0",
+  "gameId": "fruit-attack",
+  "displayName": "Fruit Attack",
+  "iframeSelectorKey": "gameIframe",
+  "controllers": [
+    { "id": "spin", "enabled": true },
+    { "id": "autoplay", "enabled": true },
+    { "id": "buyFeature", "enabled": false },
+    { "id": "bet", "enabled": true },
+    { "id": "amplifyBet", "enabled": true },
+    { "id": "turbo", "enabled": true },
+    { "id": "menu", "enabled": true },
+    { "id": "settings", "enabled": true },
+    { "id": "fullscreen", "enabled": true },
+    { "id": "scratchCard", "enabled": true }
+  ],
+  "locatorKeys": {
+    "gameGrid": "div.grid",
+    "gameIframe": "iframe[title=\"Game session\"]",
+    "searchGames": "input[placeholder*=\"Search games\"]"
+  },
+  "canvasActions": {
+    "canvasSelector": "canvas",
+    "actions": {
+      "enter": { "x": 0.5, "y": 0.72 },
+      "attractPlay": { "x": 0.5, "y": 0.72 },
+      "acknowledge": { "x": 0.5, "y": 0.56 },
+      "acknowledgeAlt": { "x": 0.5, "y": 0.6 },
+      "dismiss": { "x": 0.5, "y": 0.5 },
+      "skip": { "x": 0.5, "y": 0.45 },
+      "closeOverlay": { "x": 0.88, "y": 0.22 },
+      "spin": { "x": 0.5, "y": 0.92 },
+      "betMinus": { "x": 0.712, "y": 0.833 },
+      "betPlus": { "x": 0.908, "y": 0.833 },
+      "errorOk": { "x": 0.5, "y": 0.58 },
+      "errorOkAlt": { "x": 0.5, "y": 0.27 },
+      "turbo": { "x": 0.9, "y": 0.925 },
+      "amplifyBet": { "x": 0.73, "y": 0.92 },
+      "menu": { "x": 0.1, "y": 0.925 },
+      "menuClose": { "x": 0.86, "y": 0.08 },
+      "menuCloseAlt": { "x": 0.84, "y": 0.1 },
+      "settingsTab": { "x": 0.72, "y": 0.12 },
+      "fullscreen": { "x": 0.924, "y": 0.035 },
+      "autoplay": { "x": 0.27, "y": 0.92 },
+      "autoplayConfirm": { "x": 0.42, "y": 0.78 },
+      "autoplayStart": { "x": 0.5, "y": 0.8 },
+      "autoplayStartAlt": { "x": 0.5, "y": 0.76 },
+      "autoplayStop": { "x": 0.27, "y": 0.92 },
+      "autoplaySpins10": { "x": 0.22, "y": 0.52 },
+      "autoplaySpins1000": { "x": 0.809, "y": 0.539 },
+      "scratchCard": { "x": 0.189, "y": 0.775 }
+    }
+  },
+  "scratchCard": {
+    "hubUrlPattern": "**/hubs/game",
+    "sideCanvasSelector": "#scratch-side-host canvas",
+    "inCanvasDrawer": { "x": 0, "y": 0.0713, "width": 1, "height": 0.9287 },
+    "actions": {
+      "size3x3": { "x": 0.266, "y": 0.203 },
+      "size4x4": { "x": 0.5, "y": 0.203 },
+      "size5x5": { "x": 0.735, "y": 0.203 },
+      "buyCard": { "x": 0.5, "y": 0.941 },
+      "scratchAll": { "x": 0.5, "y": 0.941 },
+      "close": { "x": 0.925, "y": 0.047 },
+      "betMinus": { "x": 0.151, "y": 0.85 },
+      "betPlus": { "x": 0.852, "y": 0.85 }
+    },
+    "scratchArea": { "x": 0.08, "y": 0.31, "width": 0.84, "height": 0.47 }
+  },
+  "network": {
+    "betUrlPattern": "**/api/v1/slots/bet",
+    "initializeUrlPattern": "**/api/v1/slots/initialize",
+    "fields": {
+      "balance": "balance",
+      "totalWin": "slot.totalWin",
+      "transactionState": "transactionState",
+      "baseWin": "slot.base.win",
+      "bonusWin": "slot.bonus.win"
+    }
+  },
+  "metadata": {
+    "launcherGameLabel": "Fruit Attack",
+    "launcherGameId": "00190126",
+    "launcherGameKey": "fruit_attack",
+    "playButtonAriaLabel": "Play in modal",
+    "rendering": "canvas",
+    "host": "dijoker",
+    "devices": "mobile,desktop",
+    "portraitViewport": "390x844",
+    "orientationLock": "portrait",
+    "stagingStatus": "active",
+    "notes": "Package 9 Magic Apple clone: 5x4, 30 lines, 8 free spins retriggerable by +8 (including last spin), Hold & Win from 6+ bonus apples with 3 respins. No Buy Feature. HUD ratios start from the Package 6 portrait template until PROBE-002 measures this title.",
+    "packageId": "package-9",
+    "gridSpamActions": "acknowledge,acknowledgeAlt,dismiss",
+    "skipAction": "skip",
+    "autoplayNeedsConfirm": "true",
+    "autoplaySpinCountAction": "autoplaySpins1000",
+    "autoplaySelectedSpins": "1000",
+    "maxWinFlagPath": "slot.hasMaxWin",
+    "holdAndWinPath": "slot.holdAndWin"
+  }
+}

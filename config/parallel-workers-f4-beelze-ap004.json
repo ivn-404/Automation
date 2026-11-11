@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F4-B Stage 4: Beelze-Bop AP-004. Staging wallet to 3 after funded min-stake walk.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "REGR",
+      "categories": ["AP"],
+      "testMatch": ["ap/**/AP-004.spec.ts"],
+      "playerId": "Beelze-Bop_F4",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

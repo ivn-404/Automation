@@ -21,6 +21,8 @@ export async function reloadAndReopenGame(options: {
   readonly timeoutMs?: number;
   /** Keep an in-progress free-spin session — do not drain leftover FS. */
   readonly preserveFeatureSession?: boolean;
+  /** Leave the ongoing-FS Continue dialog up for the caller to tap and classify. */
+  readonly deferResumeClick?: boolean;
 }): Promise<void> {
   const timeoutMs = options.timeoutMs ?? GAME_RELOAD_TIMEOUT_MS;
   const { sgapSession, sgapDriver, page } = options;
@@ -32,13 +34,15 @@ export async function reloadAndReopenGame(options: {
       state: 'visible',
       timeout: timeoutMs,
     });
-    await clearInterferingScreens({
-      page,
-      driver: sgapDriver,
-      manifest: sgapSession.manifest,
-      platform: sgapSession.platform,
-      intent: 'resumeFeature',
-    });
+    if (options.deferResumeClick !== true) {
+      await clearInterferingScreens({
+        page,
+        driver: sgapDriver,
+        manifest: sgapSession.manifest,
+        platform: sgapSession.platform,
+        intent: 'resumeFeature',
+      });
+    }
     return;
   }
 

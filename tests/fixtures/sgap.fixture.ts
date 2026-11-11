@@ -51,6 +51,7 @@ import {
   FileGameManifestLoader,
   PlaywrightPlatform,
   primeCanvasSession,
+  logGameSurface,
   UrlPlatform,
 } from '../../src/platform/index.js';
 import { UiRegistry } from '../../src/ui/registry/index.js';
@@ -66,6 +67,7 @@ import { attachBetTraffic } from '../support/failure-report.js';
 import {
   applySgapAllureMetadata,
   applySgapInteractionMetadata,
+  applyNotConfiguredOutcome,
   applySgapOutcomeMetadata,
 } from '../support/sgap-allure.js';
 import { takeInteractions } from '../../src/reporting/interaction-journal.js';
@@ -182,7 +184,9 @@ export const test = base.extend<SgapFixtures>({
         testInfo.skip(true, notApplicableReason(sgapManifest, requires));
       }
       if (unmappedCapabilities(sgapManifest, requires).length > 0) {
-        throw new Error(notConfiguredMessage(sgapManifest, requires));
+        const message = notConfiguredMessage(sgapManifest, requires);
+        await applyNotConfiguredOutcome(testInfo, message);
+        throw new Error(message);
       }
       await use();
     },
@@ -589,25 +593,45 @@ export const test = base.extend<SgapFixtures>({
       const afterWallet = Date.now();
       await sgapPlatform.openGame();
       const afterPlay = Date.now();
+      const iframeSelector = sgapUi.resolveIframe().selector;
       if (parallelLane !== undefined) {
         await tileLaneWindow(page, parallelLane);
       }
+      await logGameSurface(page, iframeSelector, 'after-openGame', sgapManifest);
       await sgapPlatform.prepareGameView(sgapView);
       const afterPortrait = Date.now();
+      await logGameSurface(page, iframeSelector, 'after-prepareGameView', sgapManifest);
       if (parallelLane !== undefined) {
-        await tileLaneWindow(page, parallelLane, { syncViewport: false });
+        // Mobile ES-012 sets 390×844 in prepareGameView. Re-tiling the OS
+        // window must keep that viewport; default syncViewport would replace
+        // it with the lane inner size (944×944 on a 960×1032 cell).
+        await tileLaneWindow(page, parallelLane, { syncViewport: sgapView !== 'mobile' });
+        const afterTile = page.viewportSize();
+        console.log(
+          `[sgap-view] after-tile view=${sgapView} viewport=${afterTile?.width ?? '?'}x${afterTile?.height ?? '?'} syncViewport=${sgapView !== 'mobile'}`,
+        );
+        await sgapPlatform.relockPortraitToViewport();
       }
+      await logGameSurface(page, iframeSelector, 'after-relockPortraitToViewport', sgapManifest);
       testInfo.annotations.push({ type: 'sgapView', description: sgapView });
       await sgapDriver.attach();
+      await logGameSurface(page, iframeSelector, 'after-attach', sgapManifest);
       await primeCanvasSession({
         page,
         driver: sgapDriver,
         manifest: sgapManifest,
         initializeBody: sgapPlatform.getInitializeBody(),
       });
+      await logGameSurface(page, iframeSelector, 'after-primeCanvasSession', sgapManifest);
+      // Splash dismiss restyles the same iframe node to fill the square
+      // viewport (computed 944×944) without replacing it. One relock here
+      // restores portrait after that known host layout pass — not a retry loop.
+      await sgapPlatform.relockPortraitToViewport();
+      await logGameSurface(page, iframeSelector, 'after-prime-relock', sgapManifest);
       const afterPrime = Date.now();
+      const setupViewport = page.viewportSize();
       console.log(
-        `[sgap-timing] ${sgapManifest.gameId} host=${afterHost - setupStarted}ms wallet=${afterWallet - afterHost}ms play=${afterPlay - afterWallet}ms portrait=${afterPortrait - afterPlay}ms prime=${afterPrime - afterPortrait}ms setup=${afterPrime - setupStarted}ms`,
+        `[sgap-timing] ${sgapManifest.gameId} host=${afterHost - setupStarted}ms wallet=${afterWallet - afterHost}ms play=${afterPlay - afterWallet}ms portrait=${afterPortrait - afterPlay}ms prime=${afterPrime - afterPortrait}ms setup=${afterPrime - setupStarted}ms viewport=${setupViewport?.width ?? '?'}x${setupViewport?.height ?? '?'} view=${sgapView}`,
       );
     }
 

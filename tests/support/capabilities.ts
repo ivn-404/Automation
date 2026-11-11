@@ -15,6 +15,7 @@ import {
   unsupportedCapabilities,
   type Capability,
 } from '../../src/capabilities/index.js';
+import { applyNotConfiguredOutcome } from './sgap-allure.js';
 
 export function requireCapabilities(...capabilities: readonly Capability[]): void {
   test.beforeEach(({ sgapManifest }, testInfo) => {
@@ -27,9 +28,11 @@ export function requireCapabilities(...capabilities: readonly Capability[]): voi
       unsupportedCapabilities(sgapManifest, capabilities).length > 0,
     `${NOT_APPLICABLE_PREFIX} — game does not support ${capabilities.join(' + ')}`,
   );
-  test.beforeEach(({ sgapManifest }) => {
+  test.beforeEach(async ({ sgapManifest }, testInfo) => {
     if (unmappedCapabilities(sgapManifest, capabilities).length > 0) {
-      throw new Error(notConfiguredMessage(sgapManifest, capabilities));
+      const message = notConfiguredMessage(sgapManifest, capabilities);
+      await applyNotConfiguredOutcome(testInfo, message);
+      throw new Error(message);
     }
   });
 }

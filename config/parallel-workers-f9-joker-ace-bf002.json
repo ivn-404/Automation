@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F9 identity verification: Joker Ace BF-002 on worker 1 (same slot as Sugar Pals). Expect NOT CONFIGURED. No wallet mutation.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "joker-ace",
+      "gameName": "Joker Ace",
+      "category": "REGR",
+      "categories": ["BF"],
+      "packageId": "11",
+      "testMatch": ["bf/**/BF-002.spec.ts"],
+      "playerId": "Joker Ace_F9",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

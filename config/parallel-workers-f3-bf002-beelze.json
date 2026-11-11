@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F3 post-F2 verification: Beelze-Bop BF-002 only. Staging wallet, no F2 code changes.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "REGR",
+      "categories": ["BF"],
+      "testMatch": ["bf/**/BF-002.spec.ts"],
+      "playerId": "Beelze-Bop_F3",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

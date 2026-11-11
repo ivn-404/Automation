@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F8-E: Beelze-Bop FS-008 live contract check vs Sugar. Two Buy Feature attempts, no FS-008 wallet refill, isolated player Beelze-Bop_F8E. Fixture target 250 only tops up if the wallet is below that. Authorized gross spend cap 200 at bet 1.00 (ladder includes 1).",
+  "defaultBalance": 250,
+  "defaultBetLimit": 250,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "beelze-bop",
+      "gameName": "Beelze-Bop",
+      "category": "REGR",
+      "categories": ["FS"],
+      "testMatch": ["fs/**/FS-008.spec.ts"],
+      "playerId": "Beelze-Bop_F8E",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

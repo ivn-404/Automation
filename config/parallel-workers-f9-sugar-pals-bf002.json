@@ -1,0 +1,24 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F9 identity verification: Sugar Pals BF-002 on worker 1. Expect NOT CONFIGURED (no spin/bet controllers). No wallet mutation.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-pals",
+      "gameName": "Sugar Pals",
+      "category": "REGR",
+      "categories": ["BF"],
+      "packageId": "8",
+      "testMatch": ["bf/**/BF-002.spec.ts"],
+      "playerId": "Sugar Pals_F9",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

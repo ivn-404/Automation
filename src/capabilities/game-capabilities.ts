@@ -117,9 +117,21 @@ export function unmappedCapabilities(
   return capabilitiesWithStatus(manifest, capabilities, 'unmapped');
 }
 
+/** Distinctive prefix of capability-gate configuration failures (em dash, not hyphen). */
+export const NOT_CONFIGURED_PREFIX = 'NOT CONFIGURED —';
+
+/**
+ * True for errors produced by the capability gate (`notConfiguredMessage` and the
+ * same prefix used in-spec). Does not match N/A, BLOCKED, CALIBRATION, or ordinary
+ * assertion / automation failures.
+ */
+export function isNotConfiguredReason(reason: string | undefined): boolean {
+  return reason?.includes(NOT_CONFIGURED_PREFIX) === true;
+}
+
 export function notConfiguredMessage(manifest: GameManifest, capabilities: readonly Capability[]): string {
   const unmapped = unmappedCapabilities(manifest, capabilities);
-  return `NOT CONFIGURED — ${manifest.displayName} does not declare ${unmapped.join(', ')} (add a controllers[] entry, a metadata key, a package capabilities entry, or the reelValidation / symbol catalog data)`;
+  return `${NOT_CONFIGURED_PREFIX} ${manifest.displayName} does not declare ${unmapped.join(', ')} (add a controllers[] entry, a metadata key, a package capabilities entry, or the reelValidation / symbol catalog data)`;
 }
 
 /** Every capability the manifest declares, controllers first. */

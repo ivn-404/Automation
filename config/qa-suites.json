@@ -7,9 +7,10 @@
     "3": ["war-freaks", "rainbow-fist", "the-shuten-doji"],
     "4": ["thats-bait", "genghis-bao", "sk8leton"],
     "5": ["pastry-cub", "aztec-lost-empire", "grave-threat", "titanic-transport"],
-    "6": ["zero-law", "boobie-trap"],
+    "6": ["zero-law", "boobie-trap", "gnome-mansland"],
     "7": ["oppals", "amazonians"],
     "8": ["blockchain-blitz", "trippy-cat", "mad-freaks", "necronomicoin", "sugar-pals"],
+    "9": ["fruit-attack"],
     "11": ["joker-ace", "king-in-gold"]
   },
   "familyNotes": "One entry per tests/specs/<folder>, in display order. group places the family on the QA page: regression families make up 'All Regression'; security (PEN) runs only when named explicitly; other families are selectable but never implied. testMatch overrides the folder glob. scope decides where a family runs: game = every selected game, package = the first selected game of each package, environment = once per run (first lane only). requires is the baseline every case in the family needs; the shared fixture turns an unsupported baseline into N/A and an undeclared one into NOT CONFIGURED before the game opens. Case-specific features stay on the spec via requireCapabilities.",
@@ -50,7 +51,8 @@
     "PAD": { "label": "Performance & Asset Diagnostics", "group": "performance", "folder": "pad", "scope": "game", "requires": ["spin"] },
     "MN": { "label": "Menu", "group": "other", "folder": "mn", "scope": "game", "requires": ["spin", "bet"] },
     "WD": { "label": "Wilds (packages 7 and 11)", "group": "other", "folder": "wd", "scope": "game", "requires": ["spin", "bet"] },
-    "PROBE": { "label": "Reel data contract (PROBE-004)", "group": "other", "folder": "probe", "testMatch": ["probe/**/PROBE-004.spec.ts"], "scope": "game", "requires": [] }
+    "PROBE": { "label": "Reel data contract (PROBE-004)", "group": "other", "folder": "probe", "testMatch": ["probe/**/PROBE-004.spec.ts"], "scope": "game", "requires": [] },
+    "CAPTURE": { "label": "Rare-event capture (autoplay/spin hunt)", "group": "other", "folder": "capture", "scope": "game", "requires": ["spin", "bet", "autoplay"] }
   },
   "suiteNotes": "Presets on the QA page. families accepts family ids and @group tokens (@regression never includes PEN); testMatch is for presets that pick individual cases.",
   "suites": [

@@ -37,3 +37,10 @@ export {
   innerViewportForWindow,
   parseWxH,
 } from './game-view-layout.js';
+export {
+  logGameSurface,
+  snapshotGameSurface,
+  formatGameSurface,
+  exitDocumentFullscreen,
+  type GameSurfaceSnapshot,
+} from './portrait-guard.js';

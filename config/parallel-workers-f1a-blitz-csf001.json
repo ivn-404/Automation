@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F1-A reporting verification: Blockchain Blitz CSF-001. Expect NOT CONFIGURED. No slot mapping.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "blockchain-blitz",
+      "gameName": "Blockchain Blitz",
+      "category": "REGR",
+      "categories": ["CSF"],
+      "testMatch": ["csf/**/CSF-001.spec.ts"],
+      "playerId": "Blockchain Blitz_F1A",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

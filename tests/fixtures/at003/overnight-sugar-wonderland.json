@@ -1,0 +1,8 @@
+{
+  "gameId": "sugar-wonderland",
+  "source": "Overnight pkg1 AT-003 2026-11-07, sanitized copy of allure-results/queue-regression/pkg1/w1/5f5e53d4-fcbd-45de-870b-6016c10b1482-attachment.txt plus monitor events. Originals not modified.",
+  "injectedReachedStaging": false,
+  "recovery": { "stake": 1, "win": 0, "serverBalance": 14998.4 },
+  "dialog": { "displayed": true, "dismissed": true, "source": "legacy-helper" },
+  "timeline": "time                 HUD      server        host  Δ hud-srv  trigger / related\n07:39:54.174           —           —    15000.00          —  sample\n07:40:15.417    15000.00           —    15000.00          —  sample\n07:40:27.596    14999.36           —    15000.00          —  sample\n07:40:28.133    14999.00           —    15000.00          —  sample\n07:40:28.566    14999.00    14999.40    15000.00      -0.40  bet response ← #78 POST /api/v1/slots/bet → 201 977ms\n07:40:30.357    14999.00    14999.40    14999.00      -0.40  sample\n07:40:31.315    14999.40    14999.40    14999.40          0  sample\n07:40:40.294    14999.40    14999.40    14999.40          0  after error recovery\n07:40:49.555    14998.40    14999.40    14999.40      -1.00  sample\n07:40:50.437    14998.40    14998.40    14999.40          0  bet response ← #110 POST /api/v1/slots/bet → 201 1017ms\n07:40:51.687    14998.40    14998.40    14998.40          0  sample\n07:40:58.381    14998.40    14998.40    14998.40          0  test end\n"
+}

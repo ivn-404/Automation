@@ -36,6 +36,7 @@ export {
   spamClickSkip,
 } from './grid-spam-click.js';
 import { matchesBetUrl } from '../network/bet-url.js';
+import { healPortraitOrientation, logGameSurface } from './portrait-guard.js';
 
 export interface CanvasSessionPrimerOptions {
   readonly page: Page;
@@ -147,57 +148,77 @@ export async function settleCanvasToBaseGame(
     return;
   }
 
-  await clearInterferingScreens({
-    page,
-    driver,
-    manifest,
-    intent: 'idle',
-  });
-  const blockers = await clearCanvasBlockers(page, driver, manifest, 3, { cancelBuyPanel: true });
-  await clearNonGridOverlays(driver, manifest, 2);
+  try {
+    await clearInterferingScreens({
+      page,
+      driver,
+      manifest,
+      intent: 'idle',
+    });
+    const buyEnabled = manifest.controllers.some((entry) => entry.id === 'buyFeature' && entry.enabled);
+    const blockers = await clearCanvasBlockers(page, driver, manifest, 3, { cancelBuyPanel: buyEnabled });
+    await clearNonGridOverlays(driver, manifest, 2);
 
-  // Session Continue resumes an unfinished free-spin round — drain it even when
-  // initialize reported remaining=0 (body is stale until Continue is accepted).
-  if (blockers.hadSessionContinue) {
-    await drainLeftoverFeatureSpins(page, driver, manifest, maxSpins);
-    return;
-  }
-
-  // Only drain leftover free spins from initialize. Chasing any /bet in a 3.5s
-  // window used to click HUD spin (or Beelze Buy, which sits on the old enter
-  // point) and fire a request the spec's waiter never saw.
-  if (freeSpinItemsRemaining(initializeBody) === 0) {
-    return;
-  }
-
-  for (let spin = 0; spin < maxSpins; spin += 1) {
-    await clearNonGridOverlays(driver, manifest, 1);
-    const betPromise = page.waitForResponse(
-      (response) => response.ok() && isBetUrl(response.url()),
-      { timeout: 12_000 },
-    );
-    await driver.clickCanvas('spin', { singleInput: true }).catch(() => undefined);
-    markSpinTriggered(driver);
-    const response = await betPromise.catch(() => undefined);
-    if (response === undefined) {
-      await clearCanvasOverlays(driver, manifest, 4);
+    // Session Continue resumes an unfinished free-spin round — drain it even when
+    // initialize reported remaining=0 (body is stale until Continue is accepted).
+    // Skip drain when the idle spin is already visible: a small green blob can
+    // read as Continue on a live HUD, and spinning then fights autoplay.
+    if (blockers.hadSessionContinue) {
+      const capture = await driver.captureCanvasForVision().catch(() => undefined);
+      if (capture !== undefined && findIdleSpinInPng(capture.png, driver.surface) !== undefined) {
+        console.log('[sgap-heal] leftover-fs: idle spin visible after session-continue — not draining');
+        return;
+      }
+      await drainLeftoverFeatureSpins(page, driver, manifest, maxSpins);
       return;
     }
 
-    let body: unknown;
-    try {
-      body = await response.json();
-    } catch {
-      body = undefined;
-    }
-    await clearCanvasOverlays(driver, manifest, 3);
-    if (freeSpinItemsRemaining(body) === 0) {
-      await clearCanvasOverlays(driver, manifest, 2);
+    // Only drain leftover free spins from initialize. Chasing any /bet in a 3.5s
+    // window used to click HUD spin (or Beelze Buy, which sits on the old enter
+    // point) and fire a request the spec's waiter never saw.
+    if (freeSpinItemsRemaining(initializeBody) === 0) {
       return;
     }
-  }
 
-  await clearCanvasOverlays(driver, manifest, 4);
+    for (let spin = 0; spin < maxSpins; spin += 1) {
+      await clearNonGridOverlays(driver, manifest, 1);
+      const betPromise = page.waitForResponse(
+        (response) => response.ok() && isBetUrl(response.url()),
+        { timeout: 12_000 },
+      );
+      await driver.clickCanvas('spin', { singleInput: true }).catch(() => undefined);
+      markSpinTriggered(driver);
+      const response = await betPromise.catch(() => undefined);
+      if (response === undefined) {
+        await clearCanvasOverlays(driver, manifest, 4);
+        return;
+      }
+
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch {
+        body = undefined;
+      }
+      await clearCanvasOverlays(driver, manifest, 3);
+      if (freeSpinItemsRemaining(body) === 0) {
+        await clearCanvasOverlays(driver, manifest, 2);
+        return;
+      }
+    }
+
+    await clearCanvasOverlays(driver, manifest, 4);
+  } finally {
+    // Splash Play requests fullscreen on the iframe. That UA style fills the
+    // square worker viewport (944×944) and is the AT-007 landscape failure.
+    // One heal here — after the dismiss that triggers it — restores portrait.
+    await healPortraitOrientation(page, manifest, driver.iframeSelector, {
+      allowViewportResize: false,
+    });
+    if (process.env.SGAP_IFRAME_TRACE === '1') {
+      await logGameSurface(page, driver.iframeSelector, 'after-settleCanvasToBaseGame', manifest);
+    }
+  }
 }
 
 /**

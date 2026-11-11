@@ -150,9 +150,10 @@ export async function recoverMissedCanvasClick(
     console.log(
       `[sgap-eye] miss action=${actionName} ${ratioNote} → ${observation.screenId} via=${observation.via} handled=${observation.handled}`,
     );
-    if (observation.resumedFeature === true) {
-      // Continue resumes the leftover free spins; the HUD only accepts the retried
-      // action once they have played out.
+    if (observation.resumedFeature === true && intentFromAction(actionName) !== 'autoplay') {
+      // Continue resumes leftover free spins; the HUD only accepts the retried
+      // action once they have played out. Never drain during autoplay — spin +
+      // fs-advance on a running 1000-spin autoplay is what killed capture W3.
       console.log(`[sgap-heal] ${actionName}: session-continue on miss — draining leftover free spins`);
       await drainLeftoverFeatureSpins(page, driver, manifest, 16);
       await waitForOpenRound(page);

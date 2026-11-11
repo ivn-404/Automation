@@ -1,0 +1,8 @@
+{
+  "gameId": "felice-in-space",
+  "source": "Overnight pkg1 AT-003 2026-11-07, sanitized copy of allure-results/queue-regression/pkg1/w3/db1cd502-513a-44b6-8d10-08fabd7bc7cb-attachment.txt plus monitor events. Originals not modified.",
+  "injectedReachedStaging": false,
+  "recovery": { "stake": 1, "win": 1, "serverBalance": 14999.3 },
+  "dialog": { "displayed": true, "dismissed": true, "source": "legacy-helper" },
+  "timeline": "time                 HUD      server        host  Δ hud-srv  trigger / related\n07:42:03.340           —           —    15000.30          —  sample\n07:42:35.290    15000.30           —    15000.30          —  sample\n07:42:45.640    14999.35           —    15000.30          —  sample\n07:42:46.210    14999.30           —    15000.30          —  sample\n07:42:46.411    14999.30    14999.30    15000.30          0  bet response ← #117 POST /api/v1/slots/bet → 201 874ms\n07:42:47.584    14999.30    14999.30    14999.30          0  sample\n07:42:51.200    14998.30    14999.30    14999.30      -1.00  sample\n07:43:15.604    14998.30    14999.30    14999.30      -1.00  after error recovery\n07:43:23.171    14997.30    14999.30    14999.30      -2.00  sample\n07:43:23.996    14997.30    14999.30    14999.30      -2.00  bet response ← #155 POST /api/v1/slots/bet → 201 949ms\n07:43:26.304    14997.53    14999.30    14999.30      -1.77  sample\n07:43:26.888    14999.30    14999.30    14999.30          0  sample\n07:43:40.943    14999.30    14999.30    14999.30          0  test end\n"
+}

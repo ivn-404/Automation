@@ -37,7 +37,13 @@
     "scatterMode": true,
     "maxWin": true
   },
-  "notes": "From docs/packages/Package6.pdf (game reference: Vampy Party). 6 reels with 3-4-5-5-4-3 rows, 3600 ways left to right, max win 5,000x, bet 0.20-150.00, high volatility. Symbol 0 is the scatter, Symbol 9 the wild (substitutes all but scatter). Scatter 3/4/5/6 awards 12 free spins starting at x8/x16/x32/x64; the same scatter counts during the bonus reset the spins left back to 12. Tumbles drop winners and refill; the tumble multiplier doubles per tumble (x1, x2, x4 … x1024 from the 11th) and resets when the sequence ends. Marked paying symbols on reels 3 and 4 turn into wilds for the next tumble. Buy feature: F1 78x (3 scatters, x8), F2 150x (4, x16), F3 288x (5, x32), F4 128x (random 3-6 scatters). Enhance bet costs 140% of the bet. reelsHint rows is the tallest reel. PROBE-001 (2026-10-23): slot.area is one array per reel (3,4,5,5,4,3 cells); slot.markers holds the marked cells for reels 3 and 4.",
+  "freeSpinRetriggerRules": {
+    "scatterEntryAt": 3,
+    "scatterRetriggerAt": 3,
+    "awardKind": "reset",
+    "awardSpins": 12
+  },
+  "notes": "From docs/packages/Package6.pdf (game reference: Vampy Party). 6 reels with 3-4-5-5-4-3 rows, 3600 ways left to right, max win 5,000x, bet 0.20-150.00, high volatility. Symbol 0 is the scatter, Symbol 9 the wild (substitutes all but scatter). Scatter 3/4/5/6 awards 12 free spins starting at x8/x16/x32/x64; the same scatter counts during the bonus reset the spins left back to 12. Tumbles drop winners and refill; the tumble multiplier doubles per tumble (x1, x2, x4 … x1024 from the 11th) and resets when the sequence ends. Marked paying symbols on reels 3 and 4 turn into wilds for the next tumble. Buy feature: F1 78x (3 scatters, x8), F2 150x (4, x16), F3 288x (5, x32), F4 128x (random 3-6 scatters). Enhance bet costs 140% of the bet. reelsHint rows is the tallest reel. PROBE-001 (2026-10-23): slot.area is one array per reel (3,4,5,5,4,3 cells); slot.markers holds the marked cells for reels 3 and 4. Re-trigger is a reset to 12, not Package 1's +5.",
   "symbols": [
     {
       "id": 0,

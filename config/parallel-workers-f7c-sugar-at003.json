@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F7-C3: Sugar Wonderland AT-003 staging control. Isolated player Sugar Wonderland_F8B. Fixture target 250 only tops up if the wallet is below that; last known F8-D host balance 10249.05. No wallet refill. Category REGR so Allure Project remains w1-REGR.",
+  "defaultBalance": 250,
+  "defaultBetLimit": 250,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "sugar-wonderland",
+      "gameName": "Sugar Wonderland",
+      "category": "REGR",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-003.spec.ts"],
+      "playerId": "Sugar Wonderland_F8B",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

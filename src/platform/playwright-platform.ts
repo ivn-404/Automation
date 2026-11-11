@@ -22,7 +22,12 @@ import { matchesUrlPattern } from '../network/bet-response-watcher.js';
 import { clickHostWithIndicator } from '../driver/click-tracker.js';
 import type { UiRegistry } from '../ui/registry/index.js';
 import { PlatformConfigurationError } from './errors.js';
-import { removePortraitLock, shrinkIframeToVisibleRoom } from './portrait-guard.js';
+import {
+  exitDocumentFullscreen,
+  installPortraitLock,
+  removePortraitLock,
+  shrinkIframeToVisibleRoom,
+} from './portrait-guard.js';
 import {
   fitPortraitSize,
   parseWxH,
@@ -259,10 +264,27 @@ export class PlaywrightPlatform implements IPlatform {
     }
 
     if (await this.rotateOverlayVisible()) {
-      const viewport = this.page.viewportSize() ?? preferred;
-      await this.page.setViewportSize(fitPortraitSize(viewport, preferred));
+      await this.relockPortraitToViewport();
       await this.reloadGameFramePortrait(preferred, timeout);
     }
+  }
+
+  /**
+   * Size the game iframe to the largest portrait that fills the current
+   * window. Does not shrink the Playwright viewport — that left a phone-sized
+   * strip in a 960×1032 tiled pane with white letterbox around it.
+   */
+  async relockPortraitToViewport(): Promise<void> {
+    this.assertNotDisposed();
+    await exitDocumentFullscreen(this.page, this.manifest);
+    const preferred = portraitAspectFor(this.manifest);
+    const viewport = this.page.viewportSize() ?? { width: 1400, height: 900 };
+    let fitted = fitPortraitSize(viewport, preferred);
+    await this.lockGameIframePortrait(fitted);
+    fitted = await shrinkIframeToVisibleRoom(this.page, this.ui.resolveIframe().selector, fitted, preferred, (size) =>
+      this.lockGameIframePortrait(size),
+    );
+    await this.lockGameIframePortrait(fitted);
   }
 
   async prepareActiveGameView(options?: ObservableWaitOptions): Promise<void> {
@@ -381,6 +403,16 @@ export class PlaywrightPlatform implements IPlatform {
         node.style.setProperty('max-height', `${next.height}px`, 'important');
         node.style.setProperty('min-width', `${next.width}px`, 'important');
         node.style.setProperty('min-height', `${next.height}px`, 'important');
+        node.style.setProperty('display', 'block', 'important');
+        node.style.setProperty('position', 'relative', 'important');
+        node.style.setProperty('inset', 'auto', 'important');
+        node.style.setProperty('left', 'auto', 'important');
+        node.style.setProperty('right', 'auto', 'important');
+        node.style.setProperty('top', 'auto', 'important');
+        node.style.setProperty('bottom', 'auto', 'important');
+        node.style.setProperty('flex', '0 0 auto', 'important');
+        node.style.setProperty('align-self', 'center', 'important');
+        node.style.setProperty('box-sizing', 'border-box', 'important');
       };
       const iframeEl = el as {
         style: { setProperty: (key: string, value: string, priority: string) => void };
@@ -394,7 +426,15 @@ export class PlaywrightPlatform implements IPlatform {
       apply(iframeEl);
       iframeEl.setAttribute('width', String(next.width));
       iframeEl.setAttribute('height', String(next.height));
+      let node = iframeEl.parentElement;
+      while (node !== null && node.tagName !== 'BODY' && node.tagName !== 'HTML') {
+        node.style.setProperty('max-width', 'none', 'important');
+        node.style.setProperty('max-height', 'none', 'important');
+        node.style.setProperty('overflow', 'visible', 'important');
+        node = node.parentElement as typeof node;
+      }
     }, size);
+    await installPortraitLock(this.page, iframe.selector, size);
   }
 
   private async reloadGameFramePortrait(
@@ -438,7 +478,6 @@ export class PlaywrightPlatform implements IPlatform {
       .catch(() => undefined);
     const alreadyPortrait = innerBefore !== undefined && innerBefore.w < innerBefore.h;
     if (innerBefore !== undefined && innerBefore.w >= innerBefore.h) {
-      await this.page.setViewportSize(fitted);
       await this.lockGameIframePortrait(fitted);
     }
     if (alreadyPortrait && /[?&]device=mobile/i.test(src)) {

@@ -1,0 +1,23 @@
+{
+  "workers": 1,
+  "layout": "1",
+  "notes": "F1-A reporting verification: Joker Ace AT-002. Expect NOT CONFIGURED. No slot mapping.",
+  "defaultBalance": 15000,
+  "defaultBetLimit": 15000,
+  "minimumBetBalance": 100,
+  "lanes": [
+    {
+      "id": 1,
+      "gameId": "joker-ace",
+      "gameName": "Joker Ace",
+      "category": "REGR",
+      "categories": ["AT"],
+      "testMatch": ["at/**/AT-002.spec.ts"],
+      "playerId": "Joker Ace_F1A",
+      "monitor": 0,
+      "slot": 0,
+      "col": 0,
+      "row": 0
+    }
+  ]
+}

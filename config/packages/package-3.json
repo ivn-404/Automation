@@ -18,6 +18,14 @@
     "multiplierWild": true,
     "maxWin": true
   },
+  "freeSpinRetriggerRules": {
+    "scatterEntryAt": 4,
+    "scatterRetriggerAt": 3,
+    "awardKind": "add",
+    "awardSpins": 5,
+    "purchasedOpenerInBonus": true,
+    "awardLagItems": 1
+  },
   "notes": "From docs/packages/Package3.pdf (Gates of Olympus reference): 6x5, eight of a kind, max win 21,000x, bet 0.20-150.00. 4+ scatters trigger 15 free spins; 3 scatters during free spins add 5 (retrigger); Buy Bonus grants 15 free spins; Enhance Bet +25% and Buy/Enhance disable each other. Tumble continues while wins land; every multiplier on screen is summed and multiplies the sequence's total win, in base game and free spins. Multiplier ids follow the Symbols & Payouts table (11-25 = 2x-500x), confirmed on staging by CSF-011 (2026-10-09): slot.tumbles.multiplier reported {symbol 13, value 4} on War Freaks and {symbol 11, value 2} on Rainbow Fist. The spec's asset list (symbol10-24) is art naming, not backend ids. Staging /bet on all three titles (PROBE-001 bet-shape.json, 2026-10-09): slot.area is column-major 6x5 like Package 1; tumbles are an object (slot.tumbles.items with symbols.in/out, slot.tumbles.multiplier {symbols,total}); slot.freeSpin.items; slot.base.win / slot.bonus.win. rowOrder is left at the default until PROBE-004's overlay confirms it on screen.",
   "symbols": [
     { "id": 0, "name": "Symbol 0", "kind": "scatter", "helpOrder": 10 },
