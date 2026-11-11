@@ -20,7 +20,7 @@ Grave Threat	Slot	00090725
 Pastry Cub	Slot	00171225
 TitanicTransport	Slot	00260326 - NEWLY RELEASED
 Boobie Trap	Slot	00100925 
-Gnome Mansland	Slot	00290426 - NOT YET RELEASED
+Gnome Mansland	Slot	00290426 - NEWLY RELEASE
 Zero Law	Slot	00110925
 Amazonians	Slot	00270326
 Oppals	Slot	00200126 
@@ -31,7 +31,7 @@ Necronomicoin	Slot	00280326
 Trippy Cat	Slot	00162025 
 Sugar Pals	Slot	00162025 
 Fang Shui Fortunes	Slot	00230126 - NOT YET RELEASED
-Fruit Attack	Slot	00190126
+Fruit Attack	Slot	00190126 - NOT YET RELEASED
 Rangda	Slot	00210126 - NOT YET RELEASED
 
 
@@ -77,9 +77,6 @@ Trippy Cat
 Mad Freak
 Necronomicoin
 Sugar Pals
-
-Package 9
-Fruit Attack
 
 Package 11
 Joker Ace
